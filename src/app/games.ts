@@ -68,3 +68,51 @@ export async function getGame(id: string): Promise<Game | null> {
 
   return data;
 }
+
+// What joinGame tells the caller after it tries to add a player:
+//  - { newCount }  -> success; newCount is the updated current_players number
+//  - { full: true } -> the game was already full, nothing changed
+//  - { error: true } -> something went wrong talking to the database
+export type JoinResult =
+  | { newCount: number }
+  | { full: true }
+  | { error: true };
+
+// Adds ONE player to a game in the database (used by the Join button).
+// We first read the latest numbers so we don't accidentally over-fill a game
+// that other people may have joined since this screen loaded.
+export async function joinGame(id: string): Promise<JoinResult> {
+  // 1. Read the game's current and maximum players, fresh from the database.
+  const { data: latest, error: readError } = await supabase
+    .from("games")
+    .select("current_players, max_players")
+    .eq("id", id)
+    .single();
+
+  if (readError || !latest) {
+    console.error("Could not read game before joining:", readError?.message);
+    return { error: true };
+  }
+
+  // 2. If it's already full, stop here and report that — don't change anything.
+  if (latest.current_players >= latest.max_players) {
+    return { full: true };
+  }
+
+  // 3. Write the new, higher count back to the database.
+  const newCount = latest.current_players + 1;
+  const { data: updated, error: updateError } = await supabase
+    .from("games")
+    .update({ current_players: newCount })
+    .eq("id", id)
+    .lt("current_players", latest.max_players) // safety: only if still not full
+    .select("current_players")
+    .single();
+
+  if (updateError || !updated) {
+    console.error("Could not join game:", updateError?.message);
+    return { error: true };
+  }
+
+  return { newCount: updated.current_players };
+}

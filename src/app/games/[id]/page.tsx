@@ -3,8 +3,8 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getGame, formatGameTime } from "../../games";
-import JoinButton from "./join-button";
+import { getGame } from "../../games";
+import GameDetail from "./game-detail";
 
 // Always fetch fresh data from the database on each visit.
 export const dynamic = "force-dynamic";
@@ -25,9 +25,6 @@ export default async function GameDetailPage({
     notFound();
   }
 
-  // How many spots are still open.
-  const spotsOpen = game.max_players - game.current_players;
-
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-5 py-8">
       {/* The "Back" link returns to the list screen at "/". */}
@@ -44,28 +41,9 @@ export default async function GameDetailPage({
         <p className="text-zinc-500">{game.location}</p>
       </header>
 
-      {/* A simple box listing the key facts. */}
-      <dl className="mt-6 flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4">
-        <div className="flex justify-between">
-          <dt className="text-zinc-500">When</dt>
-          <dd className="font-medium text-zinc-900">
-            {formatGameTime(game.game_time)}
-          </dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-zinc-500">Level</dt>
-          <dd className="font-medium text-zinc-900">{game.skill_level}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-zinc-500">Spots left</dt>
-          <dd className="font-medium text-zinc-900">{spotsOpen}</dd>
-        </div>
-      </dl>
-
-      {/* The Join button (the interactive piece). */}
-      <div className="mt-6">
-        <JoinButton />
-      </div>
+      {/* The facts box + Join button. This part can update on screen when
+          someone joins, so it lives in its own interactive component. */}
+      <GameDetail game={game} />
     </main>
   );
 }
