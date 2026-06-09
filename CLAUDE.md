@@ -40,16 +40,28 @@ To stay focused, we are deliberately leaving these for later:
 - **Hosting / deploy:** **Vercel** — the service that puts the app on the internet so others can open it from a link.
 - **Core user loop (LOCKED):** open app → see nearby games → tap one → join.
 
+## Live links (the app on the internet)
+- **Live public site:** https://padel-loop-one.vercel.app
+- **Code (private GitHub repo):** https://github.com/darragh1512/padel-loop
+- **Hosting:** Vercel, connected to the GitHub repo. Every `git push` to the
+  `main` branch auto-rebuilds and updates the live site within ~1 minute.
+
 ## How to run the app on your computer
 1. The project lives in `C:\Users\darra\Desktop\padel-loop`.
 2. To start it: run `npm run dev` from inside that folder.
 3. Then open a browser to **http://localhost:3000** to see it.
 4. To stop it: close the terminal window running it (or press Ctrl+C in it).
-- "Local" = running privately on your computer only. Putting it on the public
-  internet (so others can visit) is a separate step using Vercel, done later.
+- "Local" = running privately on your computer only (for testing changes).
+  The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
 - Day 1: Scaffolded the Next.js + Tailwind app and got it running locally.
+- Day 2: Connected the app to the Supabase `games` table. List + detail screens
+  now read REAL data from the database (verified working locally). Env vars are
+  in `.env.local` (local only — still need to be added in Vercel for the live site).
+  - `game_time` is now shown in friendly form (e.g. "Wed 10 Jun, 5:30 pm") via
+    `formatGameTime()` in `src/app/games.ts`. Displayed in UTC (same timezone
+    it's stored in) so the time typed in Supabase matches what's on screen.
 - Day 1: Built the clickable core loop as placeholder screens (no database/login/payments):
   - `src/app/games.ts` — hand-made list of example games (the fake data).
   - `src/app/page.tsx` — the "nearby games" LIST screen (home, "/").
@@ -58,8 +70,24 @@ To stay focused, we are deliberately leaving these for later:
     confirmation when tapped; no real booking yet).
   - Navigation works: list → tap a game → detail → "Back to games" → list.
 
+## Database (Supabase)
+- The app reads games from a **Supabase** database (table: `games`).
+- Library: `@supabase/supabase-js`. Connection set up in `src/lib/supabaseClient.ts`.
+- Secrets live in `.env.local` (NOT committed to git). Two variables:
+  - `NEXT_PUBLIC_SUPABASE_URL` = Supabase Project URL
+  - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = Supabase publishable key
+- IMPORTANT: after editing `.env.local`, the dev server must be restarted to
+  pick up the new values.
+- `games` table columns: id, venue, location, game_time, skill_level,
+  max_players, current_players.
+  - "Spots left" is computed as `max_players - current_players`.
+  - NOTE: there is no distance column, so the old "X km away" text was removed.
+- For the live Vercel site to show data, the same two env vars must also be
+  added in the Vercel project settings (Environment Variables) — not done yet.
+
 ## Key files (where things live)
-- Example game data: `src/app/games.ts` (edit games here).
+- Data-fetching from Supabase: `src/app/games.ts` (`getGames`, `getGame`).
+- Supabase connection: `src/lib/supabaseClient.ts`.
 - List screen: `src/app/page.tsx`.
 - Detail screen: `src/app/games/[id]/page.tsx`.
 - Join button: `src/app/games/[id]/join-button.tsx`.
