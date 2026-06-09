@@ -2,7 +2,7 @@
 // It now reads REAL games from the Supabase database (see getGames in games.ts).
 
 import Link from "next/link";
-import { getGames, formatGameTime } from "./games";
+import { getGames, getPlayerCounts, formatGameTime } from "./games";
 
 // Always fetch fresh data from the database on each visit, so newly added
 // or updated games show up right away.
@@ -12,6 +12,10 @@ export default async function HomePage() {
   // Ask the database for all games, sorted by game_time. We "await" because
   // fetching from the database takes a moment.
   const games = await getGames();
+
+  // Work out how many players are in each game (from the game_players table),
+  // so we can show how many spots are left.
+  const playerCounts = await getPlayerCounts(games.map((game) => game.id));
 
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-5 py-8">
@@ -32,8 +36,9 @@ export default async function HomePage() {
       {/* The list of games. We loop over each game and draw a card for it. */}
       <ul className="flex flex-col gap-3">
         {games.map((game) => {
-          // How many spots are still open = total spots minus those taken.
-          const spotsOpen = game.max_players - game.current_players;
+          // How many spots are still open = total spots minus how many players
+          // are in this game (looked up from the counts above; 0 if none yet).
+          const spotsOpen = game.max_players - (playerCounts[game.id] ?? 0);
 
           return (
             <li key={game.id}>

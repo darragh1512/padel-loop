@@ -4,13 +4,32 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createGame } from "../../games";
+import { supabase } from "@/lib/supabaseClient";
 
 // The form for creating a brand-new game. It lives at "/games/new".
 export default function NewGamePage() {
   // "router" lets us send the user to another page after they submit.
   const router = useRouter();
+
+  // Who is logged in. We need their user id to record who created the game.
+  const [userId, setUserId] = useState<string | null>(null);
+  // "checking" is true until we've confirmed someone is logged in.
+  const [checking, setChecking] = useState(true);
+
+  // When the page opens, make sure someone is logged in. If not, send them to
+  // the login page — you must have an account to create a game.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) {
+        router.replace("/login");
+        return;
+      }
+      setUserId(data.user.id);
+      setChecking(false);
+    });
+  }, [router]);
 
   // One piece of memory per field, holding what the user has typed so far.
   const [venue, setVenue] = useState("");
@@ -27,6 +46,14 @@ export default function NewGamePage() {
   // Runs when the form is submitted (the "Create game" button is tapped).
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault(); // stop the browser's default page-reload behaviour
+
+    // Safety check: we should always have a logged-in user here, but if not,
+    // send them to log in rather than failing.
+    if (!userId) {
+      router.replace("/login");
+      return;
+    }
+
     setSaving(true);
     setError(false);
 
@@ -35,13 +62,16 @@ export default function NewGamePage() {
     // the rest of the app handles times).
     const gameTimeUtc = new Date(gameTime + "Z").toISOString();
 
-    const result = await createGame({
-      venue,
-      location,
-      game_time: gameTimeUtc,
-      skill_level: skillLevel,
-      max_players: maxPlayers,
-    });
+    const result = await createGame(
+      {
+        venue,
+        location,
+        game_time: gameTimeUtc,
+        skill_level: skillLevel,
+        max_players: maxPlayers,
+      },
+      userId,
+    );
 
     if ("id" in result) {
       // Saved! Send the user to the new game's detail page.
@@ -51,6 +81,16 @@ export default function NewGamePage() {
       setError(true);
       setSaving(false);
     }
+  }
+
+  // While we confirm the user is logged in, show a quiet placeholder. (If they
+  // aren't logged in, the check above is already sending them to the login page.)
+  if (checking) {
+    return (
+      <main className="mx-auto w-full max-w-md flex-1 px-5 py-8">
+        <p className="text-zinc-500">Loading…</p>
+      </main>
+    );
   }
 
   return (

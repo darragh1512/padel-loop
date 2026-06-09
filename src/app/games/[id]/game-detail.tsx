@@ -1,49 +1,113 @@
 "use client";
 // The line above means: this piece runs in the visitor's browser, so it can
-// react to taps (the Join button) and update what's on screen instantly.
+// react to taps (Join / Leave) and update what's on screen instantly.
 
-import { useState } from "react";
-import { formatGameTime, joinGame, type Game } from "../../games";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  formatGameTime,
+  getGamePlayers,
+  joinGame,
+  leaveGame,
+  type Game,
+} from "../../games";
+import { supabase } from "@/lib/supabaseClient";
 
-// This shows the game's facts (When, Level, Spots left) AND the Join button.
-// They live together so that when someone joins, both the "Spots left" number
-// and the button can update at the same time.
+// This shows the game's facts (When, Level, Spots left) AND the Join/Leave
+// button. The number of players, and whether YOU are in the game, come from
+// the game_players table.
 export default function GameDetail({ game }: { game: Game }) {
-  // "currentPlayers" starts at the number from the database, but we keep our
-  // own copy here so we can bump it up the instant someone joins.
-  const [currentPlayers, setCurrentPlayers] = useState(game.current_players);
+  const router = useRouter();
 
-  // "status" tracks what the button should be doing right now.
-  //  idle    = waiting to be tapped
-  //  joining = we're talking to the database, please wait
-  //  joined  = success, you're in
-  //  error   = something went wrong, let them try again
-  const [status, setStatus] = useState<"idle" | "joining" | "joined" | "error">(
-    "idle",
-  );
+  // Who is logged in (their user id), or null if nobody is.
+  const [userId, setUserId] = useState<string | null>(null);
+  // How many players are currently in this game.
+  const [playerCount, setPlayerCount] = useState(0);
+  // Whether the logged-in user is one of those players.
+  const [joined, setJoined] = useState(false);
 
-  // How many spots are still open, based on our live count.
-  const spotsOpen = game.max_players - currentPlayers;
+  // "loading" is the first check (who's logged in / who's in the game).
+  const [loading, setLoading] = useState(true);
+  // "working" is true while a Join or Leave is being saved.
+  const [working, setWorking] = useState(false);
+  // A clear message to show if something goes wrong.
+  const [error, setError] = useState<string | null>(null);
+
+  // Re-reads the latest state: who's logged in, who's in this game, and
+  // whether that includes you. Called on first load and after Join/Leave.
+  const refresh = useCallback(async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    const currentUserId = userData.user?.id ?? null;
+    setUserId(currentUserId);
+
+    const players = await getGamePlayers(game.id);
+    setPlayerCount(players.length);
+    setJoined(currentUserId !== null && players.includes(currentUserId));
+  }, [game.id]);
+
+  useEffect(() => {
+    // "active" guards against updating state if the user navigates away before
+    // the database answers.
+    let active = true;
+
+    (async () => {
+      await refresh();
+      if (active) {
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [refresh]);
+
+  // Spots left = total spots minus how many have joined.
+  const spotsOpen = game.max_players - playerCount;
   const isFull = spotsOpen <= 0;
 
   // Runs when the Join button is tapped.
   async function handleJoin() {
-    setStatus("joining");
-
-    const result = await joinGame(game.id);
-
-    if ("newCount" in result) {
-      // Success: show the new number on screen and confirm.
-      setCurrentPlayers(result.newCount);
-      setStatus("joined");
-    } else if ("full" in result) {
-      // Someone else took the last spot just before us — show it as full.
-      setCurrentPlayers(game.max_players);
-      setStatus("idle");
-    } else {
-      // Database problem — let them try again.
-      setStatus("error");
+    // Not logged in? Send them to the login page first.
+    if (!userId) {
+      router.push("/login");
+      return;
     }
+
+    setWorking(true);
+    setError(null);
+
+    const result = await joinGame(game.id, userId);
+    if ("error" in result) {
+      setError("Sorry, we couldn't add you to this game. Please try again.");
+      setWorking(false);
+      return;
+    }
+
+    await refresh(); // update the count and switch to the "You're in" view
+    setWorking(false);
+  }
+
+  // Runs when the Leave button is tapped.
+  async function handleLeave() {
+    if (!userId) {
+      return;
+    }
+
+    setWorking(true);
+    setError(null);
+
+    const result = await leaveGame(game.id, userId);
+    if ("error" in result) {
+      setError(
+        "Sorry, we couldn't remove you from this game. Please try again.",
+      );
+      setWorking(false);
+      return;
+    }
+
+    await refresh(); // update the count and switch back to the Join view
+    setWorking(false);
   }
 
   return (
@@ -62,13 +126,37 @@ export default function GameDetail({ game }: { game: Game }) {
         </div>
         <div className="flex justify-between">
           <dt className="text-zinc-500">Spots left</dt>
-          <dd className="font-medium text-zinc-900">{spotsOpen}</dd>
+          <dd className="font-medium text-zinc-900">
+            {loading ? "…" : spotsOpen}
+          </dd>
         </div>
       </dl>
 
-      {/* The Join button (the interactive piece). */}
+      {/* The interactive Join / Leave area. */}
       <div className="mt-6">
-        {isFull ? (
+        {loading ? (
+          // Still checking — show a quiet placeholder so nothing jumps around.
+          <button
+            disabled
+            className="w-full cursor-default rounded-xl bg-zinc-100 px-5 py-3 font-medium text-zinc-400"
+          >
+            Loading…
+          </button>
+        ) : joined ? (
+          // You're already in: confirmation + a Leave button.
+          <div className="flex flex-col gap-2">
+            <div className="rounded-xl bg-emerald-100 px-5 py-3 text-center font-medium text-emerald-700">
+              ✓ You&apos;re in! See you on court.
+            </div>
+            <button
+              onClick={handleLeave}
+              disabled={working}
+              className="w-full rounded-xl border border-zinc-300 px-5 py-3 font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {working ? "Leaving…" : "Leave game"}
+            </button>
+          </div>
+        ) : isFull ? (
           // No spots left: a greyed-out, unclickable "Game full" button.
           <button
             disabled
@@ -76,27 +164,21 @@ export default function GameDetail({ game }: { game: Game }) {
           >
             Game full
           </button>
-        ) : status === "joined" ? (
-          // After joining: a confirmation instead of the button.
-          <div className="rounded-xl bg-emerald-100 px-5 py-3 text-center font-medium text-emerald-700">
-            ✓ You&apos;re in! See you on court.
-          </div>
         ) : (
-          // The normal Join button (also shown after an error, to retry).
+          // Open spot: the Join button. If the user isn't logged in, tapping
+          // this sends them to the login page (handled in handleJoin).
           <button
             onClick={handleJoin}
-            disabled={status === "joining"}
+            disabled={working}
             className="w-full rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {status === "joining" ? "Joining…" : "Join this game"}
+            {working ? "Joining…" : "Join this game"}
           </button>
         )}
 
-        {/* If joining failed, show a friendly message under the button. */}
-        {status === "error" && (
-          <p className="mt-2 text-center text-sm text-red-600">
-            Sorry, that didn&apos;t work. Please try again.
-          </p>
+        {/* If something failed, show a clear message under the button. */}
+        {error && (
+          <p className="mt-2 text-center text-sm text-red-600">{error}</p>
         )}
       </div>
     </>
