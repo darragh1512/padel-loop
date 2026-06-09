@@ -69,6 +69,45 @@ export async function getGame(id: string): Promise<Game | null> {
   return data;
 }
 
+// The details needed to create a new game. These match the form fields the
+// user fills in (current_players is NOT here — we always set it to 1 ourselves).
+export type NewGame = {
+  venue: string;
+  location: string;
+  game_time: string; // an ISO timestamp, e.g. "2026-06-10T17:30:00+00:00"
+  skill_level: string;
+  max_players: number;
+};
+
+// Saves a brand-new game to the database. The creator counts as the first
+// player, so current_players starts at 1. On success we return the new game's
+// id so the caller can send the user to that game's page.
+export async function createGame(
+  game: NewGame,
+): Promise<{ id: string } | { error: true }> {
+  const { data, error } = await supabase
+    .from("games")
+    .insert({
+      venue: game.venue,
+      location: game.location,
+      game_time: game.game_time,
+      skill_level: game.skill_level,
+      max_players: game.max_players,
+      current_players: 1, // the person creating the game is the first to join
+    })
+    .select("id") // ask the database to hand back the new row's id
+    .single();
+
+  if (error || !data) {
+    console.error("Could not create game:", error?.message);
+    return { error: true };
+  }
+
+  // The id might come back as a number; we use it in a web address, so we
+  // turn it into text to match the rest of the app.
+  return { id: String(data.id) };
+}
+
 // What joinGame tells the caller after it tries to add a player:
 //  - { newCount }  -> success; newCount is the updated current_players number
 //  - { full: true } -> the game was already full, nothing changed

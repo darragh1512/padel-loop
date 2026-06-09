@@ -15,10 +15,18 @@ export default async function HomePage() {
 
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-5 py-8">
-      {/* Page heading */}
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">Padel Loop</h1>
-        <p className="text-zinc-500">Games near you</p>
+      {/* Page heading, with a button to create a new game. */}
+      <header className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900">Padel Loop</h1>
+          <p className="text-zinc-500">Games near you</p>
+        </div>
+        <Link
+          href="/games/new"
+          className="shrink-0 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+        >
+          + Create
+        </Link>
       </header>
 
       {/* The list of games. We loop over each game and draw a card for it. */}
