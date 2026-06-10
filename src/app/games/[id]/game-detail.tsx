@@ -6,10 +6,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   formatGameTime,
-  getGamePlayers,
+  getGamePlayerProfiles,
   joinGame,
   leaveGame,
   type Game,
+  type GamePlayer,
 } from "../../games";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -21,8 +22,11 @@ export default function GameDetail({ game }: { game: Game }) {
 
   // Who is logged in (their user id), or null if nobody is.
   const [userId, setUserId] = useState<string | null>(null);
-  // How many players are currently in this game.
-  const [playerCount, setPlayerCount] = useState(0);
+  // The logged-in person's email — used as a fallback name for THEIR own row
+  // if they haven't set a profile name yet (we can only see our own email).
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  // The people currently in this game, each with their name (if they have one).
+  const [players, setPlayers] = useState<GamePlayer[]>([]);
   // Whether the logged-in user is one of those players.
   const [joined, setJoined] = useState(false);
 
@@ -39,10 +43,14 @@ export default function GameDetail({ game }: { game: Game }) {
     const { data: userData } = await supabase.auth.getUser();
     const currentUserId = userData.user?.id ?? null;
     setUserId(currentUserId);
+    setUserEmail(userData.user?.email ?? null);
 
-    const players = await getGamePlayers(game.id);
-    setPlayerCount(players.length);
-    setJoined(currentUserId !== null && players.includes(currentUserId));
+    const gamePlayers = await getGamePlayerProfiles(game.id);
+    setPlayers(gamePlayers);
+    setJoined(
+      currentUserId !== null &&
+        gamePlayers.some((player) => player.user_id === currentUserId),
+    );
   }, [game.id]);
 
   useEffect(() => {
@@ -63,8 +71,21 @@ export default function GameDetail({ game }: { game: Game }) {
   }, [refresh]);
 
   // Spots left = total spots minus how many have joined.
-  const spotsOpen = game.max_players - playerCount;
+  const spotsOpen = game.max_players - players.length;
   const isFull = spotsOpen <= 0;
+
+  // Works out what to display for one player. Prefer their profile name; if
+  // they haven't set one, show their email (only possible for your own row),
+  // otherwise a friendly placeholder.
+  function displayName(player: GamePlayer): string {
+    if (player.name && player.name.trim() !== "") {
+      return player.name;
+    }
+    if (player.user_id === userId && userEmail) {
+      return userEmail;
+    }
+    return "Unknown player";
+  }
 
   // Runs when the Join button is tapped.
   async function handleJoin() {
@@ -131,6 +152,33 @@ export default function GameDetail({ game }: { game: Game }) {
           </dd>
         </div>
       </dl>
+
+      {/* The list of players who have joined, shown by name. */}
+      <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4">
+        <h2 className="text-sm font-medium text-zinc-500">Players</h2>
+        {loading ? (
+          <p className="mt-2 text-zinc-400">…</p>
+        ) : players.length === 0 ? (
+          <p className="mt-2 text-zinc-500">No one has joined yet.</p>
+        ) : (
+          <ul className="mt-2 flex flex-col gap-2">
+            {players.map((player) => (
+              <li
+                key={player.user_id}
+                className="flex items-center gap-2 font-medium text-zinc-900"
+              >
+                <span
+                  aria-hidden
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700"
+                >
+                  {displayName(player).charAt(0).toUpperCase()}
+                </span>
+                {displayName(player)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* The interactive Join / Leave area. */}
       <div className="mt-6">

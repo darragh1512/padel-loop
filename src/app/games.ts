@@ -123,6 +123,62 @@ export async function getGamePlayers(gameId: string): Promise<string[]> {
   return (data ?? []).map((row) => row.user_id as string);
 }
 
+// One player in a game, paired with their profile name (if they have one yet).
+export type GamePlayer = {
+  user_id: string;
+  name: string | null; // their profile name, or null if they haven't set one
+};
+
+// Get everyone in ONE game together with their name. We do this in two steps:
+//   1. Read the user ids in this game from "game_players".
+//   2. Look those ids up in "profiles" to get each person's name.
+// (We join the two tables ourselves on user_id = profiles.id rather than
+// relying on a database relationship, so it works no matter how the tables are
+// linked.) The returned order matches the join order from game_players.
+export async function getGamePlayerProfiles(
+  gameId: string,
+): Promise<GamePlayer[]> {
+  // 1. Who is in this game.
+  const { data: rows, error } = await supabase
+    .from("game_players")
+    .select("user_id")
+    .eq("game_id", gameId);
+
+  if (error) {
+    console.error("Could not load players:", error.message);
+    return [];
+  }
+
+  const userIds = (rows ?? []).map((row) => row.user_id as string);
+  if (userIds.length === 0) {
+    return [];
+  }
+
+  // 2. Their names, looked up by matching profiles.id to those user ids.
+  const { data: profiles, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .in("id", userIds);
+
+  if (profileError) {
+    // If names can't be read, still return the players (names just come back
+    // as null and the screen falls back to a placeholder).
+    console.error("Could not load player names:", profileError.message);
+    return userIds.map((id) => ({ user_id: id, name: null }));
+  }
+
+  // Build a quick lookup of id -> name, then pair it back to each player.
+  const nameById = new Map<string, string | null>();
+  for (const profile of profiles ?? []) {
+    nameById.set(profile.id as string, (profile.name as string | null) ?? null);
+  }
+
+  return userIds.map((id) => ({
+    user_id: id,
+    name: nameById.get(id) ?? null,
+  }));
+}
+
 // Add the logged-in user to a game (they tapped "Join"). Returns { ok: true }
 // on success, or { error } with a message if something went wrong.
 export async function joinGame(

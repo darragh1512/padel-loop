@@ -51,6 +51,12 @@ export default function AuthStatus() {
   if (user) {
     return (
       <div className="flex items-center gap-3">
+        <Link
+          href="/profile"
+          className="text-sm font-medium text-zinc-700 transition-colors hover:text-emerald-700"
+        >
+          Profile
+        </Link>
         <span className="hidden text-sm text-zinc-600 sm:inline">
           {user.email}
         </span>
