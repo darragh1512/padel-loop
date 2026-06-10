@@ -1,6 +1,6 @@
 "use client";
-// Runs in the browser. The log-in screen: email + password, then sends the
-// user to the home page once they're in.
+// The log-in screen: email + password, then sends the user to the home page
+// once they're in. Styled in the app's dark design; logic unchanged.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,77 +15,71 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Runs when the form is submitted.
   async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault(); // stop the browser reloading the page
+    event.preventDefault();
     setLoading(true);
     setError(null);
 
-    // Ask Supabase to check the email + password.
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      // Wrong details (or some other problem) — show the message and let them
-      // try again.
       setError(error.message);
       setLoading(false);
       return;
     }
 
-    // Success: go to the home page. The header will now show their email.
     router.push("/");
   }
 
   return (
-    <main className="mx-auto w-full max-w-md flex-1 px-5 py-8">
+    <main className="px-5 pt-10">
       <header>
-        <h1 className="text-2xl font-bold text-zinc-900">Log in</h1>
-        <p className="text-zinc-500">Welcome back.</p>
+        <h1 className="font-display text-[22px] font-bold tracking-tight">Log in</h1>
+        <p className="text-[13px] text-dim font-light mt-1">Welcome back.</p>
       </header>
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-zinc-700">Email</span>
+      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3.5">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">Email</span>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="rounded-xl border border-zinc-300 px-4 py-2.5 text-zinc-900 outline-none focus:border-emerald-500"
+            className="pl-surface rounded-[14px] px-4 py-3 text-sm text-white outline-none focus:border-sky/60"
           />
         </label>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-zinc-700">Password</span>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">Password</span>
           <input
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Your password"
-            className="rounded-xl border border-zinc-300 px-4 py-2.5 text-zinc-900 outline-none focus:border-emerald-500"
+            className="pl-surface rounded-[14px] px-4 py-3 text-sm text-white outline-none focus:border-sky/60"
           />
         </label>
 
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 w-full rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-2 block w-full text-center bg-vivid text-white font-semibold text-[15px] rounded-(--radius-btn) py-3.5 pl-cta-shadow active:scale-[0.98] transition-transform disabled:opacity-70"
         >
           {loading ? "Logging in…" : "Log in"}
         </button>
 
-        {error && <p className="text-center text-sm text-red-600">{error}</p>}
+        {error && <p className="text-center text-[12px] text-[#d98080]">{error}</p>}
       </form>
 
-      {/* A way to get to the sign-up page if they don't have an account yet. */}
-      <p className="mt-6 text-center text-sm text-zinc-500">
+      <p className="mt-6 text-center text-[13px] text-dim font-light">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-medium text-emerald-700 hover:underline">
+        <Link href="/signup" className="font-medium text-sky hover:underline">
           Sign up
         </Link>
       </p>

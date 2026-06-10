@@ -1,17 +1,20 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import type { Metadata, Viewport } from "next";
+import { Unbounded, DM_Sans } from "next/font/google";
 import "./globals.css";
-import AuthStatus from "./auth-status";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// The two brand fonts, loaded via next/font and exposed as CSS variables that
+// globals.css references (--font-unbounded → font-display, --font-dm-sans → font-sans).
+const unbounded = Unbounded({
   subsets: ["latin"],
+  weight: ["300", "400", "700", "900"],
+  variable: "--font-unbounded",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const dmSans = DM_Sans({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-dm-sans",
 });
 
 export const metadata: Metadata = {
@@ -19,29 +22,21 @@ export const metadata: Metadata = {
   description: "Find and join a padel game near you, at your level.",
 };
 
+export const viewport: Viewport = {
+  themeColor: "#080e1f",
+};
+
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
-        {/* A thin bar across the top of every page. On the left, the app name
-            (links home). On the right, the login/logout area. */}
-        <header className="border-b border-zinc-200 bg-white">
-          <div className="mx-auto flex w-full max-w-md items-center justify-between px-5 py-3">
-            <Link href="/" className="font-bold text-emerald-700">
-              Padel Loop
-            </Link>
-            <AuthStatus />
-          </div>
-        </header>
-
-        {children}
+    <html lang="en" className={`${unbounded.variable} ${dmSans.variable}`}>
+      <body className="min-h-dvh bg-navy text-white antialiased">
+        {/* The phone-width app shell. Bottom padding leaves room for the fixed
+            bottom navigation that the design's screens render. */}
+        <div className="mx-auto max-w-md min-h-dvh relative pb-24">
+          {children}
+        </div>
       </body>
     </html>
   );

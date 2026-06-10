@@ -1,26 +1,56 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ── Padel Loop design tokens ─────────────────────────────
+   Tailwind v4: these become utilities automatically,
+   e.g. bg-navy, text-sky, border-vivid, font-display.     */
+@theme {
+  --color-navy:  #080e1f;
+  --color-deep:  #0d1f4a;
+  --color-mid:   #1440a0;
+  --color-vivid: #1e5cff;
+  --color-sky:   #5b9aff;
+  --color-pale:  #c4d9ff;
+  --color-off:   #f0f4ff;
+  --color-dim:   #8aa3d4;
+  --color-faint: #3a5a9a;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-display: var(--font-unbounded), sans-serif;
+  --font-sans:    var(--font-dm-sans), sans-serif;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --radius-card: 22px;
+  --radius-btn:  15px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-navy);
+  color: #fff;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* shared primitives that read better as CSS than utility soup */
+.pl-surface {
+  background: rgba(30, 92, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.pl-card {
+  background: var(--color-deep);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-card);
+}
+.pl-glow {
+  background: radial-gradient(ellipse, rgba(30, 92, 255, 0.18) 0%, transparent 70%);
+}
+.pl-cta-shadow { box-shadow: 0 8px 24px rgba(30, 92, 255, 0.35); }
+
+/* hide the scrollbar on horizontal filter rows (design intent) */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .pl-rise { animation: pl-rise 0.5s ease both; }
+  @keyframes pl-rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 }
