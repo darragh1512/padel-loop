@@ -123,6 +123,59 @@ export async function getGamePlayers(gameId: string): Promise<string[]> {
   return (data ?? []).map((row) => row.user_id as string);
 }
 
+// Get all games the logged-in user has JOINED. We do this in two steps:
+//   1. Find their rows in "game_players" to get the ids of games they're in.
+//   2. Fetch those games from the "games" table.
+// Returns the games sorted by game_time (earliest first), or an empty list.
+export async function getGamesJoinedBy(userId: string): Promise<Game[]> {
+  // 1. Which games is this person in.
+  const { data: rows, error } = await supabase
+    .from("game_players")
+    .select("game_id")
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Could not load joined games:", error.message);
+    return [];
+  }
+
+  const gameIds = (rows ?? []).map((row) => row.game_id as string);
+  if (gameIds.length === 0) {
+    return [];
+  }
+
+  // 2. Fetch those games.
+  const { data: games, error: gamesError } = await supabase
+    .from("games")
+    .select("*")
+    .in("id", gameIds)
+    .order("game_time", { ascending: true });
+
+  if (gamesError) {
+    console.error("Could not load joined games:", gamesError.message);
+    return [];
+  }
+
+  return games ?? [];
+}
+
+// Get all games the logged-in user CREATED (their id is in created_by).
+// Returns the games sorted by game_time (earliest first), or an empty list.
+export async function getGamesCreatedBy(userId: string): Promise<Game[]> {
+  const { data, error } = await supabase
+    .from("games")
+    .select("*")
+    .eq("created_by", userId)
+    .order("game_time", { ascending: true });
+
+  if (error) {
+    console.error("Could not load created games:", error.message);
+    return [];
+  }
+
+  return data ?? [];
+}
+
 // One player in a game, paired with their profile name (if they have one yet).
 export type GamePlayer = {
   user_id: string;

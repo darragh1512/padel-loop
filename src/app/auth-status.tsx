@@ -52,6 +52,12 @@ export default function AuthStatus() {
     return (
       <div className="flex items-center gap-3">
         <Link
+          href="/my-games"
+          className="text-sm font-medium text-zinc-700 transition-colors hover:text-emerald-700"
+        >
+          My Games
+        </Link>
+        <Link
           href="/profile"
           className="text-sm font-medium text-zinc-700 transition-colors hover:text-emerald-700"
         >
