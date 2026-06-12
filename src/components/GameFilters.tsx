@@ -37,6 +37,7 @@ function FilterChip({
   open,
   onToggle,
   onChange,
+  searchable = false,
 }: {
   label: string;
   value: string | null;
@@ -44,13 +45,29 @@ function FilterChip({
   open: boolean;
   onToggle: () => void;
   onChange: (v: string | null) => void;
+  // When true AND the list is long (>8), show a search box inside the menu to
+  // filter the options as you type. Short fixed lists don't need it.
+  searchable?: boolean;
 }) {
   const active = value != null;
+
+  // In-menu search text for filtering this chip's own options. Cleared whenever
+  // the chip is tapped (see the button below) so each open starts fresh.
+  const [optQuery, setOptQuery] = useState("");
+
+  const showSearch = searchable && options.length > 8;
+  const q = optQuery.trim().toLowerCase();
+  const visibleOptions =
+    showSearch && q !== "" ? options.filter((o) => o.toLowerCase().includes(q)) : options;
+
   return (
     <div className="relative shrink-0">
       <button
         type="button"
-        onClick={onToggle}
+        onClick={() => {
+          setOptQuery("");
+          onToggle();
+        }}
         className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap ${
           active
             ? "bg-vivid border border-vivid text-white"
@@ -71,6 +88,16 @@ function FilterChip({
 
       {open && (
         <div className="absolute z-30 left-0 mt-1.5 min-w-[160px] rounded-2xl bg-navy border border-sky/25 p-1.5 shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
+          {showSearch && (
+            <input
+              type="text"
+              value={optQuery}
+              onChange={(e) => setOptQuery(e.target.value)}
+              placeholder={`Search ${label.toLowerCase()}`}
+              autoFocus
+              className="w-full bg-white/5 border border-sky/25 rounded-xl text-xs text-pale placeholder:text-faint px-3 py-2 mb-1 focus:outline-none focus:border-sky/50"
+            />
+          )}
           <button
             type="button"
             onClick={() => onChange(null)}
@@ -80,7 +107,7 @@ function FilterChip({
           >
             All {label.toLowerCase()}
           </button>
-          {options.map((o) => (
+          {visibleOptions.map((o) => (
             <button
               key={o}
               type="button"
@@ -92,6 +119,9 @@ function FilterChip({
               {o}
             </button>
           ))}
+          {showSearch && visibleOptions.length === 0 && (
+            <div className="px-3 py-2 text-xs text-faint">No {label.toLowerCase()}s found</div>
+          )}
         </div>
       )}
     </div>
@@ -228,6 +258,7 @@ export default function GameFilters({
           options={areas}
           open={openFilter === "area"}
           onToggle={() => toggle("area")}
+          searchable
           onChange={(v) => {
             setArea(v);
             setOpenFilter(null);
