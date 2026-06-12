@@ -1,6 +1,5 @@
 import BottomNav from "@/components/BottomNav";
-import GameCard from "@/components/GameCard";
-import { SectionLabel } from "@/components/ui";
+import GameFilters from "@/components/GameFilters";
 import { getGames } from "@/lib/data";
 
 export const revalidate = 60;
@@ -20,11 +19,7 @@ export default async function GamesPage() {
         {games.length} game{games.length === 1 ? "" : "s"} in the Loop.
       </p>
 
-      <SectionLabel>Browse games</SectionLabel>
-
-      {games.map((g, i) => (
-        <GameCard key={g.id} game={g} delay={i * 80} />
-      ))}
+      <GameFilters games={games} sectionLabel="Browse games" />
 
       <BottomNav />
     </main>

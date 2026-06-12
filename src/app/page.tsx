@@ -1,6 +1,6 @@
 import BottomNav from "@/components/BottomNav";
-import GameCard from "@/components/GameCard";
-import { Chip, LevelChip, SectionLabel } from "@/components/ui";
+import GameFilters from "@/components/GameFilters";
+import { LevelChip } from "@/components/ui";
 import { getGames } from "@/lib/data";
 
 export const revalidate = 60;
@@ -24,26 +24,7 @@ export default async function HomePage() {
         <LevelChip>LVL 3.2</LevelChip>
       </div>
 
-      <h1 className="font-display text-[21px] tracking-tight leading-snug mt-3.5 relative">
-        <b className="font-bold">Evening, Darragh.</b>
-        <br />
-        <span className="font-light text-sky">
-          {games.length} game{games.length === 1 ? "" : "s"} near you tonight.
-        </span>
-      </h1>
-
-      <div className="flex gap-2 mt-4 overflow-x-auto no-scrollbar relative">
-        <Chip active>Tonight</Chip>
-        <Chip>Level 3–4</Chip>
-        <Chip>&lt; 5 km</Chip>
-        <Chip>Any price</Chip>
-      </div>
-
-      <SectionLabel>Games near you</SectionLabel>
-
-      {games.map((g, i) => (
-        <GameCard key={g.id} game={g} delay={i * 80} />
-      ))}
+      <GameFilters games={games} sectionLabel="Games near you" greeting="Evening, Darragh." />
 
       <BottomNav />
     </main>

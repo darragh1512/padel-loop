@@ -11,6 +11,7 @@ export type Game = {
   id: string;
   venue: string;
   courtLabel?: string;       // e.g. "Court 2 · Outdoor panoramic"
+  area?: string;             // the location/neighbourhood, e.g. "Malahide" (used for filtering)
   distanceKm?: number;       // computed client/server side from user location
   startsAt: string;          // ISO timestamp
   durationMins: number;
@@ -24,6 +25,15 @@ export type Game = {
 
 export const pricePerHead = (g: Game) => g.courtFee / g.maxPlayers;
 export const slotsLeft = (g: Game) => g.maxPlayers - g.players.length;
+
+// Which skill tier a game belongs to, worked out from its level band
+// (Beginner 1.0–2.5, Intermediate 2.5–3.5, Advanced 3.5–5.0). Used by the
+// Level filter chip.
+export const skillTierOf = (g: Game): "Beginner" | "Intermediate" | "Advanced" => {
+  if (g.levelMax <= 2.5) return "Beginner";
+  if (g.levelMin >= 3.5) return "Advanced";
+  return "Intermediate";
+};
 
 export const formatTimeRange = (g: Game) => {
   const start = new Date(g.startsAt);
