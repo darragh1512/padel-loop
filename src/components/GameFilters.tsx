@@ -112,6 +112,7 @@ export default function GameFilters({
   const [level, setLevel] = useState<string | null>(null);
   const [area, setArea] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [openFilter, setOpenFilter] = useState<OpenKey>(null);
 
   // Only offer areas that actually appear in the current games.
@@ -123,19 +124,22 @@ export default function GameFilters({
     return seen;
   }, [games]);
 
-  // All three filters apply together (AND).
-  const filtered = useMemo(
-    () =>
-      games.filter(
-        (g) =>
-          (level == null || skillTierOf(g) === level) &&
-          (area == null || g.area === area) &&
-          matchesTime(g, time),
-      ),
-    [games, level, area, time],
-  );
+  // Search + all three chips apply together (AND). The search matches a partial,
+  // case-insensitive substring of the venue name or the area.
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return games.filter(
+      (g) =>
+        (level == null || skillTierOf(g) === level) &&
+        (area == null || g.area === area) &&
+        matchesTime(g, time) &&
+        (q === "" ||
+          g.venue.toLowerCase().includes(q) ||
+          (g.area ?? "").toLowerCase().includes(q)),
+    );
+  }, [games, level, area, time, query]);
 
-  const anyActive = level != null || area != null || time != null;
+  const anyActive = level != null || area != null || time != null || query.trim() !== "";
 
   // Headline count: always the number of games currently shown. If every shown
   // game is today we keep the "tonight" wording, otherwise "upcoming". (Same
@@ -153,6 +157,7 @@ export default function GameFilters({
     setLevel(null);
     setArea(null);
     setTime(null);
+    setQuery("");
     setOpenFilter(null);
   };
 
@@ -177,7 +182,35 @@ export default function GameFilters({
         </h1>
       )}
 
-      <div className="flex flex-wrap gap-2 mt-4 relative z-30">
+      <div className="relative mt-4">
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+            <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </span>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search venue or area"
+          className="w-full bg-vivid/15 border border-sky/25 rounded-full text-sm text-pale placeholder:text-faint pl-10 pr-9 py-2.5 focus:outline-none focus:border-sky/50"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            aria-label="Clear search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-faint hover:text-pale"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2 mt-3 relative z-30">
         <FilterChip
           label="Level"
           value={level}
