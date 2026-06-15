@@ -6,6 +6,12 @@ import { getGame } from "@/lib/data";
 import { formatDay, formatTimeRange, pricePerHead } from "@/lib/types";
 import { notFound } from "next/navigation";
 import JoinGame from "./join-game";
+import ChatThread from "./chat-thread";
+
+// Read fresh data on each request so the players list and "open slot" count
+// (both derived from the live game_players table) always reflect the latest
+// joins/leaves. JoinGame also calls router.refresh() to update this in place.
+export const dynamic = "force-dynamic";
 
 export default async function GameDetailPage({
   params,
@@ -114,6 +120,13 @@ export default async function GameDetailPage({
         {/* Real join/leave behaviour, same look as the design's PrimaryButton. */}
         <JoinGame gameId={game.id} perHead={perHead} />
       </div>
+
+      {/* Per-game chat, beneath everything else. Renders the message box only
+          for players/creators; others see a short "join to chat" note. The
+          #group-chat anchor lets the Chat tab link straight to this thread. */}
+      <section id="group-chat" className="scroll-mt-4">
+        <ChatThread gameId={game.id} />
+      </section>
 
       <BottomNav />
     </main>

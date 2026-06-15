@@ -88,6 +88,64 @@ async function getPlayersForGame(
   });
 }
 
+// Like getPlayersForGame, but for MANY games at once — used by the list screens
+// (home and /games). It reads every game_players row for the given games in ONE
+// query, looks up all those players' names/skills in ONE more, then groups them
+// by game. Returns a map of game id → its players.
+//
+// This is the fix for "always 4 slots left": the list now knows each game's
+// real joined players, so slotsLeft (maxPlayers − players.length) reflects the
+// live game_players count — the exact same source the detail page uses.
+async function getPlayersForGames(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  gameRows: any[],
+): Promise<Map<string, Player[]>> {
+  const byGame = new Map<string, Player[]>();
+  if (gameRows.length === 0) return byGame;
+
+  const gameIds = gameRows.map((g) => String(g.id));
+
+  // 1. Every "who is in which game" link, for all these games at once.
+  const { data: links, error } = await supabase
+    .from("game_players")
+    .select("game_id, user_id")
+    .in("game_id", gameIds);
+  if (error || !links || links.length === 0) return byGame;
+
+  // 2. One profile lookup for every player that appears (name + skill).
+  const userIds = Array.from(new Set(links.map((l) => l.user_id as string)));
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, name, skill_level")
+    .in("id", userIds);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const profileById = new Map<string, any>();
+  for (const p of profiles ?? []) profileById.set(p.id as string, p);
+
+  // Who created each game, so we can flag the organiser (same as single-game).
+  const createdByGame = new Map<string, string | null>();
+  for (const g of gameRows) createdByGame.set(String(g.id), g.created_by ?? null);
+
+  // 3. Group the player links under their game.
+  for (const link of links) {
+    const gameId = String(link.game_id);
+    const userId = link.user_id as string;
+    const profile = profileById.get(userId);
+    const createdBy = createdByGame.get(gameId);
+    const player: Player = {
+      id: userId,
+      name: profile?.name ?? "Player",
+      initials: initialsFrom(profile?.name),
+      level: skillToLevel(profile?.skill_level),
+      isOrganiser: createdBy != null && userId === createdBy,
+    };
+    const list = byGame.get(gameId) ?? [];
+    list.push(player);
+    byGame.set(gameId, list);
+  }
+  return byGame;
+}
+
 // Maps one row of OUR `games` table (id, venue, location, game_time,
 // skill_level, max_players, created_by, created_at) to the UI `Game` type.
 // Fields the design shows but our schema doesn't store yet (duration, format,
@@ -141,10 +199,21 @@ export async function getGames(): Promise<Game[]> {
     .gte("game_time", new Date().toISOString()) // skip games that already happened
     .order("game_time", { ascending: true }) // soonest first
     .limit(20);
-  const games =
-    !error && data && data.length > 0 ? data.map((row) => rowToGame(row)) : MOCK_GAMES;
-  // Final safety net (this also filters/sorts the MOCK fallback): hide any past
-  // games and make sure the soonest game is always first.
+  // If the query failed or returned nothing, fall back to the mock games.
+  if (error || !data || data.length === 0) {
+    return MOCK_GAMES
+      .filter(isUpcoming)
+      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  }
+
+  // Load the real joined players for ALL these games in one batch, then build
+  // each game WITH its players so "slots left" on every card is accurate.
+  const playersByGame = await getPlayersForGames(data);
+  const games = data.map((row) =>
+    rowToGame(row, playersByGame.get(String(row.id)) ?? []),
+  );
+
+  // Final safety net: hide any past games and make sure the soonest is first.
   return games
     .filter(isUpcoming)
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());

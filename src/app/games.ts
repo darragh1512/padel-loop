@@ -325,3 +325,218 @@ export async function createGame(
   // turn it into text to match the rest of the app.
   return { id: String(data.id) };
 }
+
+// ---------------------------------------------------------------------------
+// Chat — per-game messages (the "messages" table). Each row is one chat
+// message: who sent it (user_id), which game it belongs to (game_id), the text
+// (body), and when it was sent (created_at).
+// ---------------------------------------------------------------------------
+
+// One chat message, paired with the sender's name (looked up from profiles).
+export type ChatMessage = {
+  id: number; // the message's unique id
+  game_id: string; // which game it belongs to
+  user_id: string; // who sent it
+  body: string; // the message text
+  created_at: string; // when it was sent (ISO timestamp)
+  senderName: string; // the sender's profile name, or "Player" if unknown
+};
+
+// Read every message for ONE game, oldest first (so the newest sits at the
+// bottom, like a normal chat). We look each sender's name up in "profiles"
+// ourselves (matching profiles.id to the message's user_id), the same way the
+// players list does — rather than relying on a database relationship.
+export async function getMessages(gameId: string): Promise<ChatMessage[]> {
+  // 1. The messages themselves, oldest at the top.
+  const { data: rows, error } = await supabase
+    .from("messages")
+    .select("id, game_id, user_id, body, created_at")
+    .eq("game_id", gameId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Could not load messages:", error.message);
+    return [];
+  }
+  if (!rows || rows.length === 0) {
+    return [];
+  }
+
+  // 2. The names of everyone who has sent a message here (each id only once).
+  const senderIds = Array.from(new Set(rows.map((row) => row.user_id as string)));
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .in("id", senderIds);
+
+  const nameById = new Map<string, string>();
+  for (const profile of profiles ?? []) {
+    nameById.set(profile.id as string, (profile.name as string | null) ?? "Player");
+  }
+
+  // 3. Pair each message with its sender's name.
+  return rows.map((row) => ({
+    id: row.id as number,
+    game_id: String(row.game_id),
+    user_id: row.user_id as string,
+    body: row.body as string,
+    created_at: row.created_at as string,
+    senderName: nameById.get(row.user_id as string) ?? "Player",
+  }));
+}
+
+// Send a new chat message to a game, from the logged-in user. We trim the text
+// and refuse to send anything empty. Returns { ok: true } on success, or
+// { error } with a message if something went wrong.
+export async function sendMessage(
+  gameId: string,
+  userId: string,
+  body: string,
+): Promise<{ ok: true } | { error: string }> {
+  const text = body.trim();
+  if (text.length === 0) {
+    return { error: "Message is empty." };
+  }
+
+  const { error } = await supabase
+    .from("messages")
+    .insert({ game_id: gameId, user_id: userId, body: text });
+
+  if (error) {
+    console.error("Could not send message:", error.message);
+    return { error: error.message };
+  }
+
+  return { ok: true };
+}
+
+// Can this person take part in a game's chat? True if they've JOINED the game
+// (a row in game_players) OR they CREATED it (their id is the game's
+// created_by). Used to decide whether to show the chat input.
+export async function canUserChat(
+  gameId: string,
+  userId: string,
+): Promise<boolean> {
+  // Did they create the game?
+  const { data: game } = await supabase
+    .from("games")
+    .select("created_by")
+    .eq("id", gameId)
+    .maybeSingle();
+  if (game && game.created_by === userId) {
+    return true;
+  }
+
+  // Otherwise, are they one of the joined players?
+  const { data: row } = await supabase
+    .from("game_players")
+    .select("user_id")
+    .eq("game_id", gameId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return row != null;
+}
+
+// One row in the Chat tab: a game the person is part of, plus a preview of the
+// most recent message in that game's thread (if there is one yet).
+export type Conversation = {
+  game: Game; // the game this conversation belongs to
+  lastMessageBody: string | null; // preview text, or null if no messages yet
+  lastMessageAt: string | null; // when that last message was sent (ISO), or null
+};
+
+// Build the Chat tab list for ONE person: every game they've JOINED or CREATED,
+// each paired with a preview of its most recent message. Sorted so games with
+// the newest message activity come first; games with no messages yet fall to
+// the bottom. Returns an empty list if they're in no games.
+export async function getConversationsFor(
+  userId: string,
+): Promise<Conversation[]> {
+  // 1. The games they've joined (their rows in game_players).
+  const { data: joinedRows } = await supabase
+    .from("game_players")
+    .select("game_id")
+    .eq("user_id", userId);
+  const joinedIds = (joinedRows ?? []).map((row) => String(row.game_id));
+
+  // 2. The games they created.
+  const { data: createdGames } = await supabase
+    .from("games")
+    .select("*")
+    .eq("created_by", userId);
+
+  // 3. Merge both into one list with no duplicates (a game you created AND are
+  //    a player in should appear only once). We key by the game's id.
+  const byId = new Map<string, Game>();
+  for (const game of createdGames ?? []) {
+    byId.set(String(game.id), game as Game);
+  }
+
+  // Fetch any joined games we don't already have from the created list.
+  const missingIds = joinedIds.filter((id) => !byId.has(id));
+  if (missingIds.length > 0) {
+    const { data: joinedGames } = await supabase
+      .from("games")
+      .select("*")
+      .in("id", missingIds);
+    for (const game of joinedGames ?? []) {
+      byId.set(String(game.id), game as Game);
+    }
+  }
+
+  const games = Array.from(byId.values());
+  if (games.length === 0) {
+    return [];
+  }
+
+  // 4. Find the most recent message in each of these games. We pull every
+  //    message for them newest-first, then keep the first (latest) one we see
+  //    per game.
+  const gameIds = games.map((game) => String(game.id));
+  const { data: msgs } = await supabase
+    .from("messages")
+    .select("game_id, body, created_at")
+    .in("game_id", gameIds)
+    .order("created_at", { ascending: false });
+
+  const latestByGame = new Map<string, { body: string; created_at: string }>();
+  for (const m of msgs ?? []) {
+    const key = String(m.game_id);
+    if (!latestByGame.has(key)) {
+      latestByGame.set(key, {
+        body: m.body as string,
+        created_at: m.created_at as string,
+      });
+    }
+  }
+
+  // 5. Pair each game with its latest message (if any).
+  const conversations: Conversation[] = games.map((game) => {
+    const last = latestByGame.get(String(game.id));
+    return {
+      game,
+      lastMessageBody: last?.body ?? null,
+      lastMessageAt: last?.created_at ?? null,
+    };
+  });
+
+  // 6. Sort: games with messages first (newest activity at the top); games with
+  //    no messages yet go below them (soonest game first among those).
+  conversations.sort((a, b) => {
+    if (a.lastMessageAt && b.lastMessageAt) {
+      return (
+        new Date(b.lastMessageAt).getTime() -
+        new Date(a.lastMessageAt).getTime()
+      );
+    }
+    if (a.lastMessageAt) return -1; // a has messages, b doesn't → a first
+    if (b.lastMessageAt) return 1; // b has messages, a doesn't → b first
+    // Neither has messages → soonest game first.
+    return (
+      new Date(a.game.game_time).getTime() -
+      new Date(b.game.game_time).getTime()
+    );
+  });
+
+  return conversations;
+}

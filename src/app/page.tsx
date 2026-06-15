@@ -3,7 +3,11 @@ import GameFilters from "@/components/GameFilters";
 import { LevelChip } from "@/components/ui";
 import { getGames } from "@/lib/data";
 
-export const revalidate = 60;
+// Always read fresh data on each request. The player count ("spots left") is
+// computed from the live game_players table, so this page must NOT be cached —
+// otherwise joining a game would still show the old count until the cache
+// expired. (See JoinGame, which also calls router.refresh() after a join.)
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const games = await getGames();

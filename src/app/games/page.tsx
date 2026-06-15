@@ -2,7 +2,10 @@ import BottomNav from "@/components/BottomNav";
 import GameFilters from "@/components/GameFilters";
 import { getGames } from "@/lib/data";
 
-export const revalidate = 60;
+// Always read fresh data on each request, so "spots left" (computed from the
+// live game_players table) reflects joins/leaves immediately instead of a
+// cached value. (See JoinGame, which also calls router.refresh() after a join.)
+export const dynamic = "force-dynamic";
 
 // The /games list — every game in the Loop, reusing the same GameCard as home.
 export default async function GamesPage() {
