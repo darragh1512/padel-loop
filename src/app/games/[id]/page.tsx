@@ -3,9 +3,10 @@ import BottomNav from "@/components/BottomNav";
 import { CourtHero } from "@/components/brand";
 import { Avatar, SectionLabel } from "@/components/ui";
 import { getGame } from "@/lib/data";
-import { formatDay, formatTimeRange, pricePerHead } from "@/lib/types";
+import { formatDay, formatTimeRange, isCancelled, pricePerHead } from "@/lib/types";
 import { notFound } from "next/navigation";
 import JoinGame from "./join-game";
+import CreatorActions from "./creator-actions";
 import ChatThread from "./chat-thread";
 
 // Read fresh data on each request so the players list and "open slot" count
@@ -51,6 +52,10 @@ export default async function GameDetailPage({
           {formatDay(game)}, {formatTimeRange(game)}
         </b>
       </p>
+
+      {/* Owner-only actions: only the game's creator sees these (checked
+          client-side against the logged-in user). Not wired up yet. */}
+      <CreatorActions gameId={game.id} createdBy={game.createdBy} />
 
       <div className="grid grid-cols-3 gap-2 mt-4">
         {[
@@ -117,8 +122,19 @@ export default async function GameDetailPage({
       </div>
 
       <div className="mt-4">
-        {/* Real join/leave behaviour, same look as the design's PrimaryButton. */}
-        <JoinGame gameId={game.id} perHead={perHead} />
+        {isCancelled(game) ? (
+          /* Cancelled games can't be joined — show a clear notice in place of
+             the Join button so anyone who already joined sees it's off. */
+          <div className="w-full rounded-(--radius-btn) py-3 text-center border border-[rgba(200,80,80,0.3)] bg-[rgba(200,80,80,0.12)]">
+            <div className="font-semibold text-[15px] text-[#e09a9a]">Cancelled</div>
+            <div className="text-[12px] text-dim font-light mt-0.5">
+              This game is off — no need to turn up.
+            </div>
+          </div>
+        ) : (
+          /* Real join/leave behaviour, same look as the design's PrimaryButton. */
+          <JoinGame gameId={game.id} perHead={perHead} />
+        )}
       </div>
 
       {/* Per-game chat, beneath everything else. Renders the message box only

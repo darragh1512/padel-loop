@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import type { Game, Player } from "./types";
+import { isCancelled, type Game, type Player } from "./types";
 
 /* ── Games data for the redesigned UI ───────────────────────────
    Reuses the existing Supabase client (src/lib/supabaseClient.ts), so the
@@ -167,6 +167,8 @@ function rowToGame(row: any, players: Player[] = []): Game {
     maxPlayers: row.max_players ?? 4,
     courtFee: courtFeeFor(row.skill_level), // derived from skill tier (no price column)
     players, // real joined players (from game_players); empty list = open slots
+    createdBy: row.created_by ?? undefined, // who created the game (for owner-only actions)
+    status: row.status ?? undefined, // "active" / "cancelled" (drives browse filtering + label)
   };
 }
 
@@ -213,9 +215,10 @@ export async function getGames(): Promise<Game[]> {
     rowToGame(row, playersByGame.get(String(row.id)) ?? []),
   );
 
-  // Final safety net: hide any past games and make sure the soonest is first.
+  // Final safety net: hide any past games AND any cancelled games (this is a
+  // browse list — only live, joinable games belong here), soonest first.
   return games
-    .filter(isUpcoming)
+    .filter((g) => isUpcoming(g) && !isCancelled(g))
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 }
 

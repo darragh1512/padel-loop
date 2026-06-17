@@ -327,6 +327,69 @@ export async function createGame(
 }
 
 // ---------------------------------------------------------------------------
+// Editing a game
+// ---------------------------------------------------------------------------
+
+// The editable details of a game (the fields the creator can change on the edit
+// form). These are the same columns as NewGame — everything except who created
+// it, which never changes.
+export type GameEdits = {
+  venue: string;
+  location: string;
+  game_time: string; // an ISO timestamp, e.g. "2026-06-10T17:30:00+00:00"
+  skill_level: string;
+  max_players: number;
+};
+
+// Save changes to an existing game's row in the "games" table. Only the
+// creator should reach this (the edit page checks that), but the database's
+// row-level security is the real safeguard. Returns { ok: true } on success,
+// or { error } with a message if something went wrong.
+export async function updateGame(
+  gameId: string,
+  edits: GameEdits,
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("games")
+    .update({
+      venue: edits.venue,
+      location: edits.location,
+      game_time: edits.game_time,
+      skill_level: edits.skill_level,
+      max_players: edits.max_players,
+    })
+    .eq("id", gameId);
+
+  if (error) {
+    console.error("Could not update game:", error.message);
+    return { error: error.message };
+  }
+
+  return { ok: true };
+}
+
+// Cancel a game. We do NOT delete the row — we mark it as cancelled by setting
+// its "status" column to "cancelled", so the game (and its history) is kept.
+// Only the creator should reach this (the button checks that); the database's
+// row-level security is the real safeguard. Returns { ok: true } on success,
+// or { error } with a message if something went wrong.
+export async function cancelGame(
+  gameId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("games")
+    .update({ status: "cancelled" })
+    .eq("id", gameId);
+
+  if (error) {
+    console.error("Could not cancel game:", error.message);
+    return { error: error.message };
+  }
+
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
 // Chat — per-game messages (the "messages" table). Each row is one chat
 // message: who sent it (user_id), which game it belongs to (game_id), the text
 // (body), and when it was sent (created_at).

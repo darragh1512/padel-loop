@@ -21,7 +21,16 @@ export type Game = {
   maxPlayers: number;
   courtFee: number;          // total court cost in EUR
   players: Player[];
+  createdBy?: string;        // user id of the game's creator (from games.created_by)
+  status?: string;           // "active" (default) or "cancelled" (from games.status)
 };
+
+// A game counts as cancelled only when its status is explicitly "cancelled".
+// Anything else — "active", or a blank/missing status on older rows — is
+// treated as a live, joinable game, so we never hide games just because the
+// status column hasn't been set.
+export const isCancelled = (g: Game) =>
+  (g.status ?? "").trim().toLowerCase() === "cancelled";
 
 export const pricePerHead = (g: Game) => g.courtFee / g.maxPlayers;
 export const slotsLeft = (g: Game) => g.maxPlayers - g.players.length;
