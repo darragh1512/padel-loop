@@ -6,6 +6,7 @@
 // out. Logged-out visitors are sent to the login page.
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import { LoopRing, MiniLoop } from "@/components/brand";
@@ -265,15 +266,23 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* Account actions — edit profile + log out, in the design language. */}
+      {/* Account actions — my games + edit profile + log out, in the design language. */}
       {!editing && (
-        <button
-          type="button"
-          onClick={startEdit}
-          className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-6 active:scale-[0.98] transition-transform"
-        >
-          Edit profile
-        </button>
+        <>
+          <Link
+            href="/my-games"
+            className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-6 active:scale-[0.98] transition-transform"
+          >
+            My games
+          </Link>
+          <button
+            type="button"
+            onClick={startEdit}
+            className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-2 active:scale-[0.98] transition-transform"
+          >
+            Edit profile
+          </button>
+        </>
       )}
       <button
         type="button"

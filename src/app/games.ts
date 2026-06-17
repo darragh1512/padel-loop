@@ -17,6 +17,7 @@ export type Game = {
   skill_level: string; // the skill level the game is aimed at
   max_players: number; // total spots in the game
   created_by: string | null; // the user id of whoever created the game
+  status?: string | null; // "active" (default) or "cancelled"
 };
 
 // Turns a stored timestamp (e.g. "2026-06-10T17:30:00+00:00") into friendly
