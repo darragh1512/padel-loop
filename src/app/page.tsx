@@ -1,5 +1,6 @@
 import BottomNav from "@/components/BottomNav";
 import GameFilters from "@/components/GameFilters";
+import NotificationBell from "@/components/NotificationBell";
 import { LevelChip } from "@/components/ui";
 import { getGames } from "@/lib/data";
 
@@ -25,7 +26,10 @@ export default async function HomePage() {
           </svg>
           Malahide, Dublin
         </div>
-        <LevelChip>LVL 3.2</LevelChip>
+        <div className="flex items-center gap-3.5">
+          <NotificationBell />
+          <LevelChip>LVL 3.2</LevelChip>
+        </div>
       </div>
 
       <GameFilters games={games} sectionLabel="Games near you" greeting="Evening, Darragh." />

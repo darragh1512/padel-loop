@@ -270,8 +270,14 @@ export default function ProfilePage() {
       {!editing && (
         <>
           <Link
-            href="/my-games"
+            href="/notifications"
             className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-6 active:scale-[0.98] transition-transform"
+          >
+            Notifications
+          </Link>
+          <Link
+            href="/my-games"
+            className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-2 active:scale-[0.98] transition-transform"
           >
             My games
           </Link>
