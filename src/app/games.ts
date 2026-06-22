@@ -448,6 +448,7 @@ export type ChatMessage = {
   body: string; // the message text
   created_at: string; // when it was sent (ISO timestamp)
   senderName: string; // the sender's profile name, or "Player" if unknown
+  senderAvatarUrl: string | null; // the sender's uploaded photo URL, or null
 };
 
 // Read every message for ONE game, oldest first (so the newest sits at the
@@ -470,19 +471,21 @@ export async function getMessages(gameId: string): Promise<ChatMessage[]> {
     return [];
   }
 
-  // 2. The names of everyone who has sent a message here (each id only once).
+  // 2. The name + avatar of everyone who has sent a message here (each id once).
   const senderIds = Array.from(new Set(rows.map((row) => row.user_id as string)));
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, name")
+    .select("id, name, avatar_url")
     .in("id", senderIds);
 
   const nameById = new Map<string, string>();
+  const avatarById = new Map<string, string | null>();
   for (const profile of profiles ?? []) {
     nameById.set(profile.id as string, (profile.name as string | null) ?? "Player");
+    avatarById.set(profile.id as string, (profile.avatar_url as string | null) ?? null);
   }
 
-  // 3. Pair each message with its sender's name.
+  // 3. Pair each message with its sender's name and avatar.
   return rows.map((row) => ({
     id: row.id as number,
     game_id: String(row.game_id),
@@ -490,6 +493,7 @@ export async function getMessages(gameId: string): Promise<ChatMessage[]> {
     body: row.body as string,
     created_at: row.created_at as string,
     senderName: nameById.get(row.user_id as string) ?? "Player",
+    senderAvatarUrl: avatarById.get(row.user_id as string) ?? null,
   }));
 }
 

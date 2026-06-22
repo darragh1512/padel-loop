@@ -55,6 +55,11 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Chat avatars: each message author now shows their `PlayerAvatar` next to the
+  name in the game chat thread (`chat-thread.tsx`). `getMessages` in
+  `src/app/games.ts` now also looks up `avatar_url` (as `senderAvatarUrl` on
+  `ChatMessage`), so chat shows the same DiceBear/photo avatar as everywhere
+  else. Message layout, timestamp, and the author-name link are unchanged.
 - Player search: new `/search` route (`src/app/search/page.tsx`) with a
   debounced (~300ms) text box that searches `profiles` by display name
   (case-insensitive partial match via `searchProfiles` in `src/app/profiles.ts`,

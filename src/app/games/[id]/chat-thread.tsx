@@ -21,6 +21,7 @@ import { type FormEvent, useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import PlayerAvatar from "@/components/PlayerAvatar";
 import { SectionLabel } from "@/components/ui";
 import {
   canUserChat,
@@ -196,6 +197,18 @@ export default function ChatThread({
             }`}
           >
             <div className="flex items-center gap-2 mb-1 px-1">
+              <Link
+                href={`/players/${m.user_id}`}
+                aria-label={m.senderName}
+                className="shrink-0 active:opacity-70 transition-opacity"
+              >
+                <PlayerAvatar
+                  userId={m.user_id}
+                  avatarUrl={m.senderAvatarUrl}
+                  name={m.senderName}
+                  className="size-5 border border-navy"
+                />
+              </Link>
               <Link
                 href={`/players/${m.user_id}`}
                 className="text-[11px] font-medium text-pale active:opacity-70 transition-opacity"
