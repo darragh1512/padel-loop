@@ -55,6 +55,23 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Connections ("padel friends"): a mutual connect system on top of the Supabase
+  `connections` table (requester_id, addressee_id, status; PK on the pair). Data
+  helpers live in `src/app/connections.ts`.
+  - On someone else's `/players/[id]` profile there's a Connect / Connected
+    button. Connecting inserts a row (requester = me, addressee = them,
+    status `accepted`) — frictionless, no approval step. The button reads
+    "Connected" when an accepted row exists in EITHER direction; tapping it then
+    disconnects, which deletes the row whichever way round it was made.
+  - Every profile (owner and visitor) shows a connections count — accepted
+    connections involving that player in either direction. The owner's count
+    links to `/connections`.
+  - New `/connections` route (`src/app/connections/page.tsx`) lists the logged-in
+    player's accepted connections (the "other person" in each row), reusing
+    `PlayerAvatar` and linking each to their `/players/[id]`.
+  - Supabase note: the `connections` table needs RLS policies allowing a
+    signed-in user to select/insert/delete rows where they are the requester or
+    addressee, for this to work live.
 - Player profiles: added a public player profile page at `/players/[id]`
   (`src/app/players/[id]/page.tsx`). Shows avatar, name, skill level, home club,
   bio, and the player's upcoming games (joined games with a future game_time,

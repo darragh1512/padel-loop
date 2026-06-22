@@ -24,6 +24,12 @@ import {
   type Profile,
 } from "../../profiles";
 import { formatGameTime, getUpcomingGamesFor, type Game } from "../../games";
+import {
+  areConnected,
+  connect,
+  disconnect,
+  getConnectionCount,
+} from "../../connections";
 
 // One upcoming-game card. The whole card links to that game's detail page —
 // styled to match the cards on "My games" so the app feels consistent.
@@ -60,6 +66,14 @@ export default function PlayerProfilePage() {
   const [isOwner, setIsOwner] = useState(false);
   const [games, setGames] = useState<Game[]>([]);
 
+  // Connection state. currentUserId is whoever is logged in (null if nobody);
+  // connected is whether they're connected to the viewed player; connCount is
+  // the viewed player's total connections, shown on the profile.
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
+  const [connCount, setConnCount] = useState(0);
+  const [connBusy, setConnBusy] = useState(false);
+
   // Edit-mode state.
   const [editing, setEditing] = useState(false);
   const [fName, setFName] = useState("");
@@ -75,16 +89,29 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [{ data: auth }, loadedProfile, upcoming] = await Promise.all([
-        supabase.auth.getUser(),
-        getProfile(playerId),
-        getUpcomingGamesFor(playerId),
-      ]);
+      const [{ data: auth }, loadedProfile, upcoming, count] =
+        await Promise.all([
+          supabase.auth.getUser(),
+          getProfile(playerId),
+          getUpcomingGamesFor(playerId),
+          getConnectionCount(playerId),
+        ]);
       if (!active) return;
 
+      const viewerId = auth.user?.id ?? null;
       setProfile(loadedProfile);
-      setIsOwner(auth.user?.id === playerId);
+      setCurrentUserId(viewerId);
+      setIsOwner(viewerId === playerId);
       setGames(upcoming);
+      setConnCount(count);
+
+      // Only the non-owner view needs to know if they're already connected.
+      if (viewerId && viewerId !== playerId) {
+        const isConn = await areConnected(viewerId, playerId);
+        if (!active) return;
+        setConnected(isConn);
+      }
+
       setLoading(false);
     })();
     return () => {
@@ -95,6 +122,34 @@ export default function PlayerProfilePage() {
   async function handleLogout() {
     await supabase.auth.signOut();
     router.push("/login");
+  }
+
+  // Connect when not yet connected, disconnect when already connected. The
+  // viewed player's connection count moves with it. Sends logged-out visitors
+  // to log in first.
+  async function handleToggleConnect() {
+    if (!currentUserId) {
+      router.push("/login");
+      return;
+    }
+    if (connBusy) return;
+    setConnBusy(true);
+
+    if (connected) {
+      const result = await disconnect(currentUserId, playerId);
+      if ("ok" in result) {
+        setConnected(false);
+        setConnCount((c) => Math.max(0, c - 1));
+      }
+    } else {
+      const result = await connect(currentUserId, playerId);
+      if ("ok" in result) {
+        setConnected(true);
+        setConnCount((c) => c + 1);
+      }
+    }
+
+    setConnBusy(false);
   }
 
   function startEdit() {
@@ -210,6 +265,20 @@ export default function PlayerProfilePage() {
           <div className="text-xs text-faint font-light mt-1">
             {profile.home_club || "No home club set"}
           </div>
+          {/* Connections count — on every profile. The owner's links through to
+              their connections list; a visitor's is just a count. */}
+          {isOwner ? (
+            <Link
+              href="/connections"
+              className="inline-block text-xs text-sky font-medium mt-1 active:opacity-70 transition-opacity"
+            >
+              {connCount} connection{connCount === 1 ? "" : "s"}
+            </Link>
+          ) : (
+            <div className="text-xs text-sky font-medium mt-1">
+              {connCount} connection{connCount === 1 ? "" : "s"}
+            </div>
+          )}
           <div className="mt-2">
             <LevelChip>
               {profile.skill_level
@@ -219,6 +288,30 @@ export default function PlayerProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Connect / Connected — only on someone else's profile. Tapping toggles
+          the mutual connection (logged-out visitors are sent to log in first). */}
+      {!isOwner && (
+        <button
+          type="button"
+          onClick={handleToggleConnect}
+          disabled={connBusy}
+          aria-label={connected ? "Disconnect" : "Connect"}
+          className={
+            connected
+              ? "block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-5 active:scale-[0.98] transition-transform disabled:opacity-70"
+              : "block w-full text-center bg-vivid text-white font-semibold text-sm rounded-(--radius-btn) py-3 mt-5 pl-cta-shadow active:scale-[0.98] transition-transform disabled:opacity-70"
+          }
+        >
+          {connBusy
+            ? connected
+              ? "Disconnecting…"
+              : "Connecting…"
+            : connected
+              ? "Connected ✓"
+              : "Connect"}
+        </button>
+      )}
 
       {/* Edit form — owner only, shown while editing. */}
       {editing && (
