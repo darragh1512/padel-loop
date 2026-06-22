@@ -5,6 +5,7 @@ export type Player = {
   level: number;
   gamesPlayed?: number;
   isOrganiser?: boolean;
+  avatarUrl?: string | null; // uploaded photo URL, if they've set one
 };
 
 export type Game = {

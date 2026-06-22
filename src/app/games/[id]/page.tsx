@@ -2,6 +2,7 @@ import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import { CourtHero } from "@/components/brand";
 import { Avatar, SectionLabel } from "@/components/ui";
+import PlayerAvatar from "@/components/PlayerAvatar";
 import { getGame } from "@/lib/data";
 import { formatDay, formatTimeRange, isCancelled, pricePerHead } from "@/lib/types";
 import { notFound } from "next/navigation";
@@ -74,13 +75,21 @@ export default async function GameDetailPage({
         Players · {game.players.length} of {game.maxPlayers}
       </SectionLabel>
       <div className="pl-surface rounded-(--radius-card) px-4 py-1.5">
-        {game.players.map((p, i) => (
+        {game.players.map((p) => (
           <div
             key={p.id}
             className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0"
           >
-            <div className="flex items-center gap-3">
-              <Avatar player={p} index={i} size="md" />
+            <Link
+              href={`/players/${p.id}`}
+              className="flex items-center gap-3 active:opacity-70 transition-opacity"
+            >
+              <PlayerAvatar
+                userId={p.id}
+                avatarUrl={p.avatarUrl}
+                name={p.name}
+                className="size-9 border-2 border-navy"
+              />
               <div>
                 <div className="text-sm font-medium">{p.name}</div>
                 <div className="text-[10.5px] text-faint">
@@ -88,7 +97,7 @@ export default async function GameDetailPage({
                   {p.gamesPlayed ?? 0} games
                 </div>
               </div>
-            </div>
+            </Link>
             <span className="font-display text-[8.5px] tracking-[1px] text-sky bg-vivid/13 rounded-full px-2.5 py-1.5">
               LVL {p.level.toFixed(1)}
             </span>

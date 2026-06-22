@@ -12,8 +12,11 @@ import { supabase } from "@/lib/supabaseClient";
 export type Profile = {
   id: string; // matches the person's auth user id
   name: string | null; // what they want to be called
-  skill_level: string | null; // Beginner / Intermediate / Advanced
-  home_area: string | null; // the area they usually play in
+  skill_level: string | null; // Beginner / Improver / Intermediate / Advanced / Pro
+  home_area: string | null; // the area they usually play in (older field)
+  home_club: string | null; // their home padel club
+  bio: string | null; // a short "about me" they can write
+  avatar_url: string | null; // public URL of their uploaded photo, if any
   created_at?: string; // when the profile was first created
 };
 
@@ -91,4 +94,90 @@ export async function updateProfile(
   }
 
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Player profile page — the fuller profile edited on /players/[id].
+// ---------------------------------------------------------------------------
+
+// The five skill levels a player can choose, in order. Used by the edit form's
+// dropdown and kept here so there's one source of truth.
+export const SKILL_LEVELS = [
+  "Beginner",
+  "Improver",
+  "Intermediate",
+  "Advanced",
+  "Pro",
+] as const;
+
+// The fields editable on the player profile page. avatar_url is set by the
+// upload step (uploadAvatar) before saving, so it's optional here.
+export type PlayerProfileEdits = {
+  name: string;
+  skill_level: string;
+  home_club: string;
+  bio: string;
+  avatar_url?: string | null;
+};
+
+// Save changes a person made to their own player profile. Uses "upsert"
+// (update-or-insert) keyed on their auth user id, so it creates the row if it
+// doesn't exist yet and updates it otherwise. Only the columns we pass are
+// touched — older fields like home_area are left untouched. Returns
+// { ok: true } on success or { error } with a message on failure.
+export async function savePlayerProfile(
+  userId: string,
+  edits: PlayerProfileEdits,
+): Promise<{ ok: true } | { error: string }> {
+  // Build the row from only the fields we mean to change. avatar_url is added
+  // just when it was provided, so a plain text save never wipes an existing
+  // photo.
+  const row: Record<string, unknown> = {
+    id: userId,
+    name: edits.name,
+    skill_level: edits.skill_level,
+    home_club: edits.home_club,
+    bio: edits.bio,
+  };
+  if (edits.avatar_url !== undefined) {
+    row.avatar_url = edits.avatar_url;
+  }
+
+  const { error } = await supabase.from("profiles").upsert(row);
+
+  if (error) {
+    console.error("Could not save profile:", error.message);
+    return { error: error.message };
+  }
+
+  return { ok: true };
+}
+
+// Upload a new avatar photo for a person to the public "avatars" storage
+// bucket. We always write to the SAME path (`<userId>/avatar`) and overwrite
+// it (upsert), so a player only ever has one avatar file — uploads don't pile
+// up. On success we return the file's public URL with a cache-busting suffix
+// so the new photo shows immediately instead of a stale cached one.
+export async function uploadAvatar(
+  userId: string,
+  file: File,
+): Promise<{ url: string } | { error: string }> {
+  const path = `${userId}/avatar`;
+
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, {
+      upsert: true, // overwrite the existing file instead of failing/duplicating
+      contentType: file.type || "image/*",
+    });
+
+  if (error) {
+    console.error("Could not upload avatar:", error.message);
+    return { error: error.message };
+  }
+
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  // The path never changes, so browsers would cache the old image. A
+  // timestamp query string makes each new upload a fresh URL.
+  return { url: `${data.publicUrl}?v=${Date.now()}` };
 }

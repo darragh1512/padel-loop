@@ -55,6 +55,36 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Player profiles: added a public player profile page at `/players/[id]`
+  (`src/app/players/[id]/page.tsx`). Shows avatar, name, skill level, home club,
+  bio, and the player's upcoming games (joined games with a future game_time,
+  via `getUpcomingGamesFor` in `src/app/games.ts`). The profile's owner gets an
+  Edit mode: name, skill level (Beginner/Improver/Intermediate/Advanced/Pro),
+  home club, bio, and avatar upload.
+  - Avatars: if `profiles.avatar_url` is set we show that photo; otherwise a
+    DiceBear avatar generated from the user id (DiceBear v9 `createAvatar` from
+    `@dicebear/core` + `@dicebear/collection`). Rendered through a shadcn-style
+    `Avatar` (`src/components/ui/avatar.tsx`, Radix-based) wrapped by
+    `src/components/PlayerAvatar.tsx`, with an initials fallback.
+  - Avatar upload writes to the public `avatars` storage bucket at the fixed
+    path `${userId}/avatar` with `upsert` (overwrites — files don't pile up),
+    then saves the public URL to `profiles.avatar_url`. See `uploadAvatar` /
+    `savePlayerProfile` in `src/app/profiles.ts`.
+  - Players are now clickable through to their profile everywhere a name/avatar
+    shows: the game detail roster (`src/app/games/[id]/page.tsx`) and chat
+    message authors (`chat-thread.tsx`) link to `/players/[user-id]`. The bottom
+    nav's Profile tab now shows the logged-in user's own avatar and links to
+    their `/players/[id]` page (logged out, it falls back to the old icon →
+    `/profile`). Because of that, the owner's player profile gained a "Settings"
+    link (to the older `/profile` page) and the "Log out" button.
+  - The game-detail roster now renders each player through `PlayerAvatar` (same
+    DiceBear/photo avatar as everywhere else), so `avatar_url` is now carried on
+    the `Player` type and fetched in `src/lib/data.ts`. Open slots (no user id)
+    keep the dashed-"+" fallback `Avatar`. Decorative avatar stacks on game
+    cards (`AvatarStack`) are deliberately left as-is.
+  - Supabase note: for this to work live, the `profiles` table needs a public
+    (read) policy so anyone can view a profile, and the `avatars` bucket needs
+    a policy letting a signed-in user write their own `${userId}/...` path.
 - Day 1: Scaffolded the Next.js + Tailwind app and got it running locally.
 - Day 2: Connected the app to the Supabase `games` table. List + detail screens
   now read REAL data from the database (verified working locally). Env vars are

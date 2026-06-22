@@ -160,6 +160,50 @@ export async function getGamesJoinedBy(userId: string): Promise<Game[]> {
   return games ?? [];
 }
 
+// Get the UPCOMING games a given user is in — i.e. games they've joined whose
+// time is still in the future. Same two-step join as getGamesJoinedBy (read
+// their rows in game_players, then fetch those games), but the games query
+// only keeps rows with a game_time from now onwards. Cancelled games are left
+// out so the list shows games actually worth turning up to. Sorted soonest
+// first. Used by the public player profile page.
+export async function getUpcomingGamesFor(userId: string): Promise<Game[]> {
+  // 1. Which games is this person in.
+  const { data: rows, error } = await supabase
+    .from("game_players")
+    .select("game_id")
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Could not load joined games:", error.message);
+    return [];
+  }
+
+  const gameIds = (rows ?? []).map((row) => row.game_id as string);
+  if (gameIds.length === 0) {
+    return [];
+  }
+
+  // 2. Fetch those games, future only (game_time >= now), soonest first.
+  const nowIso = new Date().toISOString();
+  const { data: games, error: gamesError } = await supabase
+    .from("games")
+    .select("*")
+    .in("id", gameIds)
+    .gte("game_time", nowIso)
+    .order("game_time", { ascending: true });
+
+  if (gamesError) {
+    console.error("Could not load upcoming games:", gamesError.message);
+    return [];
+  }
+
+  // Drop cancelled games (status literally "cancelled"); blank/missing status
+  // on older rows still counts as a live game.
+  return (games ?? []).filter(
+    (g) => (g.status ?? "").trim().toLowerCase() !== "cancelled",
+  );
+}
+
 // Get all games the logged-in user CREATED (their id is in created_by).
 // Returns the games sorted by game_time (earliest first), or an empty list.
 export async function getGamesCreatedBy(userId: string): Promise<Game[]> {

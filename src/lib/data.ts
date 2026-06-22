@@ -69,7 +69,7 @@ async function getPlayersForGame(
   const ids = rows.map((r) => r.user_id as string);
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, name, skill_level")
+    .select("id, name, skill_level, avatar_url")
     .in("id", ids);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,6 +84,7 @@ async function getPlayersForGame(
       initials: initialsFrom(p?.name),
       level: skillToLevel(p?.skill_level),
       isOrganiser: createdBy != null && id === createdBy,
+      avatarUrl: p?.avatar_url ?? null,
     } satisfies Player;
   });
 }
@@ -116,7 +117,7 @@ async function getPlayersForGames(
   const userIds = Array.from(new Set(links.map((l) => l.user_id as string)));
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, name, skill_level")
+    .select("id, name, skill_level, avatar_url")
     .in("id", userIds);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const profileById = new Map<string, any>();
@@ -138,6 +139,7 @@ async function getPlayersForGames(
       initials: initialsFrom(profile?.name),
       level: skillToLevel(profile?.skill_level),
       isOrganiser: createdBy != null && userId === createdBy,
+      avatarUrl: profile?.avatar_url ?? null,
     };
     const list = byGame.get(gameId) ?? [];
     list.push(player);

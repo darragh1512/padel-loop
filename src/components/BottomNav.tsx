@@ -1,7 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import PlayerAvatar from "@/components/PlayerAvatar";
+import { supabase } from "@/lib/supabaseClient";
+import { getProfile } from "@/app/profiles";
 
 const ICONS = {
   home: (
@@ -52,6 +56,59 @@ function NavItem({
   );
 }
 
+// The Profile tab. When someone is logged in it shows THEIR avatar and links to
+// their own player profile (/players/[id]). Logged out, it falls back to the
+// original person icon → /profile (which itself bounces to login). Loading the
+// user is the only added behaviour here; everything else stays as designed.
+function ProfileNavItem() {
+  const pathname = usePathname();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [name, setName] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const uid = data.user?.id ?? null;
+      if (!active) return;
+      setUserId(uid);
+      if (uid) {
+        const profile = await getProfile(uid);
+        if (!active) return;
+        setAvatarUrl(profile?.avatar_url ?? null);
+        setName(profile?.name ?? null);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Logged out (or still resolving who's logged in) — keep the original tab.
+  if (!userId) {
+    return <NavItem href="/profile" label="Profile" icon="profile" />;
+  }
+
+  const active = pathname === `/players/${userId}`;
+  return (
+    <Link
+      href={`/players/${userId}`}
+      className={`flex flex-col items-center gap-1 text-[9.5px] tracking-wide font-medium w-14 ${
+        active ? "text-sky" : "text-faint"
+      }`}
+    >
+      <PlayerAvatar
+        userId={userId}
+        avatarUrl={avatarUrl}
+        name={name}
+        className={`size-[22px] ${active ? "ring-2 ring-sky" : ""}`}
+      />
+      Profile
+    </Link>
+  );
+}
+
 export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-20">
@@ -68,7 +125,7 @@ export default function BottomNav() {
           </svg>
         </Link>
         <NavItem href="/chat" label="Chat" icon="chat" />
-        <NavItem href="/profile" label="Profile" icon="profile" />
+        <ProfileNavItem />
       </div>
     </nav>
   );

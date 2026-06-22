@@ -18,6 +18,7 @@
 //  • keeps the view scrolled to the newest message
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { SectionLabel } from "@/components/ui";
@@ -195,9 +196,12 @@ export default function ChatThread({
             }`}
           >
             <div className="flex items-center gap-2 mb-1 px-1">
-              <span className="text-[11px] font-medium text-pale">
+              <Link
+                href={`/players/${m.user_id}`}
+                className="text-[11px] font-medium text-pale active:opacity-70 transition-opacity"
+              >
                 {mine ? "You" : m.senderName}
-              </span>
+              </Link>
               <span className="text-[10px] text-faint">
                 {shortTime(m.created_at)}
               </span>
