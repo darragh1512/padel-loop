@@ -24,6 +24,14 @@ const ICONS = {
       <path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
     </svg>
   ),
+  friends: (
+    <svg viewBox="0 0 24 24" fill="none" className="w-[22px] h-[22px]">
+      <circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="2" />
+      <path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 5.2a3.2 3.2 0 0 1 0 5.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M17.5 14.4c2 .6 3.5 2.4 3.5 4.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  ),
   profile: (
     <svg viewBox="0 0 24 24" fill="none" className="w-[22px] h-[22px]">
       <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" />
@@ -125,6 +133,7 @@ export default function BottomNav() {
           </svg>
         </Link>
         <NavItem href="/chat" label="Chat" icon="chat" />
+        <NavItem href="/connections" label="Friends" icon="friends" />
         <ProfileNavItem />
       </div>
     </nav>
