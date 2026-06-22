@@ -5,10 +5,12 @@
 // the browser as the user taps the chips. Card layout and chip styling are
 // unchanged — this only makes them functional.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import GameCard from "@/components/GameCard";
 import { SectionLabel } from "@/components/ui";
 import { skillTierOf, type Game } from "@/lib/types";
+import { supabase } from "@/lib/supabaseClient";
+import { getConnections } from "@/app/connections";
 
 const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
 const TIMES = ["Today", "This week"] as const;
@@ -145,6 +147,27 @@ export default function GameFilters({
   const [query, setQuery] = useState("");
   const [openFilter, setOpenFilter] = useState<OpenKey>(null);
 
+  // "Connections only" toggle: when on, the list is narrowed to games created
+  // by people the logged-in user has an accepted connection with. connectedIds
+  // is that set of creator ids, loaded once via the existing connection lookup.
+  const [connectionsOnly, setConnectionsOnly] = useState(false);
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const uid = data.user?.id ?? null;
+      if (!uid) return; // logged out — no connections to filter by
+      const connections = await getConnections(uid);
+      if (!active) return;
+      setConnectedIds(new Set(connections.map((p) => p.id)));
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // Only offer areas that actually appear in the current games.
   const areas = useMemo(() => {
     const seen: string[] = [];
@@ -163,13 +186,20 @@ export default function GameFilters({
         (level == null || skillTierOf(g) === level) &&
         (area == null || g.area === area) &&
         matchesTime(g, time) &&
+        (!connectionsOnly ||
+          (g.createdBy != null && connectedIds.has(g.createdBy))) &&
         (q === "" ||
           g.venue.toLowerCase().includes(q) ||
           (g.area ?? "").toLowerCase().includes(q)),
     );
-  }, [games, level, area, time, query]);
+  }, [games, level, area, time, query, connectionsOnly, connectedIds]);
 
-  const anyActive = level != null || area != null || time != null || query.trim() !== "";
+  const anyActive =
+    level != null ||
+    area != null ||
+    time != null ||
+    connectionsOnly ||
+    query.trim() !== "";
 
   // Headline count: always the number of games currently shown. If every shown
   // game is today we keep the "tonight" wording, otherwise "upcoming". (Same
@@ -188,6 +218,7 @@ export default function GameFilters({
     setArea(null);
     setTime(null);
     setQuery("");
+    setConnectionsOnly(false);
     setOpenFilter(null);
   };
 
@@ -275,6 +306,23 @@ export default function GameFilters({
             setOpenFilter(null);
           }}
         />
+        {/* Connections-only toggle — a plain on/off chip (no menu), matching the
+            FilterChip look: vivid when active, faint blue when off. */}
+        <button
+          type="button"
+          onClick={() => {
+            setConnectionsOnly((v) => !v);
+            setOpenFilter(null);
+          }}
+          aria-pressed={connectionsOnly}
+          className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap shrink-0 ${
+            connectionsOnly
+              ? "bg-vivid border border-vivid text-white"
+              : "bg-vivid/15 border border-sky/25 text-pale"
+          }`}
+        >
+          Connections only
+        </button>
         {anyActive && (
           <button
             type="button"
