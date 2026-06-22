@@ -1,5 +1,6 @@
 import BottomNav from "@/components/BottomNav";
 import GameFilters from "@/components/GameFilters";
+import HomeHero from "@/components/HomeHero";
 import NotificationBell from "@/components/NotificationBell";
 import { LevelChip } from "@/components/ui";
 import { getGames } from "@/lib/data";
@@ -32,7 +33,14 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <GameFilters games={games} sectionLabel="Games near you" greeting="Evening, Darragh." />
+      {/* Hero — leads the page: your next game, or a find/create prompt, with
+          Create a game as a prominent primary action. */}
+      <HomeHero />
+
+      {/* Joinable games list with its filter chips (the "Find a game" target). */}
+      <div id="games" className="scroll-mt-4">
+        <GameFilters games={games} sectionLabel="Games near you" greeting="Evening, Darragh." />
+      </div>
 
       <BottomNav />
     </main>

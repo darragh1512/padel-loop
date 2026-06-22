@@ -55,6 +55,28 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Home screen reworked around one job — getting into a game fast. New
+  `src/components/HomeHero.tsx` (client) leads the page: if the logged-in user
+  has an upcoming game it shows "Your next game" prominently (links to the game);
+  otherwise a "Find a game" / "Create a game" prompt. Create a game is a
+  prominent primary action in both states. Below the hero, the existing
+  joinable-games list + filter chips (`GameFilters`) is unchanged, wrapped in
+  `#games` so the hero's "Find a game" scrolls to it. Reuses `getUpcomingGamesFor`
+  and the `/create` flow — no new queries, no social feed.
+- Player profile redesign (`/players/[id]`): layout/hierarchy only (data and
+  queries unchanged). Prominent centred identity header — large avatar, name at
+  the top of the type scale, and a single stats row (Skill · Connections ·
+  Played) built as an extensible list so a wins/rating stat can slot in once
+  match results exist. "Played" is a placeholder (—) for now. Below: distinct
+  "Upcoming games" then "About" (home club + bio) sections. Owner view keeps
+  edit mode, the Settings gear, and the Connections entry; the connections count
+  also lives in the stats row (links to /connections for the owner).
+- Bottom nav restructured to four tabs: Home (`/`), My Games (`/my-games`),
+  Chat (`/chat`), Profile (the user's avatar → their `/players/[id]`), plus the
+  unchanged centre Create (+) button. The standalone Friends/Connections tab and
+  the old Games-browse tab were removed. Connections is now surfaced in the
+  profile hub: the owner's `/players/[id]` view has a "Connections" entry (with
+  the count) linking to `/connections`, alongside a Settings gear (→ `/profile`).
 - Chat avatars: each message author now shows their `PlayerAvatar` next to the
   name in the game chat thread (`chat-thread.tsx`). `getMessages` in
   `src/app/games.ts` now also looks up `avatar_url` (as `senderAvatarUrl` on

@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import PlayerAvatar from "@/components/PlayerAvatar";
-import { LevelChip, SectionLabel } from "@/components/ui";
+import { SectionLabel } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import {
   getProfile,
@@ -246,48 +246,68 @@ export default function PlayerProfilePage() {
   // While editing, preview the avatar the owner has chosen so far.
   const shownAvatar = editing ? fAvatarUrl : profile.avatar_url;
 
+  // The identity header's stats row. Kept as a list so another stat (e.g. a
+  // wins/rating stat) can slot straight in once match results exist. "Played"
+  // is a placeholder for now — there's no match-history data yet, so it shows
+  // a dash rather than a fabricated number.
+  const stats: { label: string; value: string; href?: string }[] = [
+    { label: "Skill", value: profile.skill_level || "Unrated" },
+    {
+      label: connCount === 1 ? "Connection" : "Connections",
+      value: String(connCount),
+      href: isOwner ? "/connections" : undefined,
+    },
+    { label: "Played", value: "—" },
+  ];
+
   return (
     <main className="px-5 pt-6 relative">
       <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
 
-      {/* Header: avatar + name + level + home club. */}
-      <div className="flex items-center gap-4 mt-3 relative">
+      {/* Identity header — the page anchor. Large avatar, the name at the top
+          of the type scale, and a single stats row (skill · connections ·
+          played). Centred and given the most size/weight so it reads first. */}
+      <header className="flex flex-col items-center text-center mt-2 relative">
         <PlayerAvatar
           userId={playerId}
           avatarUrl={shownAvatar}
           name={displayName}
-          className="size-[74px] border-2 border-navy ring-1 ring-sky/30"
+          className="size-24 border-2 border-navy ring-2 ring-sky/40"
         />
-        <div className="min-w-0">
-          <div className="font-display font-bold text-[19px] tracking-tight truncate">
-            {displayName}
-          </div>
-          <div className="text-xs text-faint font-light mt-1">
-            {profile.home_club || "No home club set"}
-          </div>
-          {/* Connections count — on every profile. The owner's links through to
-              their connections list; a visitor's is just a count. */}
-          {isOwner ? (
-            <Link
-              href="/connections"
-              className="inline-block text-xs text-sky font-medium mt-1 active:opacity-70 transition-opacity"
-            >
-              {connCount} connection{connCount === 1 ? "" : "s"}
-            </Link>
-          ) : (
-            <div className="text-xs text-sky font-medium mt-1">
-              {connCount} connection{connCount === 1 ? "" : "s"}
-            </div>
-          )}
-          <div className="mt-2">
-            <LevelChip>
-              {profile.skill_level
-                ? profile.skill_level.toUpperCase()
-                : "UNRATED"}
-            </LevelChip>
-          </div>
+        <h1 className="font-display font-bold text-[24px] tracking-tight mt-3.5 max-w-full truncate">
+          {displayName}
+        </h1>
+
+        {/* Stats row — one bar, divided into equal cells. The connections cell
+            links through to /connections for the owner. */}
+        <div className="w-full pl-surface rounded-(--radius-card) mt-4 flex divide-x divide-white/8">
+          {stats.map((s) => {
+            const inner = (
+              <>
+                <div className="font-display font-bold text-[15px] leading-tight truncate">
+                  {s.value}
+                </div>
+                <div className="text-[9px] tracking-[1.5px] uppercase text-faint mt-1">
+                  {s.label}
+                </div>
+              </>
+            );
+            return s.href ? (
+              <Link
+                key={s.label}
+                href={s.href}
+                className="flex-1 min-w-0 px-2 py-3.5 active:opacity-70 transition-opacity"
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div key={s.label} className="flex-1 min-w-0 px-2 py-3.5">
+                {inner}
+              </div>
+            );
+          })}
         </div>
-      </div>
+      </header>
 
       {/* Connect / Connected — only on someone else's profile. Tapping toggles
           the mutual connection (logged-out visitors are sent to log in first). */}
@@ -424,30 +444,43 @@ export default function PlayerProfilePage() {
         </div>
       )}
 
-      {/* Bio (view mode) — only shown when there's something to show. */}
-      {!editing && profile.bio && (
+      {/* View sections — hidden while the owner is editing so the form is the
+          sole focus. Upcoming games first, then About. */}
+      {!editing && (
         <>
+          <SectionLabel>Upcoming games</SectionLabel>
+          {games.length > 0 ? (
+            games.map((game, i) => (
+              <UpcomingGameCard key={game.id} game={game} delay={i * 40} />
+            ))
+          ) : (
+            <div className="pl-surface rounded-(--radius-card) px-4 py-5 text-center text-[13px] text-faint font-light">
+              {isOwner ? "You have" : `${displayName} has`} no upcoming games.
+            </div>
+          )}
+
+          {/* About — home club, then bio (when set). */}
           <SectionLabel>About</SectionLabel>
-          <div className="pl-surface rounded-(--radius-card) p-4 text-[13.5px] text-pale font-light leading-relaxed whitespace-pre-line">
-            {profile.bio}
+          <div className="pl-surface rounded-(--radius-card) p-4">
+            <div className="flex items-center gap-2 text-[13px] text-dim">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="shrink-0 text-sky">
+                <path d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11Z" stroke="currentColor" strokeWidth="2" />
+                <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" />
+              </svg>
+              <span>{profile.home_club || "No home club set"}</span>
+            </div>
+            {profile.bio && (
+              <p className="text-[13.5px] text-pale font-light leading-relaxed whitespace-pre-line mt-3 pt-3 border-t border-white/8">
+                {profile.bio}
+              </p>
+            )}
           </div>
         </>
       )}
 
-      {/* Upcoming games. */}
-      <SectionLabel>Upcoming games</SectionLabel>
-      {games.length > 0 ? (
-        games.map((game, i) => (
-          <UpcomingGameCard key={game.id} game={game} delay={i * 40} />
-        ))
-      ) : (
-        <div className="pl-surface rounded-(--radius-card) px-4 py-5 text-center text-[13px] text-faint font-light">
-          {isOwner ? "You have" : `${displayName} has`} no upcoming games.
-        </div>
-      )}
-
-      {/* Owner-only account actions: edit, settings (the older /profile page,
-          still home to win-rate etc.), and log out. */}
+      {/* Owner-only account actions: edit, the connections hub + settings gear
+          (the older /profile page, still home to win-rate etc.), and log out.
+          Connections lives here now that it's no longer a bottom-nav tab. */}
       {isOwner && !editing && (
         <>
           <button
@@ -457,12 +490,33 @@ export default function PlayerProfilePage() {
           >
             Edit profile
           </button>
-          <Link
-            href="/profile"
-            className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-2 active:scale-[0.98] transition-transform"
-          >
-            Settings
-          </Link>
+          <div className="flex gap-2 mt-2">
+            <Link
+              href="/connections"
+              className="flex-1 flex items-center justify-center gap-2 bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 active:scale-[0.98] transition-transform"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                <circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="2" />
+                <path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M16 5.2a3.2 3.2 0 0 1 0 5.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M17.5 14.4c2 .6 3.5 2.4 3.5 4.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Connections
+              <span className="text-[11px] font-semibold text-sky bg-vivid/15 border border-sky/25 rounded-full px-2 py-0.5">
+                {connCount}
+              </span>
+            </Link>
+            <Link
+              href="/profile"
+              aria-label="Settings"
+              className="w-12 shrink-0 flex items-center justify-center bg-transparent text-pale border border-white/15 rounded-(--radius-btn) active:scale-[0.98] transition-transform"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+              </svg>
+            </Link>
+          </div>
           <button
             type="button"
             onClick={handleLogout}
