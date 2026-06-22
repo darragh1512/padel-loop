@@ -95,6 +95,18 @@ export default function ConnectionsPage() {
         The players you’ve connected with.
       </p>
 
+      {/* Entry point to player search. */}
+      <Link
+        href="/search"
+        className="flex items-center gap-2.5 pl-surface rounded-full px-4 py-2.5 mb-4 text-[13px] text-faint font-light active:scale-[0.99] transition-transform"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+          <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        Find players by name
+      </Link>
+
       {people.length > 0 ? (
         people.map((person, i) => (
           <ConnectionRow key={person.id} person={person} delay={i * 40} />

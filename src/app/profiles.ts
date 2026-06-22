@@ -181,3 +181,50 @@ export async function uploadAvatar(
   // timestamp query string makes each new upload a fresh URL.
   return { url: `${data.publicUrl}?v=${Date.now()}` };
 }
+
+// ---------------------------------------------------------------------------
+// Finding players — the search screen (/search).
+// ---------------------------------------------------------------------------
+
+// One person in the search results — just the bits the list needs to show them.
+export type ProfileSearchResult = {
+  id: string;
+  name: string | null;
+  skill_level: string | null;
+  home_club: string | null;
+  avatar_url: string | null;
+};
+
+// Find players whose display name contains `query` (case-insensitive, partial
+// match), leaving out the person doing the searching. Returns up to 30 matches
+// sorted by name, or an empty list (including when the search box is empty).
+export async function searchProfiles(
+  query: string,
+  excludeUserId: string | null,
+): Promise<ProfileSearchResult[]> {
+  const term = query.trim();
+  if (term === "") return [];
+
+  // Treat % and _ typed by the user as literal characters, not ilike wildcards.
+  const escaped = term.replace(/[\\%_]/g, (m) => `\\${m}`);
+
+  let request = supabase
+    .from("profiles")
+    .select("id, name, skill_level, home_club, avatar_url")
+    .ilike("name", `%${escaped}%`) // case-insensitive partial match on name
+    .order("name", { ascending: true })
+    .limit(30);
+
+  if (excludeUserId) {
+    request = request.neq("id", excludeUserId); // never show yourself
+  }
+
+  const { data, error } = await request;
+
+  if (error) {
+    console.error("Could not search players:", error.message);
+    return [];
+  }
+
+  return (data ?? []) as ProfileSearchResult[];
+}

@@ -55,6 +55,11 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Player search: new `/search` route (`src/app/search/page.tsx`) with a
+  debounced (~300ms) text box that searches `profiles` by display name
+  (case-insensitive partial match via `searchProfiles` in `src/app/profiles.ts`,
+  excluding the current user). Results reuse `PlayerAvatar` and link to
+  `/players/[id]`. Reachable via a "Find players by name" link on `/connections`.
 - Connections ("padel friends"): a mutual connect system on top of the Supabase
   `connections` table (requester_id, addressee_id, status; PK on the pair). Data
   helpers live in `src/app/connections.ts`.
