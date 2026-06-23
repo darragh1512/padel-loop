@@ -11,6 +11,7 @@ import { SectionLabel } from "@/components/ui";
 import { skillTierOf, type Game } from "@/lib/types";
 import { supabase } from "@/lib/supabaseClient";
 import { getConnections } from "@/app/connections";
+import { getJoinedOrCreatedGameIds } from "@/app/games";
 
 const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
 const TIMES = ["Today", "This week"] as const;
@@ -134,12 +135,16 @@ export default function GameFilters({
   games,
   sectionLabel,
   greeting,
+  excludeOwnGames = false,
 }: {
   games: Game[];
   sectionLabel: string;
   // When set (home page only), render the headline above the chips. Its count
   // tracks the filtered list, so it always matches the games actually shown.
   greeting?: string;
+  // When true (the discovery list), hide games the user has already joined or
+  // created, so the list only shows games they can actually join.
+  excludeOwnGames?: boolean;
 }) {
   const [level, setLevel] = useState<string | null>(null);
   const [area, setArea] = useState<string | null>(null);
@@ -153,20 +158,30 @@ export default function GameFilters({
   const [connectionsOnly, setConnectionsOnly] = useState(false);
   const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
 
+  // Ids of games the user has joined/created — excluded from the list when
+  // excludeOwnGames is set (the discovery list).
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     let active = true;
     (async () => {
       const { data } = await supabase.auth.getUser();
       const uid = data.user?.id ?? null;
-      if (!uid) return; // logged out — no connections to filter by
-      const connections = await getConnections(uid);
+      if (!uid) return; // logged out — nothing user-specific to load
+      const [connections, ownIds] = await Promise.all([
+        getConnections(uid),
+        excludeOwnGames
+          ? getJoinedOrCreatedGameIds(uid)
+          : Promise.resolve<string[]>([]),
+      ]);
       if (!active) return;
       setConnectedIds(new Set(connections.map((p) => p.id)));
+      setExcludedIds(new Set(ownIds));
     })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [excludeOwnGames]);
 
   // Only offer areas that actually appear in the current games.
   const areas = useMemo(() => {
@@ -183,6 +198,7 @@ export default function GameFilters({
     const q = query.trim().toLowerCase();
     return games.filter(
       (g) =>
+        !excludedIds.has(g.id) && // hide games you've joined/created (discover)
         (level == null || skillTierOf(g) === level) &&
         (area == null || g.area === area) &&
         matchesTime(g, time) &&
@@ -192,7 +208,7 @@ export default function GameFilters({
           g.venue.toLowerCase().includes(q) ||
           (g.area ?? "").toLowerCase().includes(q)),
     );
-  }, [games, level, area, time, query, connectionsOnly, connectedIds]);
+  }, [games, level, area, time, query, connectionsOnly, connectedIds, excludedIds]);
 
   const anyActive =
     level != null ||

@@ -1,19 +1,9 @@
 import BottomNav from "@/components/BottomNav";
-import GameFilters from "@/components/GameFilters";
-import HomeHero from "@/components/HomeHero";
+import HomeDashboard from "@/components/HomeDashboard";
 import NotificationBell from "@/components/NotificationBell";
 import { LevelChip } from "@/components/ui";
-import { getGames } from "@/lib/data";
 
-// Always read fresh data on each request. The player count ("spots left") is
-// computed from the live game_players table, so this page must NOT be cached —
-// otherwise joining a game would still show the old count until the cache
-// expired. (See JoinGame, which also calls router.refresh() after a join.)
-export const dynamic = "force-dynamic";
-
-export default async function HomePage() {
-  const games = await getGames();
-
+export default function HomePage() {
   return (
     <main className="px-5 pt-6 relative">
       {/* ambient glow */}
@@ -33,14 +23,9 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Hero — leads the page: your next game, or a find/create prompt, with
-          Create a game as a prominent primary action. */}
-      <HomeHero />
-
-      {/* Joinable games list with its filter chips (the "Find a game" target). */}
-      <div id="games" className="scroll-mt-4">
-        <GameFilters games={games} sectionLabel="Games near you" greeting="Evening, Darragh." />
-      </div>
+      {/* Dashboard: the next-game hero plus "Find a game" (primary action) and
+          "Connections" cards. The joinable-games list lives on /discover. */}
+      <HomeDashboard />
 
       <BottomNav />
     </main>

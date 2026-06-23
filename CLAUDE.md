@@ -55,6 +55,21 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Home dashboard: home is now a dashboard (`src/components/HomeDashboard.tsx`,
+  replaces the old HomeHero). Top: the "Your next game" hero (or a "Ready to
+  play?" state when there's none). Below: two cards in a vertical stack — a
+  prominent solid-vivid "Find a game" card (primary action → /discover) and a
+  "Connections" card showing the connection count (→ /connections). Reuses
+  `getUpcomingGamesFor` and `getConnectionCount`; no social feed. My Games,
+  /discover, and the create flow untouched.
+- Discover route: the "Games near you" joinable-games list (with its Level /
+  Area / Time / Connections-only chips) now lives at `/discover`
+  (`src/app/discover/page.tsx`), reusing `getGames`. `GameFilters` gained an
+  `excludeOwnGames` prop that hides games the user has already joined or created
+  (via `getJoinedOrCreatedGameIds` in `src/app/games.ts`), so Discover only
+  shows genuinely joinable games. The list was removed from the home screen
+  (home is now hero-only); the hero's "Find a game" / "Browse more games" links
+  point to `/discover`. My Games and the create flow are untouched.
 - Home screen reworked around one job — getting into a game fast. New
   `src/components/HomeHero.tsx` (client) leads the page: if the logged-in user
   has an upcoming game it shows "Your next game" prominently (links to the game);

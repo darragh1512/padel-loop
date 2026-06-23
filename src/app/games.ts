@@ -204,6 +204,31 @@ export async function getUpcomingGamesFor(userId: string): Promise<Game[]> {
   );
 }
 
+// The ids of every game the user is already in — games they've JOINED (a row in
+// game_players) or CREATED (their id in created_by). The discovery list uses
+// this to hide games the user can't join again, so it only shows genuinely
+// joinable games. Returns a de-duplicated list of ids as strings.
+export async function getJoinedOrCreatedGameIds(
+  userId: string,
+): Promise<string[]> {
+  const [joined, created] = await Promise.all([
+    supabase.from("game_players").select("game_id").eq("user_id", userId),
+    supabase.from("games").select("id").eq("created_by", userId),
+  ]);
+
+  if (joined.error) {
+    console.error("Could not load joined games:", joined.error.message);
+  }
+  if (created.error) {
+    console.error("Could not load created games:", created.error.message);
+  }
+
+  const ids = new Set<string>();
+  for (const row of joined.data ?? []) ids.add(String(row.game_id));
+  for (const row of created.data ?? []) ids.add(String(row.id));
+  return Array.from(ids);
+}
+
 // Get all games the logged-in user CREATED (their id is in created_by).
 // Returns the games sorted by game_time (earliest first), or an empty list.
 export async function getGamesCreatedBy(userId: string): Promise<Game[]> {
