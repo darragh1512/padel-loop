@@ -13,6 +13,7 @@ import { MiniLoop } from "@/components/brand";
 import { supabase } from "@/lib/supabaseClient";
 import { formatGameTime, getUpcomingGamesFor, type Game } from "@/app/games";
 import { getConnectionCount } from "@/app/connections";
+import { getProfile } from "@/app/profiles";
 
 function ChevronRight({ className = "" }: { className?: string }) {
   return (
@@ -46,6 +47,16 @@ export default function HomeDashboard() {
   const [loading, setLoading] = useState(true);
   const [nextGame, setNextGame] = useState<Game | null>(null);
   const [connCount, setConnCount] = useState(0);
+  const [name, setName] = useState<string | null>(null);
+
+  // Time-of-day word for the greeting. Set in an effect (client only) from the
+  // user's own local time, so it's their morning/afternoon/evening — and so it
+  // never mismatches the server-rendered HTML during hydration.
+  const [period, setPeriod] = useState<string | null>(null);
+  useEffect(() => {
+    const h = new Date().getHours();
+    setPeriod(h < 12 ? "morning" : h < 18 ? "afternoon" : "evening");
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -53,13 +64,15 @@ export default function HomeDashboard() {
       const { data } = await supabase.auth.getUser();
       const uid = data.user?.id ?? null;
       if (uid) {
-        const [upcoming, count] = await Promise.all([
+        const [upcoming, count, profile] = await Promise.all([
           getUpcomingGamesFor(uid),
           getConnectionCount(uid),
+          getProfile(uid),
         ]);
         if (!active) return;
         setNextGame(upcoming[0] ?? null); // soonest first — [0] is the next game
         setConnCount(count);
+        setName(profile?.name ?? null);
       }
       if (!active) return;
       setLoading(false);
@@ -69,19 +82,38 @@ export default function HomeDashboard() {
     };
   }, []);
 
+  // "Good evening, Darragh" — the time word always shows once mounted; the first
+  // name is added once the profile loads (omitted if there's no name yet).
+  const firstName = name ? name.trim().split(/\s+/)[0] : null;
+  const greeting = period ? (
+    <h1 className="font-display font-bold text-[24px] tracking-tight leading-tight mt-1">
+      Good {period}
+      {firstName ? (
+        <>
+          , <span className="text-sky">{firstName}</span>
+        </>
+      ) : null}
+    </h1>
+  ) : null;
+
   // Hold the dashboard's space while loading so nothing jumps when it resolves.
   if (loading) {
     return (
-      <div className="mt-4 space-y-3">
-        <div className="pl-card h-[140px] animate-pulse opacity-60" />
-        <div className="pl-card h-[76px] animate-pulse opacity-60" />
-        <div className="pl-card h-[76px] animate-pulse opacity-60" />
-      </div>
+      <>
+        {greeting}
+        <div className="mt-4 space-y-3">
+          <div className="pl-card h-[140px] animate-pulse opacity-60" />
+          <div className="pl-card h-[76px] animate-pulse opacity-60" />
+          <div className="pl-card h-[76px] animate-pulse opacity-60" />
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="mt-4 space-y-3">
+    <>
+      {greeting}
+      <div className="mt-4 space-y-3">
       {/* Hero — next game, or a "Ready to play?" status. */}
       {nextGame ? (
         <Link
@@ -160,5 +192,6 @@ export default function HomeDashboard() {
         <ChevronRight className="text-faint" />
       </Link>
     </div>
+    </>
   );
 }

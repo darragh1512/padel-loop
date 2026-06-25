@@ -9,23 +9,6 @@ import { createGame } from "../games";
 
 const FORMATS = ["Doubles", "Singles", "Open"] as const;
 
-function FieldRow({ label, value }: { label: string; value: string }) {
-  return (
-    <button
-      type="button"
-      className="pl-surface w-full rounded-[17px] px-4 py-3.5 mb-2.5 flex justify-between items-center"
-    >
-      <span className="text-[13px] text-dim font-light">{label}</span>
-      <span className="text-sm font-semibold flex items-center gap-1.5">
-        {value}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="opacity-50">
-          <path d="m9 6 6 6-6 6" stroke="#c4d9ff" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      </span>
-    </button>
-  );
-}
-
 export default function CreateGamePage() {
   const router = useRouter();
 
@@ -47,11 +30,19 @@ export default function CreateGamePage() {
   const [levelMin] = useState(3.0);
   const [levelMax] = useState(4.0);
 
-  // The venue / date / time pickers are still design TODOs, so we create the
-  // game with the values shown on screen (a concrete game_time is computed).
-  const venueLabel = "Malahide Padel Club";
-  const dateLabel = "Thu 12 Jun";
-  const timeLabel = "18:30 · 90 min";
+  // Editable venue / location / date / time. Pre-filled with sensible defaults
+  // (date = today) so a quick create still works, but all four are now real
+  // inputs the user can change, and they feed straight into createGame.
+  const [venue, setVenue] = useState("Malahide Padel Club");
+  const [location, setLocation] = useState("Malahide");
+  const [date, setDate] = useState(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  });
+  const [time, setTime] = useState("18:30");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
@@ -66,14 +57,23 @@ export default function CreateGamePage() {
       return;
     }
     if (saving) return;
+
+    // Need a venue, a location, a date and a time to make a valid game.
+    if (!venue.trim() || !location.trim() || !date || !time) {
+      setError(true);
+      return;
+    }
+
     setSaving(true);
     setError(false);
 
-    // Date/time sheets are TODO — use the shown time (18:30 today, UTC) so the
-    // new game has a valid, sensible game_time.
-    const dt = new Date();
-    dt.setUTCHours(18, 30, 0, 0);
-    const game_time = dt.toISOString();
+    // Combine the chosen date + time into a UTC timestamp, matching how the app
+    // stores and displays game_time (UTC).
+    const [yy, mm, dd] = date.split("-").map(Number);
+    const [hh, min] = time.split(":").map(Number);
+    const game_time = new Date(
+      Date.UTC(yy, mm - 1, dd, hh, min, 0, 0),
+    ).toISOString();
 
     // Map the level range to our text skill_level column.
     const skill_level =
@@ -81,8 +81,8 @@ export default function CreateGamePage() {
 
     const result = await createGame(
       {
-        venue: venueLabel,
-        location: "Malahide",
+        venue: venue.trim(),
+        location: location.trim(),
         game_time,
         skill_level,
         max_players: players,
@@ -110,10 +110,48 @@ export default function CreateGamePage() {
       </p>
 
       <SectionLabel>Where &amp; when</SectionLabel>
-      {/* TODO: replace with venue picker / date & time sheets */}
-      <FieldRow label="Venue" value={venueLabel} />
-      <FieldRow label="Date" value={dateLabel} />
-      <FieldRow label="Time" value={timeLabel} />
+
+      <label className="pl-surface w-full rounded-[17px] px-4 py-3 mb-2.5 flex justify-between items-center gap-3">
+        <span className="text-[13px] text-dim font-light shrink-0">Venue</span>
+        <input
+          type="text"
+          value={venue}
+          onChange={(e) => setVenue(e.target.value)}
+          placeholder="e.g. Malahide Padel Club"
+          className="flex-1 min-w-0 bg-transparent text-right text-sm font-semibold text-white outline-none placeholder:text-faint placeholder:font-light"
+        />
+      </label>
+
+      <label className="pl-surface w-full rounded-[17px] px-4 py-3 mb-2.5 flex justify-between items-center gap-3">
+        <span className="text-[13px] text-dim font-light shrink-0">Location</span>
+        <input
+          type="text"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="e.g. Malahide"
+          className="flex-1 min-w-0 bg-transparent text-right text-sm font-semibold text-white outline-none placeholder:text-faint placeholder:font-light"
+        />
+      </label>
+
+      <label className="pl-surface w-full rounded-[17px] px-4 py-3 mb-2.5 flex justify-between items-center gap-3">
+        <span className="text-[13px] text-dim font-light shrink-0">Date</span>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="flex-1 min-w-0 bg-transparent text-right text-sm font-semibold text-white outline-none [color-scheme:dark]"
+        />
+      </label>
+
+      <label className="pl-surface w-full rounded-[17px] px-4 py-3 mb-2.5 flex justify-between items-center gap-3">
+        <span className="text-[13px] text-dim font-light shrink-0">Time</span>
+        <input
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          className="flex-1 min-w-0 bg-transparent text-right text-sm font-semibold text-white outline-none [color-scheme:dark]"
+        />
+      </label>
 
       <SectionLabel>Game setup</SectionLabel>
       <div className="pl-surface flex rounded-(--radius-btn) p-1 mb-2.5">

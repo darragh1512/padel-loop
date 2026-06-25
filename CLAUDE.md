@@ -55,6 +55,44 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Match results (COMPLETE keystone): a full submit → confirm → finalise flow on
+  the game detail page, across `src/app/match-results.ts` (data + RPC wrapper),
+  `src/app/games/[id]/log-result.tsx` (entry + consensus UI), and three Supabase
+  tables (`match_results`, `match_result_participants`, `match_result_sets`).
+  The migrations live in `supabase/migrations/` (baseline schema + RLS, the
+  consensus RPC, and the confirm-lock fix) as the source-of-truth record.
+  - SUBMIT: players in a game get "Log result" (`log-result.tsx`). The form
+    splits the roster into Team 1 / Team 2 and takes 1–3 set scores (0–7).
+    `submitMatchResult` inserts the `match_results` row (submitted_by = me,
+    status 'pending'), one `match_result_participants` row per player (team +
+    confirmation; submitter 'confirmed', everyone else 'pending'), and the
+    `match_result_sets` rows. One result per game (game_id unique) — a duplicate
+    insert (23505) is handled gracefully.
+  - SUBMIT VALIDATION (client, in `handleSubmit`): blocks any result that could
+    never be finalised — exactly 2 players per team (true 2v2), every set
+    untied with scores 0–7, and a strict overall winner (more sets won). The
+    winner check mirrors the RPC exactly, so entry and finalisation can never
+    disagree.
+  - READ: `getResultDetail(gameId)` returns the full result — row status +
+    `winning_team`, all participants joined to their profile name/avatar (same
+    manual join as the roster/chat), and the sets in order. Drives the consensus
+    view: score, both teams with each player's avatar + confirmation tick, and
+    the current user's confirm action.
+  - CONFIRM (server-authoritative): `confirmResult(gameId)` calls the
+    `confirm_match_result(p_game_id)` Postgres RPC (security definer). The RPC
+    flips the caller's confirmation and, once everyone has confirmed, computes
+    the winner from the set scores (more sets won = winner; an exact tie is
+    rejected) and finalises the result (status 'confirmed', `winning_team`,
+    `confirmed_at`). It locks the `match_results` row up front (`for update`) so
+    simultaneous confirms queue instead of racing. The UI shows the finalised
+    result with the winning team highlighted and no confirm button.
+  - SECURITY: the RPC owns every privileged write; the direct member-UPDATE RLS
+    policies were dropped, closing the hole where any game member could finalise
+    a result (set status/winning_team) unilaterally.
+  - PROFILE STATS: `/players/[id]` "Played" and "Won" come from
+    `getPlayerMatchStats(userId)` — counted from CONFIRMED results only (pending
+    never counts); won = the player's team matched `winning_team`. Works for the
+    owner's own profile and any other player's; zero confirmed matches shows 0/0.
 - Home dashboard: home is now a dashboard (`src/components/HomeDashboard.tsx`,
   replaces the old HomeHero). Top: the "Your next game" hero (or a "Ready to
   play?" state when there's none). Below: two cards in a vertical stack — a
@@ -81,8 +119,8 @@ To stay focused, we are deliberately leaving these for later:
 - Player profile redesign (`/players/[id]`): layout/hierarchy only (data and
   queries unchanged). Prominent centred identity header — large avatar, name at
   the top of the type scale, and a single stats row (Skill · Connections ·
-  Played) built as an extensible list so a wins/rating stat can slot in once
-  match results exist. "Played" is a placeholder (—) for now. Below: distinct
+  Played · Won) built as an extensible list. (Played/Won now carry real
+  confirmed-match data — see the Match results entry above.) Below: distinct
   "Upcoming games" then "About" (home club + bio) sections. Owner view keeps
   edit mode, the Settings gear, and the Connections entry; the connections count
   also lives in the stats row (links to /connections for the owner).

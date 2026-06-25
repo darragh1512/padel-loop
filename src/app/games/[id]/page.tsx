@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import JoinGame from "./join-game";
 import CreatorActions from "./creator-actions";
 import ChatThread from "./chat-thread";
+import LogResult from "./log-result";
 
 // Read fresh data on each request so the players list and "open slot" count
 // (both derived from the live game_players table) always reflect the latest
@@ -145,6 +146,11 @@ export default async function GameDetailPage({
           <JoinGame gameId={game.id} perHead={perHead} />
         )}
       </div>
+
+      {/* Log result — shown only to players in this game (the component checks
+          membership client-side). Captures a pending result; doesn't decide a
+          winner yet. */}
+      <LogResult gameId={game.id} players={game.players} />
 
       {/* Per-game chat, beneath everything else. Renders the message box only
           for players/creators; others see a short "join to chat" note. The

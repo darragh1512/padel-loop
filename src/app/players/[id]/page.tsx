@@ -30,6 +30,7 @@ import {
   disconnect,
   getConnectionCount,
 } from "../../connections";
+import { getPlayerMatchStats, type PlayerMatchStats } from "../../match-results";
 
 // One upcoming-game card. The whole card links to that game's detail page —
 // styled to match the cards on "My games" so the app feels consistent.
@@ -74,6 +75,13 @@ export default function PlayerProfilePage() {
   const [connCount, setConnCount] = useState(0);
   const [connBusy, setConnBusy] = useState(false);
 
+  // The viewed player's match record (confirmed results only).
+  const [matchStats, setMatchStats] = useState<PlayerMatchStats>({
+    played: 0,
+    won: 0,
+    lost: 0,
+  });
+
   // Edit-mode state.
   const [editing, setEditing] = useState(false);
   const [fName, setFName] = useState("");
@@ -89,12 +97,13 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [{ data: auth }, loadedProfile, upcoming, count] =
+      const [{ data: auth }, loadedProfile, upcoming, count, mStats] =
         await Promise.all([
           supabase.auth.getUser(),
           getProfile(playerId),
           getUpcomingGamesFor(playerId),
           getConnectionCount(playerId),
+          getPlayerMatchStats(playerId),
         ]);
       if (!active) return;
 
@@ -104,6 +113,7 @@ export default function PlayerProfilePage() {
       setIsOwner(viewerId === playerId);
       setGames(upcoming);
       setConnCount(count);
+      setMatchStats(mStats);
 
       // Only the non-owner view needs to know if they're already connected.
       if (viewerId && viewerId !== playerId) {
@@ -246,10 +256,9 @@ export default function PlayerProfilePage() {
   // While editing, preview the avatar the owner has chosen so far.
   const shownAvatar = editing ? fAvatarUrl : profile.avatar_url;
 
-  // The identity header's stats row. Kept as a list so another stat (e.g. a
-  // wins/rating stat) can slot straight in once match results exist. "Played"
-  // is a placeholder for now — there's no match-history data yet, so it shows
-  // a dash rather than a fabricated number.
+  // The identity header's stats row, kept as a list of cells. "Played" and
+  // "Won" come from confirmed match results (getPlayerMatchStats); a player
+  // with no finalised matches simply shows 0 in both, which reads cleanly.
   const stats: { label: string; value: string; href?: string }[] = [
     { label: "Skill", value: profile.skill_level || "Unrated" },
     {
@@ -257,7 +266,8 @@ export default function PlayerProfilePage() {
       value: String(connCount),
       href: isOwner ? "/connections" : undefined,
     },
-    { label: "Played", value: "—" },
+    { label: "Played", value: String(matchStats.played) },
+    { label: "Won", value: String(matchStats.won) },
   ];
 
   return (
