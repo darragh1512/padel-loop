@@ -26,24 +26,24 @@ function ResultRow({
   return (
     <Link
       href={`/players/${person.id}`}
-      className="flex items-center gap-3.5 pl-card p-[15px] mb-3 pl-rise active:scale-[0.99] transition-transform"
+      className="flex items-center gap-3.5 pl-card p-4 mb-3 pl-rise active:scale-[0.99] transition-transform duration-150 ease-out"
       style={{ animationDelay: `${delay}ms` }}
     >
       <PlayerAvatar
         userId={person.id}
         avatarUrl={person.avatar_url}
         name={name}
-        className="size-11 border-2 border-navy"
+        className="size-11"
       />
       <div className="min-w-0 flex-1">
-        <div className="font-semibold text-[14.5px] truncate">{name}</div>
-        <div className="text-[11.5px] text-faint font-light truncate mt-0.5">
+        <div className="font-semibold text-[15px] text-ink truncate">{name}</div>
+        <div className="text-[13px] text-ink-secondary truncate mt-0.5">
           {person.home_club || "No home club"}
           {person.skill_level ? <> · {person.skill_level}</> : null}
         </div>
       </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0">
-        <path d="m9 6 6 6-6 6" stroke="#3a5a9a" strokeWidth="2" strokeLinecap="round" />
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-ink-faint">
+        <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </Link>
   );
@@ -96,17 +96,15 @@ export default function SearchPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-
-      <h1 className="font-display text-[21px] tracking-tight leading-snug mt-2 relative">
-        <b className="font-bold">Find players</b>
+      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
+        Find players
       </h1>
-      <p className="text-[13px] text-dim font-light mt-1 mb-4">
+      <p className="text-[13px] text-ink-secondary mt-1 mb-4">
         Search for people by name.
       </p>
 
       <div className="relative">
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none">
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
             <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -118,14 +116,14 @@ export default function SearchPage() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name"
           autoFocus
-          className="w-full bg-vivid/15 border border-sky/25 rounded-full text-sm text-pale placeholder:text-faint pl-10 pr-9 py-2.5 focus:outline-none focus:border-sky/50"
+          className="w-full pl-surface rounded-full text-[15px] text-ink placeholder:text-ink-faint pl-10 pr-9 py-2.5 focus:outline-none focus:border-accent"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-faint hover:text-pale"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-secondary"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -136,19 +134,20 @@ export default function SearchPage() {
 
       <div className="mt-5">
         {query.trim() === "" ? (
-          <p className="text-[13px] text-faint font-light text-center mt-6">
+          <p className="text-[13px] text-ink-faint text-center mt-6">
             Start typing a name to find players.
           </p>
         ) : searching ? (
-          <p className="text-[13px] text-dim font-light text-center mt-6">
-            Searching…
-          </p>
+          // Skeleton row while the search runs — sunken, subtle pulse.
+          <div className="space-y-3">
+            <div className="bg-sunken rounded-(--radius-card) h-[72px] animate-pulse" />
+          </div>
         ) : results.length > 0 ? (
           results.map((person, i) => (
             <ResultRow key={person.id} person={person} delay={i * 40} />
           ))
         ) : searched ? (
-          <div className="pl-surface rounded-(--radius-card) px-4 py-5 text-center text-[13px] text-faint font-light">
+          <div className="pl-surface rounded-(--radius-card) px-4 py-5 text-center text-[13px] text-ink-secondary">
             No players found for “{query.trim()}”.
           </div>
         ) : null}

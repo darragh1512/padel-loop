@@ -56,28 +56,30 @@ export default function ChatPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-
-      <h1 className="font-display text-xl tracking-tight mt-2 relative">
-        <b className="font-bold">Chat</b>
+      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
+        Chat
       </h1>
-      <p className="text-[13px] text-dim font-light mt-1 mb-4">
+      <p className="text-[13px] text-ink-secondary mt-1 mb-4">
         Your game conversations.
       </p>
 
       {loading ? (
-        <p className="text-[13px] text-dim font-light mt-6">Loading…</p>
+        // Skeleton rows in the shape of the list — sunken, subtle pulse.
+        <div className="mt-1 space-y-3">
+          <div className="bg-sunken rounded-(--radius-card) h-[76px] animate-pulse" />
+          <div className="bg-sunken rounded-(--radius-card) h-[76px] animate-pulse" />
+        </div>
       ) : !loggedIn ? (
         // Not logged in — can't have any conversations to show.
         <div className="pl-card p-6 mt-6 flex flex-col items-center text-center gap-3">
           <MiniLoop size={40} />
-          <div className="text-[15px] font-semibold">You&apos;re not logged in</div>
-          <div className="text-[12.5px] text-faint font-light">
+          <div className="font-display text-[19px] text-ink">You&apos;re not logged in.</div>
+          <div className="text-[13px] text-ink-secondary">
             Log in to see your game conversations.
           </div>
           <Link
             href="/login"
-            className="mt-1 bg-vivid text-white font-semibold text-[13px] rounded-full px-5 py-2.5 pl-cta-shadow"
+            className="mt-1 bg-accent text-white font-medium text-[15px] rounded-full px-5 py-2.5 active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             Log in
           </Link>
@@ -86,13 +88,13 @@ export default function ChatPage() {
         // Logged in but in no games yet — the empty state.
         <div className="pl-card p-6 mt-6 flex flex-col items-center text-center gap-3">
           <MiniLoop size={40} />
-          <div className="text-[15px] font-semibold">No conversations yet</div>
-          <div className="text-[12.5px] text-faint font-light">
+          <div className="font-display text-[19px] text-ink">No conversations yet.</div>
+          <div className="text-[13px] text-ink-secondary">
             Join a game to start chatting.
           </div>
           <Link
             href="/games"
-            className="mt-1 bg-vivid text-white font-semibold text-[13px] rounded-full px-5 py-2.5 pl-cta-shadow"
+            className="mt-1 bg-accent text-white font-medium text-[15px] rounded-full px-5 py-2.5 active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             Browse games
           </Link>
@@ -104,15 +106,15 @@ export default function ChatPage() {
             <Link
               key={c.game.id}
               href={`/games/${c.game.id}/chat`}
-              className="pl-card p-[15px] mb-3 flex items-center gap-3.5 pl-rise active:scale-[0.99] transition-transform"
+              className="pl-card p-4 mb-3 flex items-center gap-3.5 pl-rise active:scale-[0.99] transition-transform duration-150 ease-out"
               style={{ animationDelay: `${i * 40}ms` }}
             >
-              {/* Little chat-bubble badge, in the brand blue. */}
-              <span className="shrink-0 w-11 h-11 rounded-full bg-vivid/15 border border-sky/25 flex items-center justify-center">
+              {/* Little chat-bubble badge, in the soft accent. */}
+              <span className="shrink-0 w-11 h-11 rounded-full bg-accent-soft text-accent flex items-center justify-center">
                 <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
                   <path
                     d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z"
-                    stroke="#5b9aff"
+                    stroke="currentColor"
                     strokeWidth="2"
                     strokeLinejoin="round"
                   />
@@ -121,19 +123,19 @@ export default function ChatPage() {
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <div className="font-semibold text-[14.5px] truncate">
+                  <div className="font-semibold text-[15px] text-ink truncate">
                     {c.game.venue}
                   </div>
-                  <span className="text-[10.5px] text-faint shrink-0">
+                  <span className="text-[11px] text-ink-faint shrink-0">
                     {shortStamp(c.lastMessageAt)}
                   </span>
                 </div>
-                <div className="text-[11.5px] text-sky/80 font-light truncate">
+                <div className="text-[13px] text-ink-secondary truncate">
                   {c.game.location}
                 </div>
                 <div
-                  className={`text-[12.5px] truncate mt-0.5 ${
-                    c.lastMessageBody ? "text-dim" : "text-faint italic"
+                  className={`text-[13px] truncate mt-0.5 ${
+                    c.lastMessageBody ? "text-ink-secondary" : "text-ink-faint italic"
                   }`}
                 >
                   {c.lastMessageBody ?? "No messages yet"}

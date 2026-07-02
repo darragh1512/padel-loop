@@ -249,11 +249,11 @@ export default function LogResult({
           {/* Status line — finalised winner, or how many are left to confirm. */}
           <div className="text-center mb-3">
             {finalised ? (
-              <p className="text-[13px] text-pale font-semibold">
+              <p className="font-display text-[22px] tracking-tight text-ink">
                 Team {detail.winningTeam} won
               </p>
             ) : (
-              <p className="text-[12px] text-dim font-light">
+              <p className="text-[13px] text-ink-secondary">
                 {pendingCount} {pendingCount === 1 ? "player" : "players"} still
                 to confirm
               </p>
@@ -268,15 +268,17 @@ export default function LogResult({
               return (
                 <div
                   key={team}
-                  className={`rounded-[14px] p-2.5 min-h-[96px] ${
-                    isWinner
-                      ? "bg-vivid/18 border border-sky/50"
-                      : "pl-surface"
+                  className={`rounded-(--radius-field) p-2.5 min-h-[96px] ${
+                    isWinner ? "bg-accent-soft" : "pl-surface"
                   }`}
                 >
-                  <div className="text-[10px] tracking-[1.5px] uppercase text-sky/70 font-display text-center mb-2 flex items-center justify-center gap-1">
+                  <div
+                    className={`text-[13px] text-center mb-2 flex items-center justify-center gap-1 ${
+                      isWinner ? "text-accent font-medium" : "text-ink-secondary"
+                    }`}
+                  >
                     Team {team}
-                    {isWinner && <span className="text-sky">· Winner</span>}
+                    {isWinner && <span>· Winner</span>}
                   </div>
                   <div className="space-y-1.5">
                     {onTeam.map((p) => (
@@ -285,22 +287,22 @@ export default function LogResult({
                           userId={p.userId}
                           avatarUrl={p.avatarUrl}
                           name={p.name}
-                          className="size-7 border-2 border-navy"
+                          className="size-7"
                         />
-                        <span className="text-[12px] font-medium text-pale truncate flex-1">
+                        <span className="text-[13px] font-medium text-ink truncate flex-1">
                           {p.name}
                         </span>
                         {p.confirmation === "confirmed" ? (
                           <span
                             aria-label="Confirmed"
-                            className="text-sky text-[13px] leading-none"
+                            className="text-accent text-[13px] leading-none"
                           >
                             ✓
                           </span>
                         ) : (
                           <span
                             aria-label="Not yet confirmed"
-                            className="text-faint text-[10px]"
+                            className="text-ink-faint text-[11px]"
                           >
                             pending
                           </span>
@@ -308,7 +310,7 @@ export default function LogResult({
                       </div>
                     ))}
                     {onTeam.length === 0 && (
-                      <div className="text-[11px] text-faint text-center py-2">
+                      <div className="text-[13px] text-ink-faint text-center py-2">
                         No players
                       </div>
                     )}
@@ -318,15 +320,15 @@ export default function LogResult({
             })}
           </div>
 
-          {/* Set scores. */}
-          <div className="mt-4 space-y-1.5">
+          {/* Set scores — the numbers get the serif, calm and editorial. */}
+          <div className="mt-5 space-y-2">
             {detail.sets.map((s) => (
               <div
                 key={s.setNumber}
-                className="flex items-center justify-between text-[12px]"
+                className="flex items-baseline justify-between"
               >
-                <span className="text-faint">Set {s.setNumber}</span>
-                <span className="font-semibold text-pale tabular-nums">
+                <span className="text-[13px] text-ink-secondary">Set {s.setNumber}</span>
+                <span className="font-display text-[26px] leading-none text-ink tabular-nums">
                   {s.team1Games}–{s.team2Games}
                 </span>
               </div>
@@ -339,18 +341,18 @@ export default function LogResult({
               type="button"
               onClick={handleConfirm}
               disabled={confirming}
-              className="block w-full text-center bg-vivid text-white font-semibold text-sm rounded-(--radius-btn) py-2.5 mt-4 pl-cta-shadow active:scale-[0.98] transition-transform disabled:opacity-70"
+              className="block w-full h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full mt-5 active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
             >
               {confirming ? "Confirming…" : "Confirm result"}
             </button>
           )}
           {!finalised && myConfirmed && (
-            <p className="text-center text-[12px] text-dim font-light mt-3">
+            <p className="text-center text-[13px] text-ink-secondary mt-3">
               You&apos;ve confirmed.
             </p>
           )}
           {confirmError && (
-            <p className="text-center text-[12px] text-[#d98080] mt-2">
+            <p className="text-center text-[13px] text-danger mt-2">
               {confirmError}
             </p>
           )}
@@ -367,7 +369,7 @@ export default function LogResult({
         <button
           type="button"
           onClick={startForm}
-          className="block w-full text-center bg-vivid text-white font-semibold text-[15px] rounded-(--radius-btn) py-3.5 pl-cta-shadow active:scale-[0.98] transition-transform"
+          className="block w-full h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
         >
           Log result
         </button>
@@ -381,18 +383,16 @@ export default function LogResult({
       <SectionLabel>Log result</SectionLabel>
       <div className="pl-card p-4">
         {/* Teams — two columns; tap a player to switch their side. */}
-        <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">
-          Teams
-        </span>
+        <span className="text-[13px] text-ink-secondary">Teams</span>
         <div className="grid grid-cols-2 gap-2.5 mt-2">
           {([1, 2] as Team[]).map((team) => {
             const onTeam = players.filter((p) => teams[p.id] === team);
             return (
               <div
                 key={team}
-                className="pl-surface rounded-[14px] p-2.5 min-h-[96px]"
+                className="pl-surface rounded-(--radius-field) p-2.5 min-h-[96px]"
               >
-                <div className="text-[10px] tracking-[1.5px] uppercase text-sky/70 font-display text-center mb-2">
+                <div className="text-[13px] text-ink-secondary text-center mb-2">
                   Team {team}
                 </div>
                 <div className="space-y-1.5">
@@ -401,13 +401,13 @@ export default function LogResult({
                       key={p.id}
                       type="button"
                       onClick={() => flipTeam(p.id)}
-                      className="w-full text-left text-[13px] font-medium text-pale bg-vivid/12 border border-sky/20 rounded-[10px] px-2.5 py-2 truncate active:scale-[0.98] transition-transform"
+                      className="w-full text-left text-[13px] font-medium text-ink bg-surface border border-line rounded-(--radius-field) px-2.5 py-2 truncate active:scale-[0.98] transition-transform duration-150 ease-out"
                     >
                       {p.name}
                     </button>
                   ))}
                   {onTeam.length === 0 && (
-                    <div className="text-[11px] text-faint text-center py-2">
+                    <div className="text-[13px] text-ink-faint text-center py-2">
                       No players
                     </div>
                   )}
@@ -416,57 +416,55 @@ export default function LogResult({
             );
           })}
         </div>
-        <p className="text-[11px] text-faint font-light mt-1.5 text-center">
+        <p className="text-[13px] text-ink-faint mt-1.5 text-center">
           Tap a player to switch their team.
         </p>
 
         {/* Set scores — 1 to 3 sets, games per team 0–7. */}
-        <div className="flex items-center justify-between mt-4">
-          <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">
-            Set scores
-          </span>
+        <div className="flex items-center justify-between mt-5">
+          <span className="text-[13px] text-ink-secondary">Set scores</span>
           {sets.length < 3 && (
             <button
               type="button"
               onClick={addSet}
-              className="text-[12px] text-sky font-medium active:opacity-70 transition-opacity"
+              className="text-[13px] text-accent font-medium active:opacity-70 transition-opacity duration-150 ease-out"
             >
               + Add set
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-2 text-[10px] tracking-[1px] uppercase text-faint">
+        <div className="flex items-center gap-2 mt-2 text-[13px] text-ink-faint">
           <span className="w-12" />
-          <span className="w-12 text-center">Team 1</span>
+          <span className="w-14 text-center">Team 1</span>
           <span className="w-3" />
-          <span className="w-12 text-center">Team 2</span>
+          <span className="w-14 text-center">Team 2</span>
         </div>
         <div className="space-y-2 mt-1">
           {sets.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="text-[11px] text-faint w-12">Set {i + 1}</span>
+              <span className="text-[13px] text-ink-secondary w-12">Set {i + 1}</span>
               <input
                 inputMode="numeric"
                 value={s.t1}
                 onChange={(e) => setScore(i, "t1", e.target.value)}
                 placeholder="0"
                 aria-label={`Set ${i + 1} Team 1 games`}
-                className="w-12 text-center pl-surface rounded-[10px] py-2 text-sm text-white outline-none focus:border-sky/60"
+                className="w-14 text-center pl-surface rounded-(--radius-field) py-2 font-display text-[22px] leading-none text-ink placeholder:text-ink-faint outline-none focus:border-accent"
               />
-              <span className="w-3 text-center text-faint">–</span>
+              <span className="w-3 text-center text-ink-faint">–</span>
               <input
                 inputMode="numeric"
                 value={s.t2}
                 onChange={(e) => setScore(i, "t2", e.target.value)}
                 placeholder="0"
                 aria-label={`Set ${i + 1} Team 2 games`}
-                className="w-12 text-center pl-surface rounded-[10px] py-2 text-sm text-white outline-none focus:border-sky/60"
+                className="w-14 text-center pl-surface rounded-(--radius-field) py-2 font-display text-[22px] leading-none text-ink placeholder:text-ink-faint outline-none focus:border-accent"
               />
               {sets.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeSet(i)}
-                  className="ml-auto text-[12px] text-faint active:opacity-70 transition-opacity"
+                  className="ml-auto text-[13px] text-ink-faint active:opacity-70 transition-opacity duration-150 ease-out"
                 >
                   Remove
                 </button>
@@ -475,25 +473,25 @@ export default function LogResult({
           ))}
         </div>
 
-        <div className="flex gap-2.5 mt-4">
+        <div className="flex gap-2.5 mt-5">
           <button
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="flex-1 text-center bg-vivid text-white font-semibold text-sm rounded-(--radius-btn) py-2.5 pl-cta-shadow active:scale-[0.98] transition-transform disabled:opacity-70"
+            className="flex-1 h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
           >
             {submitting ? "Submitting…" : "Submit result"}
           </button>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="flex-1 text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-2.5 active:scale-[0.98] transition-transform"
+            className="flex-1 h-12 text-center bg-sunken text-ink font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             Cancel
           </button>
         </div>
         {error && (
-          <p className="text-center text-[12px] text-[#d98080] mt-2">{error}</p>
+          <p className="text-center text-[13px] text-danger mt-2">{error}</p>
         )}
       </div>
     </>

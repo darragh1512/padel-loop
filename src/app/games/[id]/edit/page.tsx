@@ -113,33 +113,36 @@ export default function EditGamePage() {
   // While we load + check permissions, show nothing useful (we redirect
   // non-creators), so just render a minimal placeholder.
   if (loading || !allowed) {
+    // Skeletons in the shape of the form — sunken, subtle pulse.
     return (
       <main className="px-5 pt-6 relative">
-        <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-        <p className="text-[13px] text-dim font-light mt-2">Loading…</p>
+        <div className="bg-sunken rounded-(--radius-field) h-9 w-44 mt-2 animate-pulse" />
+        <div className="mt-8 space-y-2.5">
+          <div className="bg-sunken rounded-(--radius-field) h-[60px] animate-pulse" />
+          <div className="bg-sunken rounded-(--radius-field) h-[60px] animate-pulse" />
+          <div className="bg-sunken rounded-(--radius-field) h-[60px] animate-pulse" />
+        </div>
         <BottomNav />
       </main>
     );
   }
 
   const fieldClass =
-    "w-full bg-transparent text-sm font-semibold text-pale outline-none placeholder:text-faint [color-scheme:dark]";
+    "w-full bg-transparent text-[15px] font-medium text-ink outline-none placeholder:text-ink-faint [color-scheme:light]";
 
   return (
     <main className="px-5 pt-6 relative">
-      <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-
-      <h1 className="font-display text-xl tracking-tight mt-2 relative">
-        <b className="font-bold">Edit</b> <span className="font-light text-sky">a game</span>
+      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
+        Edit a game
       </h1>
-      <p className="text-[13px] text-dim font-light mt-1 mb-4">
+      <p className="text-[13px] text-ink-secondary mt-1 mb-4">
         Update the details — players see the changes straight away.
       </p>
 
       <SectionLabel>Where &amp; when</SectionLabel>
 
-      <div className="pl-surface rounded-[17px] px-4 py-3 mb-2.5">
-        <label className="block text-[11px] text-faint font-light mb-1">Venue</label>
+      <div className="pl-surface rounded-(--radius-field) px-4 py-3 mb-2.5 focus-within:border-accent">
+        <label className="block text-[13px] text-ink-secondary mb-1">Venue</label>
         <input
           type="text"
           value={venue}
@@ -149,8 +152,8 @@ export default function EditGamePage() {
         />
       </div>
 
-      <div className="pl-surface rounded-[17px] px-4 py-3 mb-2.5">
-        <label className="block text-[11px] text-faint font-light mb-1">Location</label>
+      <div className="pl-surface rounded-(--radius-field) px-4 py-3 mb-2.5 focus-within:border-accent">
+        <label className="block text-[13px] text-ink-secondary mb-1">Location</label>
         <input
           type="text"
           value={location}
@@ -160,8 +163,8 @@ export default function EditGamePage() {
         />
       </div>
 
-      <div className="pl-surface rounded-[17px] px-4 py-3 mb-2.5">
-        <label className="block text-[11px] text-faint font-light mb-1">Date &amp; time</label>
+      <div className="pl-surface rounded-(--radius-field) px-4 py-3 mb-2.5 focus-within:border-accent">
+        <label className="block text-[13px] text-ink-secondary mb-1">Date &amp; time</label>
         <input
           type="datetime-local"
           value={gameTime}
@@ -172,16 +175,16 @@ export default function EditGamePage() {
 
       <SectionLabel>Game setup</SectionLabel>
 
-      <div className="pl-surface flex rounded-(--radius-btn) p-1 mb-2.5">
+      <div className="pl-surface flex rounded-full p-1 mb-2.5">
         {SKILL_LEVELS.map((s) => (
           <button
             key={s}
             type="button"
             onClick={() => setSkillLevel(s)}
-            className={`flex-1 text-center text-[12.5px] py-2 rounded-[11px] transition-colors ${
+            className={`flex-1 text-center text-[13px] py-2 rounded-full transition-colors duration-150 ease-out ${
               skillLevel === s
-                ? "bg-vivid text-white font-semibold shadow-[0_4px_14px_rgba(30,92,255,0.35)]"
-                : "text-faint font-medium"
+                ? "bg-surface text-accent font-medium border border-line"
+                : "text-ink-secondary font-medium border border-transparent"
             }`}
           >
             {s}
@@ -189,23 +192,23 @@ export default function EditGamePage() {
         ))}
       </div>
 
-      <div className="pl-surface rounded-[17px] px-4 py-3 mb-2.5 flex justify-between items-center">
-        <label className="text-[13px] text-dim font-light">Max players</label>
+      <div className="pl-surface rounded-(--radius-field) px-4 py-3 mb-2.5 flex justify-between items-center">
+        <label className="text-[13px] text-ink-secondary">Max players</label>
         <div className="flex items-center gap-3">
           <button
             type="button"
             aria-label="Fewer players"
             onClick={() => setMaxPlayers((n) => Math.max(2, n - 1))}
-            className="w-7 h-7 rounded-full bg-vivid/15 border border-sky/30 text-sky text-lg leading-none flex items-center justify-center active:scale-95 transition-transform"
+            className="w-7 h-7 rounded-full bg-accent-soft text-accent text-lg leading-none flex items-center justify-center active:scale-95 transition-transform duration-150 ease-out"
           >
             −
           </button>
-          <span className="text-sm font-semibold text-pale w-4 text-center">{maxPlayers}</span>
+          <span className="text-[15px] font-semibold text-ink w-4 text-center">{maxPlayers}</span>
           <button
             type="button"
             aria-label="More players"
             onClick={() => setMaxPlayers((n) => Math.min(8, n + 1))}
-            className="w-7 h-7 rounded-full bg-vivid/15 border border-sky/30 text-sky text-lg leading-none flex items-center justify-center active:scale-95 transition-transform"
+            className="w-7 h-7 rounded-full bg-accent-soft text-accent text-lg leading-none flex items-center justify-center active:scale-95 transition-transform duration-150 ease-out"
           >
             +
           </button>
@@ -218,7 +221,7 @@ export default function EditGamePage() {
         {saving ? "Saving…" : "Save changes"}
       </PrimaryButton>
       {error && (
-        <p className="text-center text-[12px] text-[#d98080] mt-2">
+        <p className="text-center text-[13px] text-danger mt-2">
           Couldn&apos;t save those changes. Please try again.
         </p>
       )}

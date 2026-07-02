@@ -3,7 +3,7 @@ import type { Player } from "@/lib/types";
 
 export function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="font-display font-light text-[9.5px] tracking-[3.5px] uppercase text-sky/65 mt-6 mb-3 px-0.5">
+    <div className="text-[15px] font-semibold text-ink mt-8 mb-3 px-0.5">
       {children}
     </div>
   );
@@ -12,10 +12,8 @@ export function SectionLabel({ children }: { children: ReactNode }) {
 export function Chip({ children, active = false }: { children: ReactNode; active?: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap ${
-        active
-          ? "bg-vivid border border-vivid text-white"
-          : "bg-vivid/15 border border-sky/25 text-pale"
+      className={`inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap transition-colors duration-150 ease-out ${
+        active ? "bg-accent-soft text-accent" : "bg-sunken text-ink-secondary"
       }`}
     >
       {children}
@@ -25,7 +23,7 @@ export function Chip({ children, active = false }: { children: ReactNode; active
 
 export function LevelChip({ children }: { children: ReactNode }) {
   return (
-    <span className="font-display text-[9px] tracking-[1.5px] text-pale bg-vivid/15 border border-sky/30 rounded-full px-3 py-1.5">
+    <span className="text-[13px] font-medium text-accent bg-accent-soft rounded-full px-3 py-1.5">
       {children}
     </span>
   );
@@ -44,7 +42,7 @@ export function PrimaryButton({
     <button
       type={type}
       onClick={onClick}
-      className="block w-full text-center bg-vivid text-white font-semibold text-[15px] rounded-(--radius-btn) py-3.5 pl-cta-shadow active:scale-[0.98] transition-transform"
+      className="block w-full h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
     >
       {children}
     </button>
@@ -56,19 +54,16 @@ export function GhostButton({ children, onClick }: { children: ReactNode; onClic
     <button
       type="button"
       onClick={onClick}
-      className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 active:scale-[0.98] transition-transform"
+      className="block w-full h-12 text-center bg-sunken text-ink font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
     >
       {children}
     </button>
   );
 }
 
-const AV_GRADIENTS = [
-  "from-[#3a78ff] to-[#0d2d80]",
-  "from-[#5b9aff] to-mid",
-  "from-vivid to-navy",
-  "from-[#7fb0ff] to-[#2a52c0]",
-];
+/* Palette-harmonious tints for the decorative initials avatars —
+   bone / sage / clay, always with warm ink initials on top. */
+const AV_TINTS = ["bg-accent-soft", "bg-sunken", "bg-clay-soft", "bg-sage-mist"];
 
 export function Avatar({
   player,
@@ -83,7 +78,7 @@ export function Avatar({
   if (!player) {
     return (
       <span
-        className={`${dims} rounded-full inline-flex items-center justify-center border-[1.5px] border-dashed border-sky/50 text-sky font-normal`}
+        className={`${dims} rounded-full inline-flex items-center justify-center border border-dashed border-ink-faint text-ink-faint font-normal bg-bone`}
       >
         +
       </span>
@@ -91,7 +86,7 @@ export function Avatar({
   }
   return (
     <span
-      className={`${dims} rounded-full inline-flex items-center justify-center font-bold text-white border-2 border-navy bg-gradient-to-br ${AV_GRADIENTS[index % AV_GRADIENTS.length]}`}
+      className={`${dims} rounded-full inline-flex items-center justify-center font-semibold text-ink border-2 border-bone ${AV_TINTS[index % AV_TINTS.length]}`}
     >
       {player.initials}
     </span>

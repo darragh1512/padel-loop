@@ -27,19 +27,19 @@ export default async function GameChatPage({
     // Fixed overlay so the chat truly fills the screen, ignoring the app
     // shell's bottom-nav padding. Centred to the same phone width as the rest
     // of the app.
-    <div className="fixed inset-0 z-40 bg-navy">
+    <div className="fixed inset-0 z-40 bg-bone">
       <div className="mx-auto max-w-md h-full flex flex-col">
         {/* Compact summary strip — venue, area · time, plus back + view game. */}
-        <header className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-white/8 bg-navy/95 backdrop-blur-md">
+        <header className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-line bg-surface">
           <Link
             href="/chat"
             aria-label="Back to chats"
-            className="shrink-0 text-pale active:scale-90 transition-transform"
+            className="shrink-0 text-ink-secondary active:scale-90 transition-transform duration-150 ease-out"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path
                 d="M15 5l-7 7 7 7"
-                stroke="#c4d9ff"
+                stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -48,17 +48,17 @@ export default async function GameChatPage({
           </Link>
 
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-[14.5px] truncate">
+            <div className="font-semibold text-[15px] text-ink truncate">
               {game.venue}
             </div>
-            <div className="text-[11.5px] text-dim font-light truncate">
+            <div className="text-[13px] text-ink-secondary truncate">
               {game.location} · {formatGameTime(game.game_time)}
             </div>
           </div>
 
           <Link
             href={`/games/${id}`}
-            className="shrink-0 text-[11.5px] font-medium text-sky bg-vivid/15 border border-sky/25 rounded-full px-3 py-1.5"
+            className="shrink-0 text-[13px] font-medium text-accent bg-accent-soft rounded-full px-3 py-1.5"
           >
             View game
           </Link>

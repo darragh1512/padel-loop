@@ -1,56 +1,80 @@
 @import "tailwindcss";
 
-/* ── Padel Loop design tokens ─────────────────────────────
-   Tailwind v4: these become utilities automatically,
-   e.g. bg-navy, text-sky, border-vivid, font-display.     */
+/* ── Padel Loop design tokens ─────────────────────────────────────────────
+   The single source of truth for colour, type, radius and depth.
+   Tailwind v4: everything in @theme becomes a utility automatically,
+   e.g. bg-bone, bg-surface, text-ink, border-line, font-display.
+
+   Palette: warm bone ground, white cards, deep sage accent, warm ink text.
+   Depth comes from hairline borders, never drop shadows (the one exception
+   is the ambient sheet/modal shadow, --shadow-sheet).                      */
 @theme {
-  --color-navy:  #080e1f;
-  --color-deep:  #0d1f4a;
-  --color-mid:   #1440a0;
-  --color-vivid: #1e5cff;
-  --color-sky:   #5b9aff;
-  --color-pale:  #c4d9ff;
-  --color-off:   #f0f4ff;
-  --color-dim:   #8aa3d4;
-  --color-faint: #3a5a9a;
+  /* Backgrounds */
+  --color-bone:    #FAF8F3; /* app background everywhere — never pure white */
+  --color-surface: #FFFFFF; /* cards, sheets */
+  --color-sunken:  #F1EEE6; /* inputs, inactive chips, secondary surfaces */
 
-  --font-display: var(--font-unbounded), sans-serif;
-  --font-sans:    var(--font-dm-sans), sans-serif;
+  /* Text */
+  --color-ink:           #1C1B17; /* primary text — warm near-black */
+  --color-ink-secondary: #6E6A5E; /* secondary text, labels, timestamps */
+  --color-ink-faint:     #A8A395; /* placeholders, disabled */
 
-  --radius-card: 22px;
-  --radius-btn:  15px;
+  /* Accent — deep sage. CTAs, active nav, key highlights ONLY. */
+  --color-accent:      #5A6B4D;
+  --color-accent-soft: #E8ECE2; /* sage tint — active chips, subtle highlights */
+
+  /* Decorative avatar tints — bone/sage/clay range, palette-harmonious. */
+  --color-clay-soft: #EFE3D7;
+  --color-sage-mist: #E4E7DC;
+
+  /* Lines & status */
+  --color-line:    #E7E3D8; /* 1px hairline borders, used instead of shadows */
+  --color-success: #5A6B4D;
+  --color-danger:  #A65D4E; /* muted terracotta */
+
+  /* Type. Display serif is for screen titles, hero numbers and the greeting
+     ONLY; everything else is the sans. */
+  --font-display: var(--font-instrument-serif), Georgia, serif;
+  --font-sans:    var(--font-instrument-sans), system-ui, sans-serif;
+
+  /* Shape */
+  --radius-card:  16px;
+  --radius-field: 12px; /* inputs & chips */
+
+  /* Depth — the single allowed shadow (bottom sheets / modals only). */
+  --shadow-sheet: 0 8px 32px rgba(28, 27, 23, 0.08);
 }
 
 body {
-  background: var(--color-navy);
-  color: #fff;
+  background: var(--color-bone);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* shared primitives that read better as CSS than utility soup */
-.pl-surface {
-  background: rgba(30, 92, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
+/* Shared primitives that read better as CSS than utility soup.
+   .pl-card    — a card: white surface, hairline border, 16px radius.
+   .pl-surface — a sunken secondary surface: inputs, chips, quiet panels.
+                 Carries a transparent border so focus:border-accent works
+                 without the field shifting.                               */
 .pl-card {
-  background: var(--color-deep);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
 }
-.pl-glow {
-  background: radial-gradient(ellipse, rgba(30, 92, 255, 0.18) 0%, transparent 70%);
+.pl-surface {
+  background: var(--color-sunken);
+  border: 1px solid transparent;
 }
-.pl-cta-shadow { box-shadow: 0 8px 24px rgba(30, 92, 255, 0.35); }
 
 /* hide the scrollbar on horizontal filter rows (design intent) */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .pl-rise { animation: pl-rise 0.5s ease both; }
+  .pl-rise { animation: pl-rise 0.35s ease-out both; }
   @keyframes pl-rise {
-    from { opacity: 0; transform: translateY(18px); }
+    from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 }

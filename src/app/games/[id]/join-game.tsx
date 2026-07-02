@@ -88,12 +88,12 @@ export default function JoinGame({
         type="button"
         onClick={joined ? handleLeave : handleJoin}
         disabled={working || loading}
-        className="block w-full text-center bg-vivid text-white font-semibold text-[15px] rounded-(--radius-btn) py-3.5 pl-cta-shadow active:scale-[0.98] transition-transform disabled:opacity-70"
+        className="block w-full h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
       >
         {working ? "…" : label}
       </button>
       {error && (
-        <p className="text-center text-[12px] text-[#d98080] mt-2">{error}</p>
+        <p className="text-center text-[13px] text-danger mt-2">{error}</p>
       )}
     </>
   );

@@ -9,8 +9,8 @@
 //
 // What it does:
 //  • loads this game's messages (oldest at top, newest at the bottom)
-//  • shows YOUR messages on the right in vivid blue, others' on the left in a
-//    darker navy card
+//  • shows YOUR messages on the right in the sage accent, others' on the left
+//    on a sunken bone surface
 //  • lets you type and send a message; empty messages are ignored and the box
 //    is cleared after sending
 //  • listens for new messages live (Supabase Realtime) so they appear without a
@@ -171,7 +171,7 @@ export default function ChatThread({
       <>
         <SectionLabel>Group chat</SectionLabel>
         <div className="pl-surface rounded-(--radius-card) px-4 py-5 text-center">
-          <p className="text-[13px] text-dim font-light">
+          <p className="text-[13px] text-ink-secondary">
             Join this game to chat with the group.
           </p>
         </div>
@@ -183,7 +183,7 @@ export default function ChatThread({
 
   const messageList =
     messages.length === 0 ? (
-      <p className="text-[13px] text-dim font-light text-center my-6">
+      <p className="text-[13px] text-ink-secondary text-center my-6">
         No messages yet — say hello to your group.
       </p>
     ) : (
@@ -206,24 +206,24 @@ export default function ChatThread({
                   userId={m.user_id}
                   avatarUrl={m.senderAvatarUrl}
                   name={m.senderName}
-                  className="size-5 border border-navy"
+                  className="size-5"
                 />
               </Link>
               <Link
                 href={`/players/${m.user_id}`}
-                className="text-[11px] font-medium text-pale active:opacity-70 transition-opacity"
+                className="text-[13px] font-medium text-ink-secondary active:opacity-70 transition-opacity duration-150 ease-out"
               >
                 {mine ? "You" : m.senderName}
               </Link>
-              <span className="text-[10px] text-faint">
+              <span className="text-[11px] text-ink-faint">
                 {shortTime(m.created_at)}
               </span>
             </div>
             <div
               className={
                 mine
-                  ? "bg-vivid text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[13.5px] leading-snug break-words"
-                  : "bg-deep border border-white/8 text-off rounded-2xl rounded-bl-md px-3.5 py-2 text-[13.5px] leading-snug break-words"
+                  ? "bg-accent text-white rounded-[18px] rounded-br-md px-3.5 py-2 text-[15px] leading-snug break-words"
+                  : "bg-sunken text-ink rounded-[18px] rounded-bl-md px-3.5 py-2 text-[15px] leading-snug break-words"
               }
             >
               {m.body}
@@ -238,7 +238,7 @@ export default function ChatThread({
   const composer = (
     <form
       onSubmit={handleSend}
-      className={`flex items-center gap-2 border-t border-white/8 p-3 bg-navy/40 ${
+      className={`flex items-center gap-2 border-t border-line p-3 bg-surface ${
         fullScreen ? "pb-[max(0.75rem,env(safe-area-inset-bottom))]" : ""
       }`}
     >
@@ -248,13 +248,13 @@ export default function ChatThread({
         onChange={(e) => setText(e.target.value)}
         placeholder="Message your group…"
         aria-label="Type a message"
-        className="flex-1 bg-white/6 border border-white/10 rounded-full px-4 py-2.5 text-[13.5px] text-white placeholder:text-faint focus:outline-none focus:border-sky/50"
+        className="flex-1 pl-surface rounded-full px-4 py-2.5 text-[15px] text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
       />
       <button
         type="submit"
         disabled={sending || text.trim().length === 0}
         aria-label="Send message"
-        className="shrink-0 w-10 h-10 rounded-full bg-vivid text-white inline-flex items-center justify-center pl-cta-shadow active:scale-95 transition-transform disabled:opacity-40"
+        className="shrink-0 w-10 h-10 rounded-full bg-accent text-white inline-flex items-center justify-center active:scale-95 transition-transform duration-150 ease-out disabled:opacity-40"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path
@@ -281,7 +281,7 @@ export default function ChatThread({
           {messageList}
         </div>
         {error && (
-          <p className="text-center text-[12px] text-[#d98080] py-1">{error}</p>
+          <p className="text-center text-[13px] text-danger py-1">{error}</p>
         )}
         {composer}
       </div>
@@ -303,7 +303,7 @@ export default function ChatThread({
         {composer}
       </div>
       {error && (
-        <p className="text-center text-[12px] text-[#d98080] mt-2">{error}</p>
+        <p className="text-center text-[13px] text-danger mt-2">{error}</p>
       )}
     </>
   );

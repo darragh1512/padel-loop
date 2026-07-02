@@ -55,6 +55,23 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Full visual redesign (re-skin only — zero logic/data/routing changes). The
+  old navy/#1e5cff "startup tech" look was replaced with a premium
+  wellness-lifestyle system: warm bone background (#FAF8F3), white cards with
+  1px hairline borders (no drop shadows except the one ambient sheet/modal
+  shadow), deep sage accent (#5A6B4D) used sparingly, warm ink text, muted
+  terracotta for danger. Fonts: Instrument Serif (screen titles, hero numbers,
+  the Home greeting — regular weight, sentence case) + Instrument Sans
+  (everything else, weights 400/500/600); Unbounded and DM Sans removed. All
+  colour/type/radius/shadow flows from tokens in `src/app/globals.css`
+  (@theme) — `.pl-card` = white card + border + 16px radius, `.pl-surface` =
+  sunken bone field. Buttons are full-round pills (accent primary / sunken
+  secondary / transparent-terracotta destructive). DiceBear avatars keep the
+  same seeds but get palette bone/sage/clay background tints. Every screen was
+  swept (home, discover, my-games, game detail, score entry, chat, profile,
+  connections, search, create/edit, notifications, auth); the auth screens
+  gained the lowercase serif "padel loop" wordmark + tagline. Verified with a
+  clean `next build` and in-browser screens.
 - Match results (COMPLETE keystone): a full submit → confirm → finalise flow on
   the game detail page, across `src/app/match-results.ts` (data + RPC wrapper),
   `src/app/games/[id]/log-result.tsx` (entry + consensus UI), and three Supabase

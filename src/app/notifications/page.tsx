@@ -36,21 +36,21 @@ function NotificationItem({ n, delay = 0 }: { n: Notification; delay?: number })
       className="pl-card p-4 mb-3 flex items-start gap-3 pl-rise"
       style={{ animationDelay: `${delay}ms` }}
     >
-      {/* Unread = solid sky dot; read = hollow, muted. */}
+      {/* Unread = solid accent dot; read = hollow, muted. */}
       <span
         className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
-          n.is_read ? "border border-white/20" : "bg-sky"
+          n.is_read ? "border border-line" : "bg-accent"
         }`}
       />
       <div className="flex-1">
-        <div className={`text-sm ${n.is_read ? "text-pale font-normal" : "text-white font-medium"}`}>
+        <div className={`text-[15px] ${n.is_read ? "text-ink-secondary font-normal" : "text-ink font-medium"}`}>
           {n.message}
         </div>
-        <div className="text-[11px] text-faint font-light mt-1">{timeAgo(n.created_at)}</div>
+        <div className="text-[13px] text-ink-faint mt-1">{timeAgo(n.created_at)}</div>
       </div>
       {n.game_id != null && (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 opacity-50 shrink-0">
-          <path d="m9 6 6 6-6 6" stroke="#c4d9ff" strokeWidth="2" strokeLinecap="round" />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 text-ink-faint shrink-0">
+          <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       )}
     </div>
@@ -97,22 +97,27 @@ export default function NotificationsPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-
-      <h1 className="font-display text-[21px] tracking-tight leading-snug mt-2 relative">
-        <b className="font-bold">Notifications</b>
+      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
+        Notifications
       </h1>
-      <p className="text-[13px] text-dim font-light mt-1 mb-4">
+      <p className="text-[13px] text-ink-secondary mt-1 mb-4">
         Updates about the games you run.
       </p>
 
       {loading ? (
-        <p className="text-[13px] text-dim font-light mt-2">Loading…</p>
+        // Skeleton rows in the shape of the list — sunken, subtle pulse.
+        <div className="space-y-3">
+          <div className="bg-sunken rounded-(--radius-card) h-[72px] animate-pulse" />
+          <div className="bg-sunken rounded-(--radius-card) h-[72px] animate-pulse" />
+        </div>
       ) : items.length > 0 ? (
         items.map((n, i) => <NotificationItem key={n.id} n={n} delay={i * 40} />)
       ) : (
-        <div className="pl-surface rounded-(--radius-card) px-4 py-6 text-center text-[13px] text-faint font-light">
-          No notifications yet. We’ll tell you here when one of your games fills up.
+        <div className="pl-card px-4 py-6 text-center">
+          <div className="font-display text-[19px] text-ink">Nothing yet.</div>
+          <div className="text-[13px] text-ink-secondary mt-1.5">
+            We’ll tell you here when one of your games fills up.
+          </div>
         </div>
       )}
 

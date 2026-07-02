@@ -122,9 +122,16 @@ export default function ProfilePage() {
   }
 
   if (loading) {
+    // Skeleton in the shape of the header — sunken, subtle pulse.
     return (
       <main className="px-5 pt-6 relative">
-        <p className="text-dim text-sm mt-4">Loading…</p>
+        <div className="flex items-center gap-4 mt-3">
+          <div className="bg-sunken rounded-full size-[74px] animate-pulse" />
+          <div className="space-y-2">
+            <div className="bg-sunken rounded-(--radius-field) h-6 w-36 animate-pulse" />
+            <div className="bg-sunken rounded-(--radius-field) h-4 w-48 animate-pulse" />
+          </div>
+        </div>
       </main>
     );
   }
@@ -132,18 +139,16 @@ export default function ProfilePage() {
   const displayName = name || email?.split("@")[0] || "Player";
   const lvl = skill ? levelNum(skill) : null;
   const chipText = skill
-    ? `${lvl != null ? `LVL ${lvl.toFixed(1)} · ` : ""}${skill.toUpperCase()}`
-    : "UNRATED";
+    ? `${lvl != null ? `Level ${lvl.toFixed(1)} · ` : ""}${skill}`
+    : "Unrated";
 
   return (
     <main className="px-5 pt-6 relative">
-      <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-
       <div className="flex items-center gap-4 mt-3 relative">
         <LoopRing>{initialsFrom(displayName)}</LoopRing>
         <div>
-          <div className="font-display font-bold text-[19px] tracking-tight">{displayName}</div>
-          <div className="text-xs text-faint font-light mt-1">
+          <div className="font-display text-[28px] tracking-tight leading-tight text-ink">{displayName}</div>
+          <div className="text-[13px] text-ink-secondary mt-1">
             {home || "Set your area"} · In the Loop since May ’26
           </div>
           <div className="mt-2">
@@ -156,21 +161,21 @@ export default function ProfilePage() {
       {editing && (
         <div className="pl-card p-4 mt-4">
           <label className="block">
-            <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">Name</span>
+            <span className="text-[13px] text-ink-secondary">Name</span>
             <input
               type="text"
               value={fName}
               onChange={(e) => setFName(e.target.value)}
               placeholder="Your name"
-              className="w-full mt-1.5 pl-surface rounded-[12px] px-3.5 py-2.5 text-sm text-white outline-none focus:border-sky/60"
+              className="w-full mt-1.5 pl-surface rounded-(--radius-field) px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
             />
           </label>
           <label className="block mt-3">
-            <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">Skill level</span>
+            <span className="text-[13px] text-ink-secondary">Skill level</span>
             <select
               value={fSkill}
               onChange={(e) => setFSkill(e.target.value)}
-              className="w-full mt-1.5 bg-deep border border-white/10 rounded-[12px] px-3.5 py-2.5 text-sm text-white outline-none focus:border-sky/60"
+              className="w-full mt-1.5 pl-surface rounded-(--radius-field) px-3.5 py-2.5 text-[15px] text-ink outline-none focus:border-accent"
             >
               {SKILLS.map((s) => (
                 <option key={s} value={s}>
@@ -180,13 +185,13 @@ export default function ProfilePage() {
             </select>
           </label>
           <label className="block mt-3">
-            <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">Home area</span>
+            <span className="text-[13px] text-ink-secondary">Home area</span>
             <input
               type="text"
               value={fHome}
               onChange={(e) => setFHome(e.target.value)}
               placeholder="e.g. Malahide"
-              className="w-full mt-1.5 pl-surface rounded-[12px] px-3.5 py-2.5 text-sm text-white outline-none focus:border-sky/60"
+              className="w-full mt-1.5 pl-surface rounded-(--radius-field) px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
             />
           </label>
           <div className="flex gap-2.5 mt-4">
@@ -194,47 +199,47 @@ export default function ProfilePage() {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 text-center bg-vivid text-white font-semibold text-sm rounded-(--radius-btn) py-2.5 pl-cta-shadow active:scale-[0.98] transition-transform disabled:opacity-70"
+              className="flex-1 h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
             >
               {saving ? "Saving…" : "Save"}
             </button>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="flex-1 text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-2.5 active:scale-[0.98] transition-transform"
+              className="flex-1 h-12 text-center bg-sunken text-ink font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
             >
               Cancel
             </button>
           </div>
           {error && (
-            <p className="text-center text-[12px] text-[#d98080] mt-2">
+            <p className="text-center text-[13px] text-danger mt-2">
               Couldn&apos;t save. Please try again.
             </p>
           )}
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-2 mt-5">
+      <div className="grid grid-cols-3 gap-2 mt-6">
         {[
           ["24", "", "Games"],
           ["58", "%", "Win rate"],
           ["3", "W", "Streak"],
         ].map(([n, suffix, k]) => (
-          <div key={k} className="pl-card rounded-[18px] px-2 py-3.5 text-center">
-            <div className="font-display font-bold text-[19px]">
+          <div key={k} className="pl-card px-2 py-3.5 text-center">
+            <div className="font-display text-[22px] leading-none text-ink">
               {n}
-              {suffix && <span className="text-sky font-light text-[13px]">{suffix}</span>}
+              {suffix && <span className="text-ink-secondary text-[15px]">{suffix}</span>}
             </div>
-            <div className="text-[9.5px] tracking-[1.5px] uppercase text-faint mt-1.5">{k}</div>
+            <div className="text-[13px] text-ink-secondary mt-1.5">{k}</div>
           </div>
         ))}
       </div>
 
       <SectionLabel>This week</SectionLabel>
-      <div className="pl-surface rounded-(--radius-card) p-4 flex items-center justify-between">
+      <div className="pl-card p-4 flex items-center justify-between">
         <div>
-          <div className="text-[13.5px] font-medium">2 games played · 1 booked</div>
-          <div className="text-[11px] text-faint font-light mt-0.5">
+          <div className="text-[15px] font-medium text-ink">2 games played · 1 booked</div>
+          <div className="text-[13px] text-ink-secondary mt-0.5">
             Keep the loop going — play 1 more for a 4-game week.
           </div>
         </div>
@@ -242,26 +247,26 @@ export default function ProfilePage() {
       </div>
 
       <SectionLabel>Recent games</SectionLabel>
-      <div className="pl-surface rounded-(--radius-card) px-4 py-1.5">
+      <div className="pl-card px-4 py-1.5">
         {RECENT.map((m, i) => (
           <div
             key={i}
-            className="flex items-center justify-between py-3 border-b border-white/5 last:border-0"
+            className="flex items-center justify-between py-3 border-b border-line last:border-0"
           >
             <div
-              className={`w-8 h-8 rounded-[11px] flex items-center justify-center font-bold text-[13px] shrink-0 border ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-[13px] shrink-0 ${
                 m.res === "W"
-                  ? "bg-[rgba(60,170,110,0.14)] text-[#5fc78f] border-[rgba(60,170,110,0.25)]"
-                  : "bg-[rgba(200,80,80,0.10)] text-[#d98080] border-[rgba(200,80,80,0.2)]"
+                  ? "bg-accent-soft text-accent"
+                  : "bg-sunken text-danger"
               }`}
             >
               {m.res}
             </div>
             <div className="flex-1 ml-3.5">
-              <div className="text-[13.5px] font-medium">{m.venue}</div>
-              <div className="text-[11px] text-faint font-light mt-0.5">{m.meta}</div>
+              <div className="text-[15px] font-medium text-ink">{m.venue}</div>
+              <div className="text-[13px] text-ink-secondary mt-0.5">{m.meta}</div>
             </div>
-            <div className="font-display text-[11px] text-pale tracking-[1px]">{m.score}</div>
+            <div className="font-display text-[15px] text-ink">{m.score}</div>
           </div>
         ))}
       </div>
@@ -271,20 +276,20 @@ export default function ProfilePage() {
         <>
           <Link
             href="/notifications"
-            className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-6 active:scale-[0.98] transition-transform"
+            className="flex items-center justify-center w-full h-12 bg-sunken text-ink font-medium text-[15px] rounded-full mt-8 active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             Notifications
           </Link>
           <Link
             href="/my-games"
-            className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-2 active:scale-[0.98] transition-transform"
+            className="flex items-center justify-center w-full h-12 bg-sunken text-ink font-medium text-[15px] rounded-full mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             My games
           </Link>
           <button
             type="button"
             onClick={startEdit}
-            className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-2 active:scale-[0.98] transition-transform"
+            className="block w-full h-12 text-center bg-sunken text-ink font-medium text-[15px] rounded-full mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             Edit profile
           </button>
@@ -293,7 +298,7 @@ export default function ProfilePage() {
       <button
         type="button"
         onClick={handleLogout}
-        className="block w-full text-center bg-transparent text-faint font-medium text-sm py-3 mt-2 active:scale-[0.98] transition-transform"
+        className="block w-full text-center bg-transparent text-danger font-medium text-[15px] py-3 mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
       >
         Log out
       </button>

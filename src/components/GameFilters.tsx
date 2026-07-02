@@ -32,7 +32,7 @@ function matchesTime(game: Game, time: string | null): boolean {
 }
 
 // One filter chip with a little drop-down of choices. Keeps the exact Chip look
-// (see ui.tsx) and turns blue when a choice is active.
+// (see ui.tsx) and turns sage when a choice is active.
 function FilterChip({
   label,
   value,
@@ -71,10 +71,8 @@ function FilterChip({
           setOptQuery("");
           onToggle();
         }}
-        className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap ${
-          active
-            ? "bg-vivid border border-vivid text-white"
-            : "bg-vivid/15 border border-sky/25 text-pale"
+        className={`inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap transition-colors duration-150 ease-out ${
+          active ? "bg-accent-soft text-accent" : "bg-sunken text-ink-secondary"
         }`}
       >
         {value ?? label}
@@ -90,7 +88,7 @@ function FilterChip({
       </button>
 
       {open && (
-        <div className="absolute z-30 left-0 mt-1.5 min-w-[160px] rounded-2xl bg-navy border border-sky/25 p-1.5 shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
+        <div className="absolute z-30 left-0 mt-1.5 min-w-[160px] rounded-(--radius-field) bg-surface border border-line p-1.5 shadow-(--shadow-sheet)">
           {showSearch && (
             <input
               type="text"
@@ -98,14 +96,14 @@ function FilterChip({
               onChange={(e) => setOptQuery(e.target.value)}
               placeholder={`Search ${label.toLowerCase()}`}
               autoFocus
-              className="w-full bg-white/5 border border-sky/25 rounded-xl text-xs text-pale placeholder:text-faint px-3 py-2 mb-1 focus:outline-none focus:border-sky/50"
+              className="w-full pl-surface rounded-(--radius-field) text-[13px] text-ink placeholder:text-ink-faint px-3 py-2 mb-1 focus:outline-none focus:border-accent"
             />
           )}
           <button
             type="button"
             onClick={() => onChange(null)}
-            className={`block w-full text-left text-xs rounded-xl px-3 py-2 ${
-              value == null ? "text-white bg-vivid/15" : "text-dim hover:bg-white/5"
+            className={`block w-full text-left text-[13px] rounded-(--radius-field) px-3 py-2 transition-colors duration-150 ease-out ${
+              value == null ? "text-accent bg-accent-soft" : "text-ink-secondary hover:bg-sunken"
             }`}
           >
             All {label.toLowerCase()}
@@ -115,15 +113,15 @@ function FilterChip({
               key={o}
               type="button"
               onClick={() => onChange(o)}
-              className={`block w-full text-left text-xs rounded-xl px-3 py-2 ${
-                value === o ? "text-white bg-vivid/15" : "text-pale hover:bg-white/5"
+              className={`block w-full text-left text-[13px] rounded-(--radius-field) px-3 py-2 transition-colors duration-150 ease-out ${
+                value === o ? "text-accent bg-accent-soft" : "text-ink hover:bg-sunken"
               }`}
             >
               {o}
             </button>
           ))}
           {showSearch && visibleOptions.length === 0 && (
-            <div className="px-3 py-2 text-xs text-faint">No {label.toLowerCase()}s found</div>
+            <div className="px-3 py-2 text-[13px] text-ink-faint">No {label.toLowerCase()}s found</div>
           )}
         </div>
       )}
@@ -252,15 +250,15 @@ export default function GameFilters({
       )}
 
       {greeting && (
-        <h1 className="font-display text-[21px] tracking-tight leading-snug mt-3.5 relative">
-          <b className="font-bold">{greeting}</b>
+        <h1 className="mt-3.5 relative">
+          <span className="font-display text-[28px] tracking-tight leading-tight text-ink">{greeting}</span>
           <br />
-          <span className="font-light text-sky">{headlineText}</span>
+          <span className="text-[15px] text-ink-secondary">{headlineText}</span>
         </h1>
       )}
 
       <div className="relative mt-4">
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none">
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
             <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -271,14 +269,14 @@ export default function GameFilters({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search venue or area"
-          className="w-full bg-vivid/15 border border-sky/25 rounded-full text-sm text-pale placeholder:text-faint pl-10 pr-9 py-2.5 focus:outline-none focus:border-sky/50"
+          className="w-full pl-surface rounded-full text-[15px] text-ink placeholder:text-ink-faint pl-10 pr-9 py-2.5 focus:outline-none focus:border-accent"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-faint hover:text-pale"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-secondary"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -323,7 +321,7 @@ export default function GameFilters({
           }}
         />
         {/* Connections-only toggle — a plain on/off chip (no menu), matching the
-            FilterChip look: vivid when active, faint blue when off. */}
+            FilterChip look: soft sage when active, sunken when off. */}
         <button
           type="button"
           onClick={() => {
@@ -331,10 +329,8 @@ export default function GameFilters({
             setOpenFilter(null);
           }}
           aria-pressed={connectionsOnly}
-          className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap shrink-0 ${
-            connectionsOnly
-              ? "bg-vivid border border-vivid text-white"
-              : "bg-vivid/15 border border-sky/25 text-pale"
+          className={`inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 ease-out ${
+            connectionsOnly ? "bg-accent-soft text-accent" : "bg-sunken text-ink-secondary"
           }`}
         >
           Connections only
@@ -343,7 +339,7 @@ export default function GameFilters({
           <button
             type="button"
             onClick={clearAll}
-            className="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap bg-white/5 border border-white/15 text-dim shrink-0"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap bg-sunken text-ink-secondary shrink-0"
           >
             Clear
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
@@ -359,17 +355,17 @@ export default function GameFilters({
         filtered.map((g, i) => <GameCard key={g.id} game={g} delay={i * 80} />)
       ) : (
         <div className="pl-card p-6 text-center mb-3">
-          <div className="text-sm font-medium text-pale">
-            {anyActive ? "No games match these filters" : "No games available right now"}
+          <div className="font-display text-[19px] text-ink">
+            {anyActive ? "No games match these filters." : "No games right now."}
           </div>
-          <div className="text-[12.5px] text-dim font-light mt-1.5">
+          <div className="text-[13px] text-ink-secondary mt-1.5">
             {anyActive ? "Try widening your search." : "Check back soon for new games."}
           </div>
           {anyActive && (
             <button
               type="button"
               onClick={clearAll}
-              className="inline-flex items-center mt-3.5 text-xs font-medium rounded-full px-4 py-1.5 bg-vivid/15 border border-sky/25 text-pale"
+              className="inline-flex items-center mt-4 text-[13px] font-medium rounded-full px-4 py-1.5 bg-accent-soft text-accent active:scale-[0.98] transition-transform duration-150 ease-out"
             >
               Clear filters
             </button>

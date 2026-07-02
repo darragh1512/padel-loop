@@ -82,29 +82,27 @@ export default function HomeDashboard() {
     };
   }, []);
 
-  // "Good evening, Darragh" — the time word always shows once mounted; the first
+  // "Good morning, Darragh." — the signature moment of the app. Instrument
+  // Serif, calm and quiet. The time word always shows once mounted; the first
   // name is added once the profile loads (omitted if there's no name yet).
   const firstName = name ? name.trim().split(/\s+/)[0] : null;
   const greeting = period ? (
-    <h1 className="font-display font-bold text-[24px] tracking-tight leading-tight mt-1">
+    <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-6">
       Good {period}
-      {firstName ? (
-        <>
-          , <span className="text-sky">{firstName}</span>
-        </>
-      ) : null}
+      {firstName ? <>, {firstName}</> : null}.
     </h1>
   ) : null;
 
   // Hold the dashboard's space while loading so nothing jumps when it resolves.
+  // Skeletons: sunken surfaces with a subtle pulse — never spinners.
   if (loading) {
     return (
       <>
         {greeting}
-        <div className="mt-4 space-y-3">
-          <div className="pl-card h-[140px] animate-pulse opacity-60" />
-          <div className="pl-card h-[76px] animate-pulse opacity-60" />
-          <div className="pl-card h-[76px] animate-pulse opacity-60" />
+        <div className="mt-6 space-y-3">
+          <div className="bg-sunken rounded-(--radius-card) h-[140px] animate-pulse" />
+          <div className="bg-sunken rounded-(--radius-card) h-[76px] animate-pulse" />
+          <div className="bg-sunken rounded-(--radius-card) h-[76px] animate-pulse" />
         </div>
       </>
     );
@@ -113,30 +111,29 @@ export default function HomeDashboard() {
   return (
     <>
       {greeting}
-      <div className="mt-4 space-y-3">
-      {/* Hero — next game, or a "Ready to play?" status. */}
+      <div className="mt-6 space-y-3">
+      {/* Hero — next game, or a "Ready to play?" status. Soft sage ground for
+          a little warmth; hairline border, no shadow. */}
       {nextGame ? (
         <Link
           href={`/games/${nextGame.id}`}
-          className="block rounded-(--radius-card) p-4 border border-sky/25 bg-gradient-to-br from-vivid/16 to-deep/60 pl-cta-shadow active:scale-[0.99] transition-transform"
+          className="block rounded-(--radius-card) p-5 border border-line bg-accent-soft active:scale-[0.99] transition-transform duration-150 ease-out"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] tracking-[2px] uppercase text-sky font-display font-light">
-              Your next game
-            </span>
-            <span className="text-[11px] text-sky font-medium bg-vivid/15 border border-sky/25 px-2.5 py-1 rounded-full whitespace-nowrap">
+            <span className="text-[13px] text-ink-secondary">Your next game</span>
+            <span className="text-[13px] text-accent font-medium bg-surface px-2.5 py-1 rounded-full whitespace-nowrap">
               {nextGame.skill_level}
             </span>
           </div>
-          <div className="font-display font-bold text-[18px] tracking-tight mt-2">
+          <div className="font-display text-[22px] tracking-tight text-ink mt-2">
             {nextGame.venue}
           </div>
-          <div className="text-[13px] text-pale font-medium mt-1">
+          <div className="text-[15px] text-ink font-medium mt-1">
             {formatGameTime(nextGame.game_time)}
           </div>
           <div className="flex items-center justify-between mt-2.5">
-            <span className="text-[12px] text-dim font-light">{nextGame.location}</span>
-            <span className="text-[12px] text-sky font-medium inline-flex items-center gap-0.5">
+            <span className="text-[13px] text-ink-secondary">{nextGame.location}</span>
+            <span className="text-[13px] text-accent font-medium inline-flex items-center gap-0.5">
               View game
               <ChevronRight />
             </span>
@@ -146,27 +143,27 @@ export default function HomeDashboard() {
         <div className="pl-card p-5 flex items-center gap-4">
           <MiniLoop size={40} />
           <div>
-            <div className="font-display font-bold text-[16px] tracking-tight">
+            <div className="font-display text-[19px] tracking-tight text-ink">
               Ready to play?
             </div>
-            <div className="text-[12.5px] text-dim font-light mt-0.5">
+            <div className="text-[13px] text-ink-secondary mt-0.5">
               You’ve no games coming up — find one below.
             </div>
           </div>
         </div>
       )}
 
-      {/* Find a game — the primary action. Solid vivid so it's unmistakable. */}
+      {/* Find a game — the primary action. Solid accent so it's unmistakable. */}
       <Link
         href="/discover"
-        className="flex items-center gap-3.5 rounded-(--radius-card) p-4 bg-vivid pl-cta-shadow active:scale-[0.98] transition-transform"
+        className="flex items-center gap-3.5 rounded-(--radius-card) p-4 bg-accent active:scale-[0.98] transition-transform duration-150 ease-out"
       >
         <span className="w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center shrink-0">
           <SearchIcon />
         </span>
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-[16px] text-white">Find a game</div>
-          <div className="text-[12px] text-white/75 font-light mt-0.5">
+          <div className="font-medium text-[15px] text-white">Find a game</div>
+          <div className="text-[13px] text-white/75 mt-0.5">
             Browse open games near you
           </div>
         </div>
@@ -176,20 +173,18 @@ export default function HomeDashboard() {
       {/* Connections — count + link to the connections list. */}
       <Link
         href="/connections"
-        className="flex items-center gap-3.5 pl-card p-4 active:scale-[0.99] transition-transform"
+        className="flex items-center gap-3.5 pl-card p-4 active:scale-[0.99] transition-transform duration-150 ease-out"
       >
-        <span className="w-11 h-11 rounded-full bg-vivid/15 border border-sky/25 text-sky flex items-center justify-center shrink-0">
+        <span className="w-11 h-11 rounded-full bg-accent-soft text-accent flex items-center justify-center shrink-0">
           <PeopleIcon />
         </span>
         <div className="flex-1 min-w-0">
-          <div className="font-display font-bold text-[16px] tracking-tight">
-            Connections
-          </div>
-          <div className="text-[12px] text-dim font-light mt-0.5">
+          <div className="font-medium text-[15px] text-ink">Connections</div>
+          <div className="text-[13px] text-ink-secondary mt-0.5">
             {connCount} {connCount === 1 ? "connection" : "connections"}
           </div>
         </div>
-        <ChevronRight className="text-faint" />
+        <ChevronRight className="text-ink-faint" />
       </Link>
     </div>
     </>

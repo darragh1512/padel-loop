@@ -100,70 +100,68 @@ export default function CreateGamePage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-
-      <h1 className="font-display text-xl tracking-tight mt-2 relative">
-        <b className="font-bold">Create</b> <span className="font-light text-sky">a game</span>
+      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
+        Create a game
       </h1>
-      <p className="text-[13px] text-dim font-light mt-1 mb-4">
+      <p className="text-[13px] text-ink-secondary mt-1 mb-4">
         Set it up once — we fill the slots.
       </p>
 
       <SectionLabel>Where &amp; when</SectionLabel>
 
-      <label className="pl-surface w-full rounded-[17px] px-4 py-3 mb-2.5 flex justify-between items-center gap-3">
-        <span className="text-[13px] text-dim font-light shrink-0">Venue</span>
+      <label className="pl-surface w-full rounded-(--radius-field) px-4 py-3 mb-2.5 flex justify-between items-center gap-3 focus-within:border-accent">
+        <span className="text-[13px] text-ink-secondary shrink-0">Venue</span>
         <input
           type="text"
           value={venue}
           onChange={(e) => setVenue(e.target.value)}
           placeholder="e.g. Malahide Padel Club"
-          className="flex-1 min-w-0 bg-transparent text-right text-sm font-semibold text-white outline-none placeholder:text-faint placeholder:font-light"
+          className="flex-1 min-w-0 bg-transparent text-right text-[15px] font-medium text-ink outline-none placeholder:text-ink-faint placeholder:font-normal"
         />
       </label>
 
-      <label className="pl-surface w-full rounded-[17px] px-4 py-3 mb-2.5 flex justify-between items-center gap-3">
-        <span className="text-[13px] text-dim font-light shrink-0">Location</span>
+      <label className="pl-surface w-full rounded-(--radius-field) px-4 py-3 mb-2.5 flex justify-between items-center gap-3 focus-within:border-accent">
+        <span className="text-[13px] text-ink-secondary shrink-0">Location</span>
         <input
           type="text"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder="e.g. Malahide"
-          className="flex-1 min-w-0 bg-transparent text-right text-sm font-semibold text-white outline-none placeholder:text-faint placeholder:font-light"
+          className="flex-1 min-w-0 bg-transparent text-right text-[15px] font-medium text-ink outline-none placeholder:text-ink-faint placeholder:font-normal"
         />
       </label>
 
-      <label className="pl-surface w-full rounded-[17px] px-4 py-3 mb-2.5 flex justify-between items-center gap-3">
-        <span className="text-[13px] text-dim font-light shrink-0">Date</span>
+      <label className="pl-surface w-full rounded-(--radius-field) px-4 py-3 mb-2.5 flex justify-between items-center gap-3 focus-within:border-accent">
+        <span className="text-[13px] text-ink-secondary shrink-0">Date</span>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="flex-1 min-w-0 bg-transparent text-right text-sm font-semibold text-white outline-none [color-scheme:dark]"
+          className="flex-1 min-w-0 bg-transparent text-right text-[15px] font-medium text-ink outline-none [color-scheme:light]"
         />
       </label>
 
-      <label className="pl-surface w-full rounded-[17px] px-4 py-3 mb-2.5 flex justify-between items-center gap-3">
-        <span className="text-[13px] text-dim font-light shrink-0">Time</span>
+      <label className="pl-surface w-full rounded-(--radius-field) px-4 py-3 mb-2.5 flex justify-between items-center gap-3 focus-within:border-accent">
+        <span className="text-[13px] text-ink-secondary shrink-0">Time</span>
         <input
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          className="flex-1 min-w-0 bg-transparent text-right text-sm font-semibold text-white outline-none [color-scheme:dark]"
+          className="flex-1 min-w-0 bg-transparent text-right text-[15px] font-medium text-ink outline-none [color-scheme:light]"
         />
       </label>
 
       <SectionLabel>Game setup</SectionLabel>
-      <div className="pl-surface flex rounded-(--radius-btn) p-1 mb-2.5">
+      <div className="pl-surface flex rounded-full p-1 mb-2.5">
         {FORMATS.map((f) => (
           <button
             key={f}
             type="button"
             onClick={() => setFormat(f)}
-            className={`flex-1 text-center text-[12.5px] py-2 rounded-[11px] transition-colors ${
+            className={`flex-1 text-center text-[13px] py-2 rounded-full transition-colors duration-150 ease-out ${
               format === f
-                ? "bg-vivid text-white font-semibold shadow-[0_4px_14px_rgba(30,92,255,0.35)]"
-                : "text-faint font-medium"
+                ? "bg-surface text-accent font-medium border border-line"
+                : "text-ink-secondary font-medium border border-transparent"
             }`}
           >
             {f}
@@ -171,57 +169,57 @@ export default function CreateGamePage() {
         ))}
       </div>
 
-      <div className="pl-surface rounded-[17px] p-4 mb-2.5">
-        <div className="flex justify-between text-xs text-dim mb-3">
+      <div className="pl-surface rounded-(--radius-field) p-4 mb-2.5">
+        <div className="flex justify-between text-[13px] text-ink-secondary mb-3">
           <span>Level range</span>
-          <b className="text-pale font-semibold text-[13px]">
+          <span className="text-ink font-semibold">
             {levelMin.toFixed(1)} — {levelMax.toFixed(1)}
-          </b>
+          </span>
         </div>
         {/* TODO: replace static track with dual-range input */}
-        <div className="h-1 bg-white/10 rounded relative">
-          <div className="absolute inset-y-0 left-[28%] right-[32%] bg-gradient-to-r from-mid to-vivid rounded" />
-          <div className="absolute top-1/2 left-[28%] w-[18px] h-[18px] rounded-full bg-white -translate-x-1/2 -translate-y-1/2 shadow-[0_2px_10px_rgba(30,92,255,0.6)]" />
-          <div className="absolute top-1/2 left-[68%] w-[18px] h-[18px] rounded-full bg-white -translate-x-1/2 -translate-y-1/2 shadow-[0_2px_10px_rgba(30,92,255,0.6)]" />
+        <div className="h-1 bg-line rounded relative">
+          <div className="absolute inset-y-0 left-[28%] right-[32%] bg-accent rounded" />
+          <div className="absolute top-1/2 left-[28%] w-[18px] h-[18px] rounded-full bg-surface border border-line -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute top-1/2 left-[68%] w-[18px] h-[18px] rounded-full bg-surface border border-line -translate-x-1/2 -translate-y-1/2" />
         </div>
       </div>
 
       <button
         type="button"
         onClick={() => setOpenToLoop(!openToLoop)}
-        className="pl-surface w-full rounded-[17px] px-4 py-3.5 mb-2.5 flex justify-between items-center text-left"
+        className="pl-surface w-full rounded-(--radius-field) px-4 py-3.5 mb-2.5 flex justify-between items-center text-left"
       >
         <div>
-          <div className="text-[13.5px] font-medium">Open to the Loop</div>
-          <div className="text-[11px] text-faint font-light mt-0.5">
+          <div className="text-[15px] font-medium text-ink">Open to the Loop</div>
+          <div className="text-[13px] text-ink-secondary mt-0.5">
             Anyone in range can request a slot
           </div>
         </div>
         <span
-          className={`w-[46px] h-[27px] rounded-full relative shrink-0 transition-colors ${
-            openToLoop ? "bg-vivid" : "bg-white/15"
+          className={`w-[46px] h-[27px] rounded-full relative shrink-0 transition-colors duration-150 ease-out ${
+            openToLoop ? "bg-accent" : "bg-line"
           }`}
         >
           <span
-            className={`absolute top-[3px] w-[21px] h-[21px] rounded-full bg-white transition-all ${
+            className={`absolute top-[3px] w-[21px] h-[21px] rounded-full bg-surface transition-all duration-150 ease-out ${
               openToLoop ? "right-[3px]" : "left-[3px]"
             }`}
           />
         </span>
       </button>
 
-      <div className="rounded-[20px] p-4 my-3.5 border border-sky/25 bg-gradient-to-br from-vivid/16 to-deep/60">
-        <div className="flex justify-between text-[12.5px] text-dim py-0.5">
+      <div className="rounded-(--radius-card) p-4 my-3.5 border border-line bg-accent-soft">
+        <div className="flex justify-between text-[13px] text-ink-secondary py-0.5">
           <span>Court fee</span>
-          <b className="text-white font-semibold">€{courtFee.toFixed(2)}</b>
+          <span className="text-ink font-semibold">€{courtFee.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between text-[12.5px] text-dim py-0.5">
+        <div className="flex justify-between text-[13px] text-ink-secondary py-0.5">
           <span>Players</span>
-          <b className="text-white font-semibold">{players}</b>
+          <span className="text-ink font-semibold">{players}</span>
         </div>
-        <div className="flex justify-between items-center text-[12.5px] text-dim py-0.5">
+        <div className="flex justify-between items-baseline text-[13px] text-ink-secondary py-0.5">
           <span>Each player pays</span>
-          <b className="text-sky font-display text-[15px]">€{perHead.toFixed(2)}</b>
+          <span className="font-display text-[22px] text-ink">€{perHead.toFixed(2)}</span>
         </div>
       </div>
 
@@ -229,7 +227,7 @@ export default function CreateGamePage() {
         {saving ? "Creating…" : "Create game"}
       </PrimaryButton>
       {error && (
-        <p className="text-center text-[12px] text-[#d98080] mt-2">
+        <p className="text-center text-[13px] text-danger mt-2">
           Couldn&apos;t create that game. Please try again.
         </p>
       )}

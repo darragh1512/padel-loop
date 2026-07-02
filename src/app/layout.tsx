@@ -1,20 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Unbounded, DM_Sans } from "next/font/google";
+import { Instrument_Serif, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
 // The two brand fonts, loaded via next/font and exposed as CSS variables that
-// globals.css references (--font-unbounded → font-display, --font-dm-sans → font-sans).
-const unbounded = Unbounded({
+// globals.css references (--font-instrument-serif → font-display,
+// --font-instrument-sans → font-sans). The serif ships in regular weight only —
+// exactly the design intent (titles are never bold or all-caps).
+const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
-  weight: ["300", "400", "700", "900"],
-  variable: "--font-unbounded",
+  weight: "400",
+  variable: "--font-instrument-serif",
 });
 
-const dmSans = DM_Sans({
+const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  variable: "--font-dm-sans",
+  weight: ["400", "500", "600"],
+  variable: "--font-instrument-sans",
 });
 
 export const metadata: Metadata = {
@@ -23,15 +24,15 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#080e1f",
+  themeColor: "#FAF8F3",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${unbounded.variable} ${dmSans.variable}`}>
-      <body className="min-h-dvh bg-navy text-white antialiased">
+    <html lang="en" className={`${instrumentSerif.variable} ${instrumentSans.variable}`}>
+      <body className="min-h-dvh bg-bone text-ink antialiased">
         {/* The phone-width app shell. Bottom padding leaves room for the fixed
             bottom navigation that the design's screens render. */}
         <div className="mx-auto max-w-md min-h-dvh relative pb-24">

@@ -46,8 +46,8 @@ function NavItem({
   return (
     <Link
       href={href}
-      className={`flex flex-col items-center gap-1 text-[9.5px] tracking-wide font-medium w-14 ${
-        active ? "text-sky" : "text-faint"
+      className={`flex flex-col items-center gap-1 text-[10px] font-medium w-14 transition-colors duration-150 ease-out ${
+        active ? "text-accent" : "text-ink-faint"
       }`}
     >
       {ICONS[icon]}
@@ -94,15 +94,15 @@ function ProfileNavItem() {
   return (
     <Link
       href={`/players/${userId}`}
-      className={`flex flex-col items-center gap-1 text-[9.5px] tracking-wide font-medium w-14 ${
-        active ? "text-sky" : "text-faint"
+      className={`flex flex-col items-center gap-1 text-[10px] font-medium w-14 transition-colors duration-150 ease-out ${
+        active ? "text-accent" : "text-ink-faint"
       }`}
     >
       <PlayerAvatar
         userId={userId}
         avatarUrl={avatarUrl}
         name={name}
-        className={`size-[22px] ${active ? "ring-2 ring-sky" : ""}`}
+        className={`size-[22px] ${active ? "ring-2 ring-accent" : ""}`}
       />
       Profile
     </Link>
@@ -112,13 +112,13 @@ function ProfileNavItem() {
 export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-20">
-      <div className="mx-auto max-w-md h-[84px] border-t border-white/8 bg-navy/95 backdrop-blur-md flex items-start justify-around px-4 pt-3">
+      <div className="mx-auto max-w-md h-[84px] border-t border-line bg-surface flex items-start justify-around px-4 pt-3">
         <NavItem href="/" label="Home" icon="home" />
         <NavItem href="/my-games" label="My Games" icon="myGames" />
         <Link
           href="/create"
           aria-label="Create game"
-          className="w-12 h-12 rounded-full bg-vivid flex items-center justify-center -mt-1.5 pl-cta-shadow"
+          className="w-12 h-12 rounded-full bg-accent flex items-center justify-center -mt-1.5 active:scale-[0.98] transition-transform duration-150 ease-out"
         >
           <svg viewBox="0 0 24 24" fill="none" className="w-[22px] h-[22px]">
             <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />

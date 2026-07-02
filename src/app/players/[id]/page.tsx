@@ -38,18 +38,18 @@ function UpcomingGameCard({ game, delay = 0 }: { game: Game; delay?: number }) {
   return (
     <Link
       href={`/games/${game.id}`}
-      className="block pl-card p-[17px] pb-[15px] mb-3 pl-rise"
+      className="block pl-card p-4 mb-3 pl-rise active:scale-[0.99] transition-transform duration-150 ease-out"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex justify-between items-start gap-3">
         <div>
-          <div className="font-semibold text-[15.5px]">{game.venue}</div>
-          <div className="text-[12.5px] text-dim font-light mt-1">
+          <div className="font-semibold text-[15px] text-ink">{game.venue}</div>
+          <div className="text-[13px] text-ink-secondary mt-1">
             {formatGameTime(game.game_time)}
             {game.location ? <> · {game.location}</> : null}
           </div>
         </div>
-        <span className="text-[11px] text-sky font-medium bg-vivid/12 px-2.5 py-1 rounded-full whitespace-nowrap">
+        <span className="text-[13px] text-accent font-medium bg-accent-soft px-2.5 py-1 rounded-full whitespace-nowrap">
           {game.skill_level}
         </span>
       </div>
@@ -222,10 +222,14 @@ export default function PlayerProfilePage() {
   }
 
   if (loading) {
+    // Skeletons in the shape of the identity header — sunken, subtle pulse.
     return (
       <main className="px-5 pt-6 relative">
-        <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-        <p className="text-[13px] text-dim font-light mt-2">Loading…</p>
+        <div className="flex flex-col items-center mt-2">
+          <div className="bg-sunken rounded-full size-24 animate-pulse" />
+          <div className="bg-sunken rounded-(--radius-field) h-8 w-44 mt-4 animate-pulse" />
+          <div className="bg-sunken rounded-(--radius-card) h-[72px] w-full mt-4 animate-pulse" />
+        </div>
         <BottomNav />
       </main>
     );
@@ -234,16 +238,15 @@ export default function PlayerProfilePage() {
   if (!profile) {
     return (
       <main className="px-5 pt-6 relative">
-        <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-        <h1 className="font-display font-bold text-[19px] tracking-tight mt-2">
+        <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2">
           Player not found
         </h1>
-        <p className="text-[13px] text-dim font-light mt-1">
+        <p className="text-[13px] text-ink-secondary mt-1">
           This player doesn’t have a profile yet.
         </p>
         <Link
           href="/"
-          className="inline-block text-sky text-sm font-medium mt-4"
+          className="inline-block text-accent text-[15px] font-medium mt-4"
         >
           ← Back home
         </Link>
@@ -272,8 +275,6 @@ export default function PlayerProfilePage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-
       {/* Identity header — the page anchor. Large avatar, the name at the top
           of the type scale, and a single stats row (skill · connections ·
           played). Centred and given the most size/weight so it reads first. */}
@@ -282,22 +283,22 @@ export default function PlayerProfilePage() {
           userId={playerId}
           avatarUrl={shownAvatar}
           name={displayName}
-          className="size-24 border-2 border-navy ring-2 ring-sky/40"
+          className="size-24 ring-1 ring-line"
         />
-        <h1 className="font-display font-bold text-[24px] tracking-tight mt-3.5 max-w-full truncate">
+        <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-4 max-w-full truncate">
           {displayName}
         </h1>
 
-        {/* Stats row — one bar, divided into equal cells. The connections cell
-            links through to /connections for the owner. */}
-        <div className="w-full pl-surface rounded-(--radius-card) mt-4 flex divide-x divide-white/8">
+        {/* Stats row — one card, divided into equal cells. Hero numbers get
+            the serif. The connections cell links to /connections for the owner. */}
+        <div className="w-full pl-card mt-5 flex divide-x divide-line">
           {stats.map((s) => {
             const inner = (
               <>
-                <div className="font-display font-bold text-[15px] leading-tight truncate">
+                <div className="font-display text-[19px] leading-tight text-ink truncate">
                   {s.value}
                 </div>
-                <div className="text-[9px] tracking-[1.5px] uppercase text-faint mt-1">
+                <div className="text-[13px] text-ink-secondary mt-1">
                   {s.label}
                 </div>
               </>
@@ -306,7 +307,7 @@ export default function PlayerProfilePage() {
               <Link
                 key={s.label}
                 href={s.href}
-                className="flex-1 min-w-0 px-2 py-3.5 active:opacity-70 transition-opacity"
+                className="flex-1 min-w-0 px-2 py-3.5 active:opacity-70 transition-opacity duration-150 ease-out"
               >
                 {inner}
               </Link>
@@ -329,8 +330,8 @@ export default function PlayerProfilePage() {
           aria-label={connected ? "Disconnect" : "Connect"}
           className={
             connected
-              ? "block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-5 active:scale-[0.98] transition-transform disabled:opacity-70"
-              : "block w-full text-center bg-vivid text-white font-semibold text-sm rounded-(--radius-btn) py-3 mt-5 pl-cta-shadow active:scale-[0.98] transition-transform disabled:opacity-70"
+              ? "block w-full h-12 text-center bg-sunken text-ink font-medium text-[15px] rounded-full mt-5 active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
+              : "block w-full h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full mt-5 active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
           }
         >
           {connBusy
@@ -351,18 +352,18 @@ export default function PlayerProfilePage() {
               userId={playerId}
               avatarUrl={fAvatarUrl}
               name={fName || displayName}
-              className="size-14 border-2 border-navy"
+              className="size-14"
             />
             <div>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="text-center bg-transparent text-pale font-medium text-[13px] border border-white/15 rounded-(--radius-btn) px-4 py-2 active:scale-[0.98] transition-transform disabled:opacity-70"
+                className="text-center bg-sunken text-ink font-medium text-[13px] rounded-full px-4 py-2 active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
               >
                 {uploading ? "Uploading…" : "Change photo"}
               </button>
-              <p className="text-[10.5px] text-faint font-light mt-1.5">
+              <p className="text-[13px] text-ink-faint mt-1.5">
                 JPG or PNG. Replaces your current photo.
               </p>
             </div>
@@ -376,26 +377,22 @@ export default function PlayerProfilePage() {
           </div>
 
           <label className="block mt-4">
-            <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">
-              Display name
-            </span>
+            <span className="text-[13px] text-ink-secondary">Display name</span>
             <input
               type="text"
               value={fName}
               onChange={(e) => setFName(e.target.value)}
               placeholder="Your name"
-              className="w-full mt-1.5 pl-surface rounded-[12px] px-3.5 py-2.5 text-sm text-white outline-none focus:border-sky/60"
+              className="w-full mt-1.5 pl-surface rounded-(--radius-field) px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
             />
           </label>
 
           <label className="block mt-3">
-            <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">
-              Skill level
-            </span>
+            <span className="text-[13px] text-ink-secondary">Skill level</span>
             <select
               value={fSkill}
               onChange={(e) => setFSkill(e.target.value)}
-              className="w-full mt-1.5 bg-deep border border-white/10 rounded-[12px] px-3.5 py-2.5 text-sm text-white outline-none focus:border-sky/60"
+              className="w-full mt-1.5 pl-surface rounded-(--radius-field) px-3.5 py-2.5 text-[15px] text-ink outline-none focus:border-accent"
             >
               {SKILL_LEVELS.map((s) => (
                 <option key={s} value={s}>
@@ -406,28 +403,24 @@ export default function PlayerProfilePage() {
           </label>
 
           <label className="block mt-3">
-            <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">
-              Home club
-            </span>
+            <span className="text-[13px] text-ink-secondary">Home club</span>
             <input
               type="text"
               value={fClub}
               onChange={(e) => setFClub(e.target.value)}
               placeholder="e.g. Malahide Padel Club"
-              className="w-full mt-1.5 pl-surface rounded-[12px] px-3.5 py-2.5 text-sm text-white outline-none focus:border-sky/60"
+              className="w-full mt-1.5 pl-surface rounded-(--radius-field) px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
             />
           </label>
 
           <label className="block mt-3">
-            <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">
-              Bio
-            </span>
+            <span className="text-[13px] text-ink-secondary">Bio</span>
             <textarea
               value={fBio}
               onChange={(e) => setFBio(e.target.value)}
               placeholder="A line or two about your game."
               rows={3}
-              className="w-full mt-1.5 pl-surface rounded-[12px] px-3.5 py-2.5 text-sm text-white outline-none focus:border-sky/60 resize-none"
+              className="w-full mt-1.5 pl-surface rounded-(--radius-field) px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent resize-none"
             />
           </label>
 
@@ -436,20 +429,20 @@ export default function PlayerProfilePage() {
               type="button"
               onClick={handleSave}
               disabled={saving || uploading}
-              className="flex-1 text-center bg-vivid text-white font-semibold text-sm rounded-(--radius-btn) py-2.5 pl-cta-shadow active:scale-[0.98] transition-transform disabled:opacity-70"
+              className="flex-1 h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
             >
               {saving ? "Saving…" : "Save"}
             </button>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="flex-1 text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-2.5 active:scale-[0.98] transition-transform"
+              className="flex-1 h-12 text-center bg-sunken text-ink font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
             >
               Cancel
             </button>
           </div>
           {error && (
-            <p className="text-center text-[12px] text-[#d98080] mt-2">{error}</p>
+            <p className="text-center text-[13px] text-danger mt-2">{error}</p>
           )}
         </div>
       )}
@@ -464,23 +457,23 @@ export default function PlayerProfilePage() {
               <UpcomingGameCard key={game.id} game={game} delay={i * 40} />
             ))
           ) : (
-            <div className="pl-surface rounded-(--radius-card) px-4 py-5 text-center text-[13px] text-faint font-light">
+            <div className="pl-surface rounded-(--radius-card) px-4 py-5 text-center text-[13px] text-ink-secondary">
               {isOwner ? "You have" : `${displayName} has`} no upcoming games.
             </div>
           )}
 
           {/* About — home club, then bio (when set). */}
           <SectionLabel>About</SectionLabel>
-          <div className="pl-surface rounded-(--radius-card) p-4">
-            <div className="flex items-center gap-2 text-[13px] text-dim">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="shrink-0 text-sky">
+          <div className="pl-card p-4">
+            <div className="flex items-center gap-2 text-[13px] text-ink-secondary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="shrink-0 text-accent">
                 <path d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11Z" stroke="currentColor" strokeWidth="2" />
                 <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" />
               </svg>
               <span>{profile.home_club || "No home club set"}</span>
             </div>
             {profile.bio && (
-              <p className="text-[13.5px] text-pale font-light leading-relaxed whitespace-pre-line mt-3 pt-3 border-t border-white/8">
+              <p className="text-[15px] text-ink leading-relaxed whitespace-pre-line mt-3 pt-3 border-t border-line">
                 {profile.bio}
               </p>
             )}
@@ -496,14 +489,14 @@ export default function PlayerProfilePage() {
           <button
             type="button"
             onClick={startEdit}
-            className="block w-full text-center bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 mt-6 active:scale-[0.98] transition-transform"
+            className="block w-full h-12 text-center bg-sunken text-ink font-medium text-[15px] rounded-full mt-8 active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             Edit profile
           </button>
           <div className="flex gap-2 mt-2">
             <Link
               href="/connections"
-              className="flex-1 flex items-center justify-center gap-2 bg-transparent text-pale font-medium text-sm border border-white/15 rounded-(--radius-btn) py-3 active:scale-[0.98] transition-transform"
+              className="flex-1 h-12 flex items-center justify-center gap-2 bg-sunken text-ink font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0">
                 <circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="2" />
@@ -512,14 +505,14 @@ export default function PlayerProfilePage() {
                 <path d="M17.5 14.4c2 .6 3.5 2.4 3.5 4.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
               Connections
-              <span className="text-[11px] font-semibold text-sky bg-vivid/15 border border-sky/25 rounded-full px-2 py-0.5">
+              <span className="text-[13px] font-medium text-accent bg-accent-soft rounded-full px-2 py-0.5">
                 {connCount}
               </span>
             </Link>
             <Link
               href="/profile"
               aria-label="Settings"
-              className="w-12 shrink-0 flex items-center justify-center bg-transparent text-pale border border-white/15 rounded-(--radius-btn) active:scale-[0.98] transition-transform"
+              className="w-12 h-12 shrink-0 flex items-center justify-center bg-sunken text-ink rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
@@ -530,7 +523,7 @@ export default function PlayerProfilePage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="block w-full text-center bg-transparent text-faint font-medium text-sm py-3 mt-2 active:scale-[0.98] transition-transform"
+            className="block w-full text-center bg-transparent text-danger font-medium text-[15px] py-3 mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             Log out
           </button>

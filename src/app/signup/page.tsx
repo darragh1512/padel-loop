@@ -1,12 +1,13 @@
 "use client";
 // The sign-up screen: name, skill level, email + password to create a new
 // account. As soon as the account is made we also create the person's profile
-// (name + skill level), then send them to the home page. Styled in the app's
-// dark design; logic unchanged.
+// (name + skill level), then send them to the home page. Leads with the serif
+// wordmark; logic unchanged.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Wordmark } from "@/components/brand";
 import { supabase } from "@/lib/supabaseClient";
 import { createProfile } from "../profiles";
 
@@ -51,31 +52,32 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="px-5 pt-10">
+    <main className="px-5 pt-12">
       <header>
-        <h1 className="font-display text-[22px] font-bold tracking-tight">Sign up</h1>
-        <p className="text-[13px] text-dim font-light mt-1">Create an account to join games.</p>
+        <Wordmark tagline="Find and join a padel game near you." />
+        <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-10">Sign up</h1>
+        <p className="text-[13px] text-ink-secondary mt-1">Create an account to join games.</p>
       </header>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3.5">
         <label className="flex flex-col gap-1.5">
-          <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">Name</span>
+          <span className="text-[13px] text-ink-secondary">Name</span>
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Alex Murphy"
-            className="pl-surface rounded-[14px] px-4 py-3 text-sm text-white outline-none focus:border-sky/60"
+            className="pl-surface rounded-(--radius-field) px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">Skill level</span>
+          <span className="text-[13px] text-ink-secondary">Skill level</span>
           <select
             value={skillLevel}
             onChange={(e) => setSkillLevel(e.target.value)}
-            className="bg-deep border border-white/10 rounded-[14px] px-4 py-3 text-sm text-white outline-none focus:border-sky/60"
+            className="pl-surface rounded-(--radius-field) px-4 py-3 text-[15px] text-ink outline-none focus:border-accent"
           >
             <option value="Beginner">Beginner</option>
             <option value="Intermediate">Intermediate</option>
@@ -84,19 +86,19 @@ export default function SignupPage() {
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">Email</span>
+          <span className="text-[13px] text-ink-secondary">Email</span>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="pl-surface rounded-[14px] px-4 py-3 text-sm text-white outline-none focus:border-sky/60"
+            className="pl-surface rounded-(--radius-field) px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[10px] tracking-[2px] uppercase text-faint font-display font-light">Password</span>
+          <span className="text-[13px] text-ink-secondary">Password</span>
           <input
             type="password"
             required
@@ -104,25 +106,25 @@ export default function SignupPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 6 characters"
-            className="pl-surface rounded-[14px] px-4 py-3 text-sm text-white outline-none focus:border-sky/60"
+            className="pl-surface rounded-(--radius-field) px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
           />
         </label>
 
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 block w-full text-center bg-vivid text-white font-semibold text-[15px] rounded-(--radius-btn) py-3.5 pl-cta-shadow active:scale-[0.98] transition-transform disabled:opacity-70"
+          className="mt-2 block w-full h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
         >
           {loading ? "Creating account…" : "Sign up"}
         </button>
 
-        {error && <p className="text-center text-[12px] text-[#d98080]">{error}</p>}
-        {notice && <p className="text-center text-[12px] text-sky">{notice}</p>}
+        {error && <p className="text-center text-[13px] text-danger">{error}</p>}
+        {notice && <p className="text-center text-[13px] text-accent">{notice}</p>}
       </form>
 
-      <p className="mt-6 text-center text-[13px] text-dim font-light">
+      <p className="mt-6 text-center text-[13px] text-ink-secondary">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-sky hover:underline">
+        <Link href="/login" className="font-medium text-accent hover:underline">
           Log in
         </Link>
       </p>

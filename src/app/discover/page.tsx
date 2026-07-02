@@ -16,12 +16,10 @@ export default async function DiscoverPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <div className="pl-glow absolute -top-16 left-1/2 -translate-x-1/2 w-[340px] h-[230px] pointer-events-none" />
-
-      <h1 className="font-display text-[21px] tracking-tight leading-snug mt-2 relative">
-        <b className="font-bold">Discover</b>
+      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
+        Discover
       </h1>
-      <p className="text-[13px] text-dim font-light mt-1">
+      <p className="text-[13px] text-ink-secondary mt-1">
         Open games near you — find one and jump in.
       </p>
 
