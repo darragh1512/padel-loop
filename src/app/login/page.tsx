@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Wordmark } from "@/components/brand";
+import { Button, Field, Input } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
@@ -37,51 +38,59 @@ export default function LoginPage() {
 
   return (
     <main className="px-5 pt-12">
-      <header>
+      <header className="pl-rise">
         <Wordmark tagline="Find and join a padel game near you." />
-        <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-10">Log in</h1>
-        <p className="text-[13px] text-ink-secondary mt-1">Welcome back.</p>
+        <h1 className="font-display text-display-md text-ink mt-10">Log in</h1>
+        <p className="text-label text-ink-secondary mt-1">Welcome back.</p>
       </header>
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3.5">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] text-ink-secondary">Email</span>
-          <input
+      <form
+        onSubmit={handleSubmit}
+        className="pl-rise mt-6 flex flex-col gap-3.5"
+        style={{ animationDelay: "50ms" }}
+      >
+        <Field label="Email" htmlFor="login-email" error={null}>
+          <Input
+            id="login-email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="pl-surface rounded-(--radius-field) px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
           />
-        </label>
+        </Field>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] text-ink-secondary">Password</span>
-          <input
+        <Field label="Password" htmlFor="login-password" error={null}>
+          <Input
+            id="login-password"
             type="password"
             required
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Your password"
-            className="pl-surface rounded-(--radius-field) px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
           />
-        </label>
+        </Field>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 block w-full h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
-        >
+        <Button type="submit" className="mt-2" loading={loading}>
           {loading ? "Logging in…" : "Log in"}
-        </button>
+        </Button>
 
-        {error && <p className="text-center text-[13px] text-danger">{error}</p>}
+        <p
+          aria-live="polite"
+          className={`text-center text-label text-danger ${error ? "" : "hidden"}`}
+        >
+          {error}
+        </p>
       </form>
 
-      <p className="mt-6 text-center text-[13px] text-ink-secondary">
+      <p className="mt-6 text-center text-label text-ink-secondary">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-medium text-accent hover:underline">
+        <Link
+          href="/signup"
+          className="font-medium text-accent hover:underline rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
           Sign up
         </Link>
       </p>

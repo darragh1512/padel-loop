@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Wordmark } from "@/components/brand";
+import { Button, Field, Input } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import { createProfile } from "../profiles";
 
@@ -45,7 +46,7 @@ export default function SignupPage() {
     } else {
       // Email confirmation required — profile is created on first profile visit.
       setNotice(
-        "Account created! Please check your email to confirm it, then log in.",
+        "Account created! Check your email to confirm it, then log in.",
       );
       setLoading(false);
     }
@@ -53,78 +54,93 @@ export default function SignupPage() {
 
   return (
     <main className="px-5 pt-12">
-      <header>
+      <header className="pl-rise">
         <Wordmark tagline="Find and join a padel game near you." />
-        <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-10">Sign up</h1>
-        <p className="text-[13px] text-ink-secondary mt-1">Create an account to join games.</p>
+        <h1 className="font-display text-display-md text-ink mt-10">Sign up</h1>
+        <p className="text-label text-ink-secondary mt-1">
+          Create an account and take your first spot.
+        </p>
       </header>
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3.5">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] text-ink-secondary">Name</span>
-          <input
+      <form
+        onSubmit={handleSubmit}
+        className="pl-rise mt-6 flex flex-col gap-3.5"
+        style={{ animationDelay: "50ms" }}
+      >
+        <Field label="Name" htmlFor="signup-name" error={null}>
+          <Input
+            id="signup-name"
             type="text"
             required
+            autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Alex Murphy"
-            className="pl-surface rounded-(--radius-field) px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
           />
-        </label>
+        </Field>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] text-ink-secondary">Skill level</span>
+        <Field label="Skill level" htmlFor="signup-skill" error={null}>
           <select
+            id="signup-skill"
             value={skillLevel}
             onChange={(e) => setSkillLevel(e.target.value)}
-            className="pl-surface rounded-(--radius-field) px-4 py-3 text-[15px] text-ink outline-none focus:border-accent"
+            className="pl-surface w-full rounded-field px-4 py-3 text-body text-ink outline-none focus:border-accent transition-colors duration-150 ease-out"
           >
             <option value="Beginner">Beginner</option>
             <option value="Intermediate">Intermediate</option>
             <option value="Advanced">Advanced</option>
           </select>
-        </label>
+        </Field>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] text-ink-secondary">Email</span>
-          <input
+        <Field label="Email" htmlFor="signup-email" error={null}>
+          <Input
+            id="signup-email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="pl-surface rounded-(--radius-field) px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
           />
-        </label>
+        </Field>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] text-ink-secondary">Password</span>
-          <input
+        <Field label="Password" htmlFor="signup-password" error={null}>
+          <Input
+            id="signup-password"
             type="password"
             required
             minLength={6}
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 6 characters"
-            className="pl-surface rounded-(--radius-field) px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
           />
-        </label>
+        </Field>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 block w-full h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
-        >
+        <Button type="submit" className="mt-2" loading={loading}>
           {loading ? "Creating account…" : "Sign up"}
-        </button>
+        </Button>
 
-        {error && <p className="text-center text-[13px] text-danger">{error}</p>}
-        {notice && <p className="text-center text-[13px] text-accent">{notice}</p>}
+        <p
+          aria-live="polite"
+          className={`text-center text-label text-danger ${error ? "" : "hidden"}`}
+        >
+          {error}
+        </p>
+        <p
+          aria-live="polite"
+          className={`text-center text-label text-success ${notice ? "" : "hidden"}`}
+        >
+          {notice}
+        </p>
       </form>
 
-      <p className="mt-6 text-center text-[13px] text-ink-secondary">
+      <p className="mt-6 text-center text-label text-ink-secondary">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-accent hover:underline">
+        <Link
+          href="/login"
+          className="font-medium text-accent hover:underline rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
           Log in
         </Link>
       </p>
