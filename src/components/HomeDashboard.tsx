@@ -100,9 +100,9 @@ export default function HomeDashboard() {
       <>
         {greeting}
         <div className="mt-6 space-y-3">
-          <div className="bg-sunken rounded-(--radius-card) h-[140px] animate-pulse" />
-          <div className="bg-sunken rounded-(--radius-card) h-[76px] animate-pulse" />
-          <div className="bg-sunken rounded-(--radius-card) h-[76px] animate-pulse" />
+          <div className="pl-skeleton rounded-card h-35" />
+          <div className="pl-skeleton rounded-card h-19" />
+          <div className="pl-skeleton rounded-card h-19" />
         </div>
       </>
     );

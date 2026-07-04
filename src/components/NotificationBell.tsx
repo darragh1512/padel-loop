@@ -28,7 +28,11 @@ export default function NotificationBell() {
   }, []);
 
   return (
-    <Link href="/notifications" aria-label="Notifications" className="relative inline-flex text-ink-secondary">
+    <Link
+      href="/notifications"
+      aria-label="Notifications"
+      className="relative inline-flex text-ink-secondary hover:text-ink rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+    >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path
           d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"
@@ -46,7 +50,7 @@ export default function NotificationBell() {
         />
       </svg>
       {count > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-accent text-white text-[10px] font-semibold flex items-center justify-center leading-none">
+        <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-pill bg-accent text-on-accent text-nav font-semibold flex items-center justify-center leading-none">
           {count > 9 ? "9+" : count}
         </span>
       )}

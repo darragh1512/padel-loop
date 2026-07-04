@@ -1,48 +1,97 @@
 @import "tailwindcss";
 
 /* ── Padel Loop design tokens ─────────────────────────────────────────────
-   The single source of truth for colour, type, radius and depth.
-   Tailwind v4: everything in @theme becomes a utility automatically,
-   e.g. bg-bone, bg-surface, text-ink, border-line, font-display.
+   The single source of truth for colour, type, spacing, radius, depth and
+   motion. Tailwind v4: everything in @theme becomes a utility automatically,
+   e.g. bg-bone, text-ink, text-body, rounded-card, ease-out-strong.
 
-   Palette: warm bone ground, white cards, deep sage accent, warm ink text.
-   Depth comes from hairline borders, never drop shadows (the one exception
-   is the ambient sheet/modal shadow, --shadow-sheet).                      */
+   The system (see DESIGN.md): warm bone ground, white cards, one deep sage
+   accent used scarcely, warm ink text. Depth comes from hairline borders,
+   never drop shadows — the one exception is the ambient sheet shadow.      */
 @theme {
-  /* Backgrounds */
-  --color-bone:    #FAF8F3; /* app background everywhere — never pure white */
-  --color-surface: #FFFFFF; /* cards, sheets */
-  --color-sunken:  #F1EEE6; /* inputs, inactive chips, secondary surfaces */
+  /* ── Colour ── */
 
-  /* Text */
+  /* Grounds */
+  --color-bone:    #FAF8F3; /* app background everywhere — never pure white */
+  --color-surface: #FFFFFF; /* cards and sheets only — the layer ON the bone */
+  --color-sunken:  #F1EEE6; /* pressed bone — inputs, inactive chips, secondary buttons */
+  --color-sunken-strong: #EAE5DA; /* pressed bone, pressed — hover/active on sunken surfaces */
+
+  /* Ink */
   --color-ink:           #1C1B17; /* primary text — warm near-black */
   --color-ink-secondary: #6E6A5E; /* secondary text, labels, timestamps */
-  --color-ink-faint:     #A8A395; /* placeholders, disabled */
+  --color-ink-faint:     #A8A395; /* placeholders and disabled only */
 
-  /* Accent — deep sage. CTAs, active nav, key highlights ONLY. */
-  --color-accent:      #5A6B4D;
-  --color-accent-soft: #E8ECE2; /* sage tint — active chips, subtle highlights */
+  /* Accent — court sage. The single voice of action: primary buttons,
+     active nav/chips, live state. At most ~10% of any screen. */
+  --color-accent:        #5A6B4D;
+  --color-accent-strong: #4C5B41; /* sage, pressed — hover/active on accent surfaces */
+  --color-accent-soft:   #E8ECE2; /* sage whisper — active chip fills, subtle highlights */
+  --color-on-accent:     #FFFFFF; /* text/icons on an accent fill */
 
-  /* Decorative avatar tints — bone/sage/clay range, palette-harmonious. */
+  /* Decorative avatar tints — bone/sage/clay range, palette-harmonious.
+     Clay-soft doubles as the hover wash behind destructive text buttons. */
   --color-clay-soft: #EFE3D7;
   --color-sage-mist: #E4E7DC;
 
-  /* Lines & status */
-  --color-line:    #E7E3D8; /* 1px hairline borders, used instead of shadows */
-  --color-success: #5A6B4D;
-  --color-danger:  #A65D4E; /* muted terracotta */
+  /* Lines, status, scrim */
+  --color-line:    #E7E3D8; /* the 1px hairline that does the work shadows would */
+  --color-success: #5A6B4D; /* success speaks in the accent's voice */
+  --color-danger:  #A65D4E; /* muted terracotta — a warning, never an alarm */
+  --color-scrim:   rgb(28 27 23 / 0.4); /* behind sheets and dialogs */
 
-  /* Type. Display serif is for screen titles, hero numbers and the greeting
-     ONLY; everything else is the sans. */
+  /* ── Type ──
+     Instrument Serif = display only (screen titles, hero numbers, greeting,
+     wordmark). Instrument Sans = everything else.                          */
   --font-display: var(--font-instrument-serif), Georgia, serif;
   --font-sans:    var(--font-instrument-sans), system-ui, sans-serif;
 
-  /* Shape */
-  --radius-card:  16px;
-  --radius-field: 12px; /* inputs & chips */
+  /* One scale, fixed rem, ~1.2 ratio, anchored on the 13/15px sans pair
+     and the 22–40px serif display range DESIGN.md mandates. */
+  --text-nav: 0.625rem;              /* 10px — bottom-nav labels only */
+  --text-nav--line-height: 1.4;
+  --text-micro: 0.6875rem;           /* 11px — faintest annotations ("/ head") */
+  --text-micro--line-height: 1.4;
+  --text-label: 0.8125rem;           /* 13px — chips, metadata, small buttons */
+  --text-label--line-height: 1.4;
+  --text-body: 0.9375rem;            /* 15px — all reading text */
+  --text-body--line-height: 1.6;
+  --text-title: 0.9375rem;           /* 15px — card/section titles (semibold) */
+  --text-title--line-height: 1.4;
+  --text-display-xs: 1.125rem;       /* 18px — serif moments inside cards */
+  --text-display-xs--line-height: 1.15;
+  --text-display-xs--letter-spacing: -0.02em;
+  --text-display-sm: 1.375rem;       /* 22px — card-level display, hero numbers */
+  --text-display-sm--line-height: 1.1;
+  --text-display-sm--letter-spacing: -0.02em;
+  --text-display-md: 1.625rem;       /* 26px — screen titles, the greeting */
+  --text-display-md--line-height: 1.1;
+  --text-display-md--letter-spacing: -0.02em;
+  --text-display-lg: 2rem;           /* 32px — the wordmark */
+  --text-display-lg--line-height: 1.1;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-xl: 2.5rem;         /* 40px — the largest brand moment */
+  --text-display-xl--line-height: 1.05;
+  --text-display-xl--letter-spacing: -0.02em;
 
-  /* Depth — the single allowed shadow (bottom sheets / modals only). */
-  --shadow-sheet: 0 8px 32px rgba(28, 27, 23, 0.08);
+  /* ── Space ── the 4px grid (Tailwind's default step, declared as intent).
+     Chip padding (6px 14px) is the one DESIGN.md-mandated exception.       */
+  --spacing: 0.25rem;
+
+  /* ── Shape ── */
+  --radius-field: 12px;  /* inputs and menus */
+  --radius-card:  16px;  /* cards and sheets */
+  --radius-pill:  9999px; /* buttons and chips */
+
+  /* ── Depth ── flat by conviction. One shadow in the whole app, and it
+     belongs to sheets/dialogs (The Hairline Rule).                         */
+  --shadow-sheet: 0 8px 32px rgb(28 27 23 / 0.08);
+
+  /* ── Motion ── quiet at rest, responsive under the thumb.
+     Entrances ease out; exits ease in; nothing over 300ms.                 */
+  --ease-out-strong:  cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-soft:     cubic-bezier(0.55, 0, 0.55, 0.2);
+  --ease-sheet:       cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 body {
@@ -52,11 +101,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Shared primitives that read better as CSS than utility soup.
-   .pl-card    — a card: white surface, hairline border, 16px radius.
-   .pl-surface — a sunken secondary surface: inputs, chips, quiet panels.
-                 Carries a transparent border so focus:border-accent works
-                 without the field shifting.                               */
+/* ── Shared primitives ────────────────────────────────────────────────────
+   .pl-card     — a card: white surface, hairline border, card radius.
+   .pl-surface  — a sunken field: inputs, chips, quiet panels. Carries a
+                  transparent border so focus:border-accent doesn't shift.
+   .pl-press    — soft press feedback for anything tappable.
+   .pl-rise     — entrance: fade + 8px rise, 200ms ease-out.
+   .pl-pop      — menu/popover entrance: fade + slight scale from its origin.
+   .pl-fade-out — exit: quick fade, ease-in.
+   .pl-skeleton — loading placeholder with a slow shimmer.
+   All motion respects prefers-reduced-motion: movement is removed, opacity
+   transitions stay (reduced ≠ zero).                                       */
+
 .pl-card {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
@@ -67,14 +123,81 @@ body {
   border: 1px solid transparent;
 }
 
+/* Press feedback — the tactile personality. Transform is gated behind
+   reduced-motion; colour still responds so feedback never disappears. */
+.pl-press {
+  transition:
+    transform 150ms var(--ease-out-strong),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pl-press:active { transform: scale(0.98); }
+}
+
+/* Entrance: fade + 8px rise. Stagger with animation-delay (≤ 60ms steps). */
+@media (prefers-reduced-motion: no-preference) {
+  .pl-rise { animation: pl-rise 200ms var(--ease-out-strong) both; }
+}
+@keyframes pl-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Menu/popover entrance — scales in from its trigger corner on insertion. */
+.pl-pop {
+  transform-origin: var(--pl-pop-origin, top left);
+  transition: opacity 150ms var(--ease-out-strong);
+}
+@starting-style {
+  .pl-pop { opacity: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pl-pop {
+    transition:
+      opacity 150ms var(--ease-out-strong),
+      transform 150ms var(--ease-out-strong);
+  }
+  @starting-style {
+    .pl-pop { transform: scale(0.97) translateY(-2px); }
+  }
+}
+
+/* Exit: faster than entry, ease-in — the system responding, not deciding. */
+.pl-fade-out { animation: pl-fade-out 150ms var(--ease-in-soft) both; }
+@keyframes pl-fade-out {
+  to { opacity: 0; }
+}
+
+/* Skeletons: sunken blocks matching the real content's layout. The shimmer
+   is decorative and vanishes entirely under reduced motion.               */
+.pl-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-sunken);
+  border-radius: var(--radius-field);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pl-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.55),
+      transparent
+    );
+    animation: pl-shimmer 1.6s ease-in-out infinite;
+  }
+}
+@keyframes pl-shimmer {
+  to { transform: translateX(100%); }
+}
+
 /* hide the scrollbar on horizontal filter rows (design intent) */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
-
-@media (prefers-reduced-motion: no-preference) {
-  .pl-rise { animation: pl-rise 0.35s ease-out both; }
-  @keyframes pl-rise {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-}

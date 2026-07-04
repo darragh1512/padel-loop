@@ -2,12 +2,11 @@
 
 // The interactive filter chips + the games list they control. The page fetches
 // the games on the server and hands them in here; all the filtering happens in
-// the browser as the user taps the chips. Card layout and chip styling are
-// unchanged — this only makes them functional.
+// the browser as the user taps the chips.
 
 import { useEffect, useMemo, useState } from "react";
 import GameCard from "@/components/GameCard";
-import { SectionLabel } from "@/components/ui";
+import { ChipButton, EmptyState, SectionLabel } from "@/components/ui";
 import { skillTierOf, type Game } from "@/lib/types";
 import { supabase } from "@/lib/supabaseClient";
 import { getConnections } from "@/app/connections";
@@ -31,8 +30,8 @@ function matchesTime(game: Game, time: string | null): boolean {
   return start <= weekFromNow;
 }
 
-// One filter chip with a little drop-down of choices. Keeps the exact Chip look
-// (see ui.tsx) and turns sage when a choice is active.
+// One filter chip with a little drop-down of choices. Turns sage when a
+// choice is active; the menu pops in from the chip it belongs to.
 function FilterChip({
   label,
   value,
@@ -65,15 +64,14 @@ function FilterChip({
 
   return (
     <div className="relative shrink-0">
-      <button
-        type="button"
+      <ChipButton
+        active={active}
+        aria-expanded={open}
+        aria-haspopup="listbox"
         onClick={() => {
           setOptQuery("");
           onToggle();
         }}
-        className={`inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap transition-colors duration-150 ease-out ${
-          active ? "bg-accent-soft text-accent" : "bg-sunken text-ink-secondary"
-        }`}
       >
         {value ?? label}
         <svg
@@ -81,14 +79,15 @@ function FilterChip({
           height="9"
           viewBox="0 0 24 24"
           fill="none"
-          className={`transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden
+          className={`transition-transform duration-150 ease-out ${open ? "rotate-180" : ""}`}
         >
           <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </button>
+      </ChipButton>
 
       {open && (
-        <div className="absolute z-30 left-0 mt-1.5 min-w-[160px] rounded-(--radius-field) bg-surface border border-line p-1.5 shadow-(--shadow-sheet)">
+        <div className="pl-pop absolute z-30 left-0 mt-1.5 min-w-40 rounded-field bg-surface border border-line p-1.5 shadow-sheet">
           {showSearch && (
             <input
               type="text"
@@ -96,13 +95,13 @@ function FilterChip({
               onChange={(e) => setOptQuery(e.target.value)}
               placeholder={`Search ${label.toLowerCase()}`}
               autoFocus
-              className="w-full pl-surface rounded-(--radius-field) text-[13px] text-ink placeholder:text-ink-faint px-3 py-2 mb-1 focus:outline-none focus:border-accent"
+              className="pl-surface w-full rounded-field text-label text-ink placeholder:text-ink-faint px-3 py-2 mb-1 focus:outline-none focus:border-accent"
             />
           )}
           <button
             type="button"
             onClick={() => onChange(null)}
-            className={`block w-full text-left text-[13px] rounded-(--radius-field) px-3 py-2 transition-colors duration-150 ease-out ${
+            className={`block w-full text-left text-label rounded-field px-3 py-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${
               value == null ? "text-accent bg-accent-soft" : "text-ink-secondary hover:bg-sunken"
             }`}
           >
@@ -113,7 +112,7 @@ function FilterChip({
               key={o}
               type="button"
               onClick={() => onChange(o)}
-              className={`block w-full text-left text-[13px] rounded-(--radius-field) px-3 py-2 transition-colors duration-150 ease-out ${
+              className={`block w-full text-left text-label rounded-field px-3 py-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${
                 value === o ? "text-accent bg-accent-soft" : "text-ink hover:bg-sunken"
               }`}
             >
@@ -121,7 +120,7 @@ function FilterChip({
             </button>
           ))}
           {showSearch && visibleOptions.length === 0 && (
-            <div className="px-3 py-2 text-[13px] text-ink-faint">No {label.toLowerCase()}s found</div>
+            <div className="px-3 py-2 text-label text-ink-faint">No {label.toLowerCase()}s found</div>
           )}
         </div>
       )}
@@ -251,15 +250,15 @@ export default function GameFilters({
 
       {greeting && (
         <h1 className="mt-3.5 relative">
-          <span className="font-display text-[28px] tracking-tight leading-tight text-ink">{greeting}</span>
+          <span className="font-display text-display-md text-ink">{greeting}</span>
           <br />
-          <span className="text-[15px] text-ink-secondary">{headlineText}</span>
+          <span className="text-body text-ink-secondary">{headlineText}</span>
         </h1>
       )}
 
       <div className="relative mt-4">
         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
             <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
@@ -269,16 +268,16 @@ export default function GameFilters({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search venue or area"
-          className="w-full pl-surface rounded-full text-[15px] text-ink placeholder:text-ink-faint pl-10 pr-9 py-2.5 focus:outline-none focus:border-accent"
+          className="pl-surface w-full rounded-pill text-body text-ink placeholder:text-ink-faint pl-10 pr-9 py-2.5 focus:outline-none focus:border-accent"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-secondary"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent rounded-pill"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </button>
@@ -320,57 +319,47 @@ export default function GameFilters({
             setOpenFilter(null);
           }}
         />
-        {/* Connections-only toggle — a plain on/off chip (no menu), matching the
-            FilterChip look: soft sage when active, sunken when off. */}
-        <button
-          type="button"
+        {/* Connections-only toggle — a plain on/off chip (no menu). */}
+        <ChipButton
+          active={connectionsOnly}
+          aria-pressed={connectionsOnly}
           onClick={() => {
             setConnectionsOnly((v) => !v);
             setOpenFilter(null);
           }}
-          aria-pressed={connectionsOnly}
-          className={`inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 ease-out ${
-            connectionsOnly ? "bg-accent-soft text-accent" : "bg-sunken text-ink-secondary"
-          }`}
         >
           Connections only
-        </button>
+        </ChipButton>
         {anyActive && (
-          <button
-            type="button"
-            onClick={clearAll}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap bg-sunken text-ink-secondary shrink-0"
-          >
+          <ChipButton onClick={clearAll}>
             Clear
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
-          </button>
+          </ChipButton>
         )}
       </div>
 
       <SectionLabel>{sectionLabel}</SectionLabel>
 
       {filtered.length > 0 ? (
-        filtered.map((g, i) => <GameCard key={g.id} game={g} delay={i * 80} />)
+        filtered.map((g, i) => <GameCard key={g.id} game={g} delay={Math.min(i, 6) * 50} />)
       ) : (
-        <div className="pl-card p-6 text-center mb-3">
-          <div className="font-display text-[19px] text-ink">
-            {anyActive ? "No games match these filters." : "No games right now."}
-          </div>
-          <div className="text-[13px] text-ink-secondary mt-1.5">
-            {anyActive ? "Try widening your search." : "Check back soon for new games."}
-          </div>
-          {anyActive && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="inline-flex items-center mt-4 text-[13px] font-medium rounded-full px-4 py-1.5 bg-accent-soft text-accent active:scale-[0.98] transition-transform duration-150 ease-out"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
+        <EmptyState
+          title={anyActive ? "Nothing matches — yet." : "No games on the board."}
+          body={
+            anyActive
+              ? "Loosen a filter or two and more games will appear."
+              : "Be the one who gets a game going — the Loop fills the spots."
+          }
+          action={
+            anyActive ? (
+              <ChipButton active onClick={clearAll}>
+                Clear filters
+              </ChipButton>
+            ) : undefined
+          }
+        />
       )}
     </>
   );

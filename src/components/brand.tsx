@@ -4,7 +4,7 @@
 
 export function CourtHero() {
   return (
-    <div className="mt-4 h-[150px] rounded-(--radius-card) relative overflow-hidden border border-line bg-accent-soft">
+    <div className="mt-4 h-38 rounded-card relative overflow-hidden border border-line bg-accent-soft">
       <svg viewBox="0 0 346 150" fill="none" className="absolute inset-0 w-full h-full">
         <rect x="38" y="18" width="270" height="114" rx="6" stroke="var(--color-accent)" strokeOpacity=".45" strokeWidth="1.5" />
         <line x1="173" y1="18" x2="173" y2="132" stroke="var(--color-accent)" strokeOpacity=".45" strokeWidth="1.5" />
@@ -49,7 +49,7 @@ export function LoopRing({
         />
         <circle cx="10" cy="20" r="5.5" fill="currentColor" />
       </svg>
-      <div className="absolute inset-1.5 rounded-full bg-accent-soft text-accent flex items-center justify-center font-display text-[24px]">
+      <div className="absolute inset-1.5 rounded-pill bg-accent-soft text-accent flex items-center justify-center font-display text-display-sm">
         {children}
       </div>
     </div>
@@ -76,11 +76,11 @@ export function MiniLoop({ size = 34 }: { size?: number }) {
 export function Wordmark({ tagline }: { tagline?: string }) {
   return (
     <div>
-      <div className="font-display text-[32px] leading-none tracking-tight text-ink">
+      <div className="font-display text-display-lg leading-none text-ink">
         padel loop
       </div>
       {tagline && (
-        <p className="text-[13px] text-ink-secondary mt-2">{tagline}</p>
+        <p className="text-label text-ink-secondary mt-2">{tagline}</p>
       )}
     </div>
   );
