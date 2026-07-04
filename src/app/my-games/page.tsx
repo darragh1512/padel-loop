@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
-import { SectionLabel } from "@/components/ui";
+import { ButtonLink, Chip, EmptyState, SectionLabel, Skeleton } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import {
   formatGameTime,
@@ -25,45 +25,34 @@ import {
 const isCancelled = (g: Game) =>
   (g.status ?? "").trim().toLowerCase() === "cancelled";
 
-// One card in a list — styled to match the browse list's pl-card games, but
-// using the raw game fields we have here. The whole card links to the detail
-// page; cancelled games swap the skill pill for a red "Cancelled" label.
+// One card in a list. The whole card links to the detail page; cancelled
+// games swap the skill chip for a terracotta "Cancelled" label. The skill
+// chip is the quiet sunken bone — sage stays out of list decoration.
 function MyGameCard({ game, delay = 0 }: { game: Game; delay?: number }) {
   const cancelled = isCancelled(game);
   return (
     <Link
       href={`/games/${game.id}`}
-      className="block pl-card p-4 mb-3 pl-rise active:scale-[0.99] transition-transform duration-150 ease-out"
+      className="pl-card pl-press pl-rise block p-4 mb-3 hover:bg-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex justify-between items-start gap-3">
         <div>
-          <div className="font-semibold text-[15px] text-ink">{game.venue}</div>
-          <div className="text-[13px] text-ink-secondary mt-1">
+          <div className="text-title font-semibold text-ink">{game.venue}</div>
+          <div className="text-label text-ink-secondary mt-1">
             {formatGameTime(game.game_time)}
             {game.location ? <> · {game.location}</> : null}
           </div>
         </div>
         {cancelled ? (
-          <span className="text-[13px] font-medium text-danger bg-sunken px-2.5 py-1 rounded-full whitespace-nowrap">
+          <span className="text-label font-medium text-danger bg-sunken px-2.5 py-1 rounded-pill whitespace-nowrap">
             Cancelled
           </span>
         ) : (
-          <span className="text-[13px] text-accent font-medium bg-accent-soft px-2.5 py-1 rounded-full whitespace-nowrap">
-            {game.skill_level}
-          </span>
+          <Chip>{game.skill_level}</Chip>
         )}
       </div>
     </Link>
-  );
-}
-
-// Shown when a section has no games yet.
-function EmptyNote({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="pl-surface rounded-(--radius-card) px-4 py-5 text-center text-[13px] text-ink-secondary">
-      {children}
-    </div>
   );
 }
 
@@ -104,13 +93,20 @@ export default function MyGamesPage() {
   }, [router]);
 
   if (loading) {
-    // Skeletons in the shape of the loaded screen — sunken, subtle pulse.
+    // Skeletons in the shape of the loaded screen: title, sub, two sections
+    // of cards — with the shared shimmer, never a spinner.
     return (
       <main className="px-5 pt-6 relative">
-        <div className="bg-sunken rounded-(--radius-field) h-9 w-40 mt-2 animate-pulse" />
-        <div className="mt-8 space-y-3">
-          <div className="bg-sunken rounded-(--radius-card) h-[72px] animate-pulse" />
-          <div className="bg-sunken rounded-(--radius-card) h-[72px] animate-pulse" />
+        <h1 className="font-display text-display-md text-ink mt-2">My games</h1>
+        <p className="text-label text-ink-secondary mt-1">
+          The games you&rsquo;re running and the ones you&rsquo;ve joined.
+        </p>
+        <div className="mt-11 space-y-3">
+          <Skeleton className="rounded-card h-18" />
+          <Skeleton className="rounded-card h-18" />
+        </div>
+        <div className="mt-11 space-y-3">
+          <Skeleton className="rounded-card h-18" />
         </div>
         <BottomNav />
       </main>
@@ -119,29 +115,43 @@ export default function MyGamesPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
-        My games
-      </h1>
-      <p className="text-[13px] text-ink-secondary mt-1">
-        The games you’re running and the ones you’ve joined.
+      <h1 className="font-display text-display-md text-ink mt-2">My games</h1>
+      <p className="text-label text-ink-secondary mt-1">
+        The games you&rsquo;re running and the ones you&rsquo;ve joined.
       </p>
 
       <SectionLabel>Games you created</SectionLabel>
       {created.length > 0 ? (
         created.map((game, i) => (
-          <MyGameCard key={game.id} game={game} delay={i * 40} />
+          <MyGameCard key={game.id} game={game} delay={Math.min(i, 6) * 50} />
         ))
       ) : (
-        <EmptyNote>You haven’t created any games yet.</EmptyNote>
+        <EmptyState
+          title="Run your own game."
+          body="Set one up once — the Loop fills the spots."
+          action={
+            <ButtonLink href="/create" variant="secondary" size="sm">
+              Create a game
+            </ButtonLink>
+          }
+        />
       )}
 
       <SectionLabel>Games you joined</SectionLabel>
       {joined.length > 0 ? (
         joined.map((game, i) => (
-          <MyGameCard key={game.id} game={game} delay={i * 40} />
+          <MyGameCard key={game.id} game={game} delay={Math.min(i, 6) * 50} />
         ))
       ) : (
-        <EmptyNote>You haven’t joined any games yet.</EmptyNote>
+        <EmptyState
+          title="Your next game is out there."
+          body="Take a spot in a game near you, at your level."
+          action={
+            <ButtonLink href="/discover" size="sm">
+              Find a game
+            </ButtonLink>
+          }
+        />
       )}
 
       <div className="h-4" />
