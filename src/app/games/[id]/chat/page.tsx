@@ -34,9 +34,9 @@ export default async function GameChatPage({
           <Link
             href="/chat"
             aria-label="Back to chats"
-            className="shrink-0 text-ink-secondary active:scale-90 transition-transform duration-150 ease-out"
+            className="pl-press shrink-0 text-ink-secondary hover:text-ink rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path
                 d="M15 5l-7 7 7 7"
                 stroke="currentColor"
@@ -48,17 +48,17 @@ export default async function GameChatPage({
           </Link>
 
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-[15px] text-ink truncate">
+            <div className="text-title font-semibold text-ink truncate">
               {game.venue}
             </div>
-            <div className="text-[13px] text-ink-secondary truncate">
+            <div className="text-label text-ink-secondary truncate">
               {game.location} · {formatGameTime(game.game_time)}
             </div>
           </div>
 
           <Link
             href={`/games/${id}`}
-            className="shrink-0 text-[13px] font-medium text-accent bg-accent-soft rounded-full px-3 py-1.5"
+            className="pl-press shrink-0 text-label font-medium text-ink bg-sunken hover:bg-sunken-strong rounded-pill px-3 py-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             View game
           </Link>

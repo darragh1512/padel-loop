@@ -170,9 +170,9 @@ export default function ChatThread({
     return (
       <>
         <SectionLabel>Group chat</SectionLabel>
-        <div className="pl-surface rounded-(--radius-card) px-4 py-5 text-center">
-          <p className="text-[13px] text-ink-secondary">
-            Join this game to chat with the group.
+        <div className="pl-surface rounded-card px-4 py-5 text-center">
+          <p className="text-label text-ink-secondary">
+            Take a spot in this game and the group chat opens up.
           </p>
         </div>
       </>
@@ -183,7 +183,7 @@ export default function ChatThread({
 
   const messageList =
     messages.length === 0 ? (
-      <p className="text-[13px] text-ink-secondary text-center my-6">
+      <p className="text-label text-ink-secondary text-center my-6">
         No messages yet — say hello to your group.
       </p>
     ) : (
@@ -211,19 +211,19 @@ export default function ChatThread({
               </Link>
               <Link
                 href={`/players/${m.user_id}`}
-                className="text-[13px] font-medium text-ink-secondary active:opacity-70 transition-opacity duration-150 ease-out"
+                className="text-label font-medium text-ink-secondary rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 {mine ? "You" : m.senderName}
               </Link>
-              <span className="text-[11px] text-ink-faint">
+              <span className="text-micro text-ink-faint">
                 {shortTime(m.created_at)}
               </span>
             </div>
             <div
               className={
                 mine
-                  ? "bg-accent text-white rounded-[18px] rounded-br-md px-3.5 py-2 text-[15px] leading-snug break-words"
-                  : "bg-sunken text-ink rounded-[18px] rounded-bl-md px-3.5 py-2 text-[15px] leading-snug break-words"
+                  ? "bg-accent text-on-accent rounded-card rounded-br-md px-3.5 py-2 text-body leading-snug break-words"
+                  : "bg-sunken text-ink rounded-card rounded-bl-md px-3.5 py-2 text-body leading-snug break-words"
               }
             >
               {m.body}
@@ -248,18 +248,18 @@ export default function ChatThread({
         onChange={(e) => setText(e.target.value)}
         placeholder="Message your group…"
         aria-label="Type a message"
-        className="flex-1 pl-surface rounded-full px-4 py-2.5 text-[15px] text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+        className="flex-1 pl-surface rounded-pill px-4 py-2.5 text-body text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
       />
       <button
         type="submit"
         disabled={sending || text.trim().length === 0}
         aria-label="Send message"
-        className="shrink-0 w-10 h-10 rounded-full bg-accent text-white inline-flex items-center justify-center active:scale-95 transition-transform duration-150 ease-out disabled:opacity-40"
+        className="pl-press shrink-0 size-10 rounded-pill bg-accent text-on-accent hover:bg-accent-strong inline-flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path
             d="M4 12l16-7-7 16-2.5-6.5L4 12z"
-            stroke="#fff"
+            stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -280,9 +280,12 @@ export default function ChatThread({
         >
           {messageList}
         </div>
-        {error && (
-          <p className="text-center text-[13px] text-danger py-1">{error}</p>
-        )}
+        <p
+          aria-live="polite"
+          className={`text-center text-label text-danger py-1 ${error ? "" : "hidden"}`}
+        >
+          {error}
+        </p>
         {composer}
       </div>
     );
@@ -302,9 +305,12 @@ export default function ChatThread({
         </div>
         {composer}
       </div>
-      {error && (
-        <p className="text-center text-[13px] text-danger mt-2">{error}</p>
-      )}
+      <p
+        aria-live="polite"
+        className={`text-center text-label text-danger mt-2 ${error ? "" : "hidden"}`}
+      >
+        {error}
+      </p>
     </>
   );
 }

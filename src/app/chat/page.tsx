@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
-import { MiniLoop } from "@/components/brand";
+import { ButtonLink, EmptyState, Skeleton } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import { getConversationsFor, type Conversation } from "../games";
 
@@ -56,48 +56,42 @@ export default function ChatPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
-        Chat
-      </h1>
-      <p className="text-[13px] text-ink-secondary mt-1 mb-4">
+      <h1 className="font-display text-display-md text-ink mt-2">Chat</h1>
+      <p className="text-label text-ink-secondary mt-1 mb-4">
         Your game conversations.
       </p>
 
       {loading ? (
-        // Skeleton rows in the shape of the list — sunken, subtle pulse.
+        // Skeleton rows in the shape of the conversation list.
         <div className="mt-1 space-y-3">
-          <div className="bg-sunken rounded-(--radius-card) h-[76px] animate-pulse" />
-          <div className="bg-sunken rounded-(--radius-card) h-[76px] animate-pulse" />
+          <Skeleton className="rounded-card h-19" />
+          <Skeleton className="rounded-card h-19" />
         </div>
       ) : !loggedIn ? (
         // Not logged in — can't have any conversations to show.
-        <div className="pl-card p-6 mt-6 flex flex-col items-center text-center gap-3">
-          <MiniLoop size={40} />
-          <div className="font-display text-[19px] text-ink">You&apos;re not logged in.</div>
-          <div className="text-[13px] text-ink-secondary">
-            Log in to see your game conversations.
-          </div>
-          <Link
-            href="/login"
-            className="mt-1 bg-accent text-white font-medium text-[15px] rounded-full px-5 py-2.5 active:scale-[0.98] transition-transform duration-150 ease-out"
-          >
-            Log in
-          </Link>
+        <div className="mt-2">
+          <EmptyState
+            title="Your conversations live here."
+            body="Log in and every game you join brings its group chat with it."
+            action={
+              <ButtonLink href="/login" size="sm">
+                Log in
+              </ButtonLink>
+            }
+          />
         </div>
       ) : conversations.length === 0 ? (
         // Logged in but in no games yet — the empty state.
-        <div className="pl-card p-6 mt-6 flex flex-col items-center text-center gap-3">
-          <MiniLoop size={40} />
-          <div className="font-display text-[19px] text-ink">No conversations yet.</div>
-          <div className="text-[13px] text-ink-secondary">
-            Join a game to start chatting.
-          </div>
-          <Link
-            href="/games"
-            className="mt-1 bg-accent text-white font-medium text-[15px] rounded-full px-5 py-2.5 active:scale-[0.98] transition-transform duration-150 ease-out"
-          >
-            Browse games
-          </Link>
+        <div className="mt-2">
+          <EmptyState
+            title="No conversations yet."
+            body="Join a game and its group chat appears here."
+            action={
+              <ButtonLink href="/discover" size="sm">
+                Find a game
+              </ButtonLink>
+            }
+          />
         </div>
       ) : (
         // The conversation list.
@@ -106,12 +100,12 @@ export default function ChatPage() {
             <Link
               key={c.game.id}
               href={`/games/${c.game.id}/chat`}
-              className="pl-card p-4 mb-3 flex items-center gap-3.5 pl-rise active:scale-[0.99] transition-transform duration-150 ease-out"
-              style={{ animationDelay: `${i * 40}ms` }}
+              className="pl-card pl-press pl-rise p-4 mb-3 flex items-center gap-3.5 hover:bg-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              style={{ animationDelay: `${Math.min(i, 6) * 50}ms` }}
             >
-              {/* Little chat-bubble badge, in the soft accent. */}
-              <span className="shrink-0 w-11 h-11 rounded-full bg-accent-soft text-accent flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+              {/* Little chat-bubble badge — quiet bone, not the accent. */}
+              <span className="shrink-0 size-11 rounded-pill bg-sunken text-ink-secondary flex items-center justify-center">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden className="size-5">
                   <path
                     d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z"
                     stroke="currentColor"
@@ -123,18 +117,18 @@ export default function ChatPage() {
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <div className="font-semibold text-[15px] text-ink truncate">
+                  <div className="text-title font-semibold text-ink truncate">
                     {c.game.venue}
                   </div>
-                  <span className="text-[11px] text-ink-faint shrink-0">
+                  <span className="text-micro text-ink-faint shrink-0">
                     {shortStamp(c.lastMessageAt)}
                   </span>
                 </div>
-                <div className="text-[13px] text-ink-secondary truncate">
+                <div className="text-label text-ink-secondary truncate">
                   {c.game.location}
                 </div>
                 <div
-                  className={`text-[13px] truncate mt-0.5 ${
+                  className={`text-label truncate mt-0.5 ${
                     c.lastMessageBody ? "text-ink-secondary" : "text-ink-faint italic"
                   }`}
                 >
