@@ -34,6 +34,7 @@ function matchesTime(game: Game, time: string | null): boolean {
 // choice is active; the menu pops in from the chip it belongs to.
 function FilterChip({
   label,
+  allLabel,
   value,
   options,
   open,
@@ -42,6 +43,7 @@ function FilterChip({
   searchable = false,
 }: {
   label: string;
+  allLabel: string;
   value: string | null;
   options: readonly string[];
   open: boolean;
@@ -105,7 +107,7 @@ function FilterChip({
               value == null ? "text-accent bg-accent-soft" : "text-ink-secondary hover:bg-sunken"
             }`}
           >
-            All {label.toLowerCase()}
+            {allLabel}
           </button>
           {visibleOptions.map((o) => (
             <button
@@ -287,6 +289,7 @@ export default function GameFilters({
       <div className="flex flex-wrap gap-2 mt-3 relative z-30">
         <FilterChip
           label="Level"
+          allLabel="All levels"
           value={level}
           options={LEVELS}
           open={openFilter === "level"}
@@ -298,6 +301,7 @@ export default function GameFilters({
         />
         <FilterChip
           label="Area"
+          allLabel="All areas"
           value={area}
           options={areas}
           open={openFilter === "area"}
@@ -310,6 +314,7 @@ export default function GameFilters({
         />
         <FilterChip
           label="Time"
+          allLabel="Any time"
           value={time}
           options={TIMES}
           open={openFilter === "time"}

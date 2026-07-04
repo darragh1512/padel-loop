@@ -1,4 +1,5 @@
-import { AvatarStack, ButtonLink } from "./ui";
+import Link from "next/link";
+import { AvatarStack } from "./ui";
 import {
   type Game,
   pricePerHead,
@@ -7,11 +8,15 @@ import {
   formatDay,
 } from "@/lib/types";
 
+// One joinable game. The WHOLE card is the tap target (thumb-first); the
+// "Join game" pill inside is a visual cue, not a separate control — both go
+// to the game detail where the real Join lives.
 export default function GameCard({ game, delay = 0 }: { game: Game; delay?: number }) {
   const slots = slotsLeft(game);
   return (
-    <div
-      className="pl-card p-4 mb-3 pl-rise"
+    <Link
+      href={`/games/${game.id}`}
+      className="pl-card pl-press pl-rise block p-4 mb-3 hover:bg-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex justify-between items-start">
@@ -45,11 +50,11 @@ export default function GameCard({ game, delay = 0 }: { game: Game; delay?: numb
             €{pricePerHead(game).toFixed(0)}{" "}
             <span className="text-micro text-ink-faint font-normal">/ head</span>
           </span>
-          <ButtonLink href={`/games/${game.id}`} size="sm">
+          <span className="inline-flex items-center justify-center h-9 px-4 text-label font-medium rounded-pill bg-accent text-on-accent whitespace-nowrap">
             Join game
-          </ButtonLink>
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
