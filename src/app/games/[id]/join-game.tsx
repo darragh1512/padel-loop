@@ -1,11 +1,14 @@
 "use client";
-// The interactive Join / Leave control for a game. Visually identical to the
-// design's PrimaryButton (same classes) — it only adds behaviour: it checks
-// who is logged in, reads whether you're already in this game, and writes to
-// the game_players table. Logged-out taps go to the login page.
+// The interactive Join / Leave control for a game. It checks who is logged in,
+// reads whether you're already in this game, and writes to the game_players
+// table. Logged-out taps go to the login page.
+//
+// Sage belongs to joining — the screen's primary action. Leaving is the quiet
+// secondary voice, never the loudest thing on the page.
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Skeleton } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import { getGamePlayers, joinGame, leaveGame } from "../../games";
 
@@ -52,7 +55,7 @@ export default function JoinGame({
     setError(null);
     const result = await joinGame(gameId, userId);
     if ("error" in result) {
-      setError("Couldn't join that game. Please try again.");
+      setError("Couldn't take that spot. Give it another try.");
       setWorking(false);
       return;
     }
@@ -67,7 +70,7 @@ export default function JoinGame({
     setError(null);
     const result = await leaveGame(gameId, userId);
     if ("error" in result) {
-      setError("Couldn't leave that game. Please try again.");
+      setError("Couldn't give up your spot. Give it another try.");
       setWorking(false);
       return;
     }
@@ -76,25 +79,27 @@ export default function JoinGame({
     router.refresh();
   }
 
-  const label = loading
-    ? "…"
-    : joined
-      ? "Leave game"
-      : `Join game · €${perHead.toFixed(0)}`;
+  // While we check membership, hold the button's space with a matching
+  // skeleton so the page doesn't jump when the real control arrives.
+  if (loading) {
+    return <Skeleton className="h-12 rounded-pill" />;
+  }
 
   return (
     <>
-      <button
-        type="button"
+      <Button
+        variant={joined ? "secondary" : "primary"}
         onClick={joined ? handleLeave : handleJoin}
-        disabled={working || loading}
-        className="block w-full h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
+        loading={working}
       >
-        {working ? "…" : label}
-      </button>
-      {error && (
-        <p className="text-center text-[13px] text-danger mt-2">{error}</p>
-      )}
+        {joined ? "Leave game" : `Join game · €${perHead.toFixed(0)}`}
+      </Button>
+      <p
+        aria-live="polite"
+        className={`text-center text-label text-danger mt-2 ${error ? "" : "hidden"}`}
+      >
+        {error}
+      </p>
     </>
   );
 }
