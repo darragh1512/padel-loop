@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import GameCard from "@/components/GameCard";
-import { ChipButton, EmptyState, SectionLabel } from "@/components/ui";
+import { ButtonLink, ChipButton, EmptyState, SectionLabel, Skeleton } from "@/components/ui";
 import { skillTierOf, type Game } from "@/lib/types";
 import { supabase } from "@/lib/supabaseClient";
 import { getConnections } from "@/app/connections";
@@ -65,7 +65,12 @@ function FilterChip({
     showSearch && q !== "" ? options.filter((o) => o.toLowerCase().includes(q)) : options;
 
   return (
-    <div className="relative shrink-0">
+    <div
+      className="relative shrink-0"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && open) onToggle();
+      }}
+    >
       <ChipButton
         active={active}
         aria-expanded={open}
@@ -158,15 +163,23 @@ export default function GameFilters({
   const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
 
   // Ids of games the user has joined/created — excluded from the list when
-  // excludeOwnGames is set (the discovery list).
+  // excludeOwnGames is set (the discovery list). Until that lookup resolves
+  // the list stays in skeletons: painting a game and then deleting it a
+  // second later reads as the app being unsure of itself (and lets a thumb
+  // land on a card that's about to vanish).
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
+  const [exclusionReady, setExclusionReady] = useState(!excludeOwnGames);
 
   useEffect(() => {
     let active = true;
     (async () => {
       const { data } = await supabase.auth.getUser();
       const uid = data.user?.id ?? null;
-      if (!uid) return; // logged out — nothing user-specific to load
+      if (!uid) {
+        // logged out — nothing user-specific to load, nothing to exclude
+        if (active) setExclusionReady(true);
+        return;
+      }
       const [connections, ownIds] = await Promise.all([
         getConnections(uid),
         excludeOwnGames
@@ -176,6 +189,7 @@ export default function GameFilters({
       if (!active) return;
       setConnectedIds(new Set(connections.map((p) => p.id)));
       setExcludedIds(new Set(ownIds));
+      setExclusionReady(true);
     })();
     return () => {
       active = false;
@@ -277,7 +291,7 @@ export default function GameFilters({
             type="button"
             onClick={() => setQuery("")}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent rounded-pill"
+            className="pl-hit absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent rounded-pill"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -347,7 +361,12 @@ export default function GameFilters({
 
       <SectionLabel>{sectionLabel}</SectionLabel>
 
-      {filtered.length > 0 ? (
+      {!exclusionReady ? (
+        <div className="space-y-3">
+          <Skeleton className="rounded-card h-28" />
+          <Skeleton className="rounded-card h-28" />
+        </div>
+      ) : filtered.length > 0 ? (
         filtered.map((g, i) => <GameCard key={g.id} game={g} delay={Math.min(i, 6) * 50} />)
       ) : (
         <EmptyState
@@ -362,7 +381,11 @@ export default function GameFilters({
               <ChipButton active onClick={clearAll}>
                 Clear filters
               </ChipButton>
-            ) : undefined
+            ) : (
+              <ButtonLink href="/create" variant="secondary" size="sm">
+                Create a game
+              </ButtonLink>
+            )
           }
         />
       )}

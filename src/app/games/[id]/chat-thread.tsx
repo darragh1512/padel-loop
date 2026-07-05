@@ -254,7 +254,7 @@ export default function ChatThread({
         type="submit"
         disabled={sending || text.trim().length === 0}
         aria-label="Send message"
-        className="pl-press shrink-0 size-10 rounded-pill bg-accent text-on-accent hover:bg-accent-strong inline-flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="pl-press pl-hit shrink-0 size-10 rounded-pill bg-accent text-on-accent hover:bg-accent-strong inline-flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path

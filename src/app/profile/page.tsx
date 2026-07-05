@@ -126,10 +126,10 @@ export default function ProfilePage() {
     return (
       <main className="px-5 pt-6 relative">
         <div className="flex items-center gap-4 mt-3">
-          <div className="bg-sunken rounded-full size-[74px] animate-pulse" />
+          <div className="bg-sunken rounded-full size-[74px] pl-skeleton" />
           <div className="space-y-2">
-            <div className="bg-sunken rounded-(--radius-field) h-6 w-36 animate-pulse" />
-            <div className="bg-sunken rounded-(--radius-field) h-4 w-48 animate-pulse" />
+            <div className="bg-sunken rounded-field h-6 w-36 pl-skeleton" />
+            <div className="bg-sunken rounded-field h-4 w-48 pl-skeleton" />
           </div>
         </div>
       </main>
@@ -147,8 +147,8 @@ export default function ProfilePage() {
       <div className="flex items-center gap-4 mt-3 relative">
         <LoopRing>{initialsFrom(displayName)}</LoopRing>
         <div>
-          <div className="font-display text-[28px] tracking-tight leading-tight text-ink">{displayName}</div>
-          <div className="text-[13px] text-ink-secondary mt-1">
+          <div className="font-display text-display-md text-ink">{displayName}</div>
+          <div className="text-label text-ink-secondary mt-1">
             {home || "Set your area"} · In the Loop since May ’26
           </div>
           <div className="mt-2">
@@ -161,21 +161,21 @@ export default function ProfilePage() {
       {editing && (
         <div className="pl-card p-4 mt-4">
           <label className="block">
-            <span className="text-[13px] text-ink-secondary">Name</span>
+            <span className="text-label text-ink-secondary">Name</span>
             <input
               type="text"
               value={fName}
               onChange={(e) => setFName(e.target.value)}
               placeholder="Your name"
-              className="w-full mt-1.5 pl-surface rounded-(--radius-field) px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
+              className="w-full mt-1.5 pl-surface rounded-field px-3.5 py-2.5 text-body text-ink placeholder:text-ink-faint outline-none focus:border-accent"
             />
           </label>
           <label className="block mt-3">
-            <span className="text-[13px] text-ink-secondary">Skill level</span>
+            <span className="text-label text-ink-secondary">Skill level</span>
             <select
               value={fSkill}
               onChange={(e) => setFSkill(e.target.value)}
-              className="w-full mt-1.5 pl-surface rounded-(--radius-field) px-3.5 py-2.5 text-[15px] text-ink outline-none focus:border-accent"
+              className="w-full mt-1.5 pl-surface rounded-field px-3.5 py-2.5 text-body text-ink outline-none focus:border-accent"
             >
               {SKILLS.map((s) => (
                 <option key={s} value={s}>
@@ -185,13 +185,13 @@ export default function ProfilePage() {
             </select>
           </label>
           <label className="block mt-3">
-            <span className="text-[13px] text-ink-secondary">Home area</span>
+            <span className="text-label text-ink-secondary">Home area</span>
             <input
               type="text"
               value={fHome}
               onChange={(e) => setFHome(e.target.value)}
               placeholder="e.g. Malahide"
-              className="w-full mt-1.5 pl-surface rounded-(--radius-field) px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
+              className="w-full mt-1.5 pl-surface rounded-field px-3.5 py-2.5 text-body text-ink placeholder:text-ink-faint outline-none focus:border-accent"
             />
           </label>
           <div className="flex gap-2.5 mt-4">
@@ -199,20 +199,20 @@ export default function ProfilePage() {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 h-12 text-center bg-accent text-white font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
+              className="flex-1 h-12 text-center bg-accent text-on-accent font-medium text-body rounded-full active:scale-[0.98] transition-transform duration-150 ease-out disabled:opacity-70"
             >
               {saving ? "Saving…" : "Save"}
             </button>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="flex-1 h-12 text-center bg-sunken text-ink font-medium text-[15px] rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
+              className="flex-1 h-12 text-center bg-sunken text-ink font-medium text-body rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
             >
               Cancel
             </button>
           </div>
           {error && (
-            <p className="text-center text-[13px] text-danger mt-2">
+            <p className="text-center text-label text-danger mt-2">
               Couldn&apos;t save. Please try again.
             </p>
           )}
@@ -226,11 +226,11 @@ export default function ProfilePage() {
           ["3", "W", "Streak"],
         ].map(([n, suffix, k]) => (
           <div key={k} className="pl-card px-2 py-3.5 text-center">
-            <div className="font-display text-[22px] leading-none text-ink">
+            <div className="font-display text-display-sm leading-none text-ink">
               {n}
-              {suffix && <span className="text-ink-secondary text-[15px]">{suffix}</span>}
+              {suffix && <span className="text-ink-secondary text-body">{suffix}</span>}
             </div>
-            <div className="text-[13px] text-ink-secondary mt-1.5">{k}</div>
+            <div className="text-label text-ink-secondary mt-1.5">{k}</div>
           </div>
         ))}
       </div>
@@ -238,8 +238,8 @@ export default function ProfilePage() {
       <SectionLabel>This week</SectionLabel>
       <div className="pl-card p-4 flex items-center justify-between">
         <div>
-          <div className="text-[15px] font-medium text-ink">2 games played · 1 booked</div>
-          <div className="text-[13px] text-ink-secondary mt-0.5">
+          <div className="text-body font-medium text-ink">2 games played · 1 booked</div>
+          <div className="text-label text-ink-secondary mt-0.5">
             Keep the loop going — play 1 more for a 4-game week.
           </div>
         </div>
@@ -254,7 +254,7 @@ export default function ProfilePage() {
             className="flex items-center justify-between py-3 border-b border-line last:border-0"
           >
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-[13px] shrink-0 ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-label shrink-0 ${
                 m.res === "W"
                   ? "bg-accent-soft text-accent"
                   : "bg-sunken text-danger"
@@ -263,10 +263,10 @@ export default function ProfilePage() {
               {m.res}
             </div>
             <div className="flex-1 ml-3.5">
-              <div className="text-[15px] font-medium text-ink">{m.venue}</div>
-              <div className="text-[13px] text-ink-secondary mt-0.5">{m.meta}</div>
+              <div className="text-body font-medium text-ink">{m.venue}</div>
+              <div className="text-label text-ink-secondary mt-0.5">{m.meta}</div>
             </div>
-            <div className="font-display text-[15px] text-ink">{m.score}</div>
+            <div className="font-display text-body text-ink">{m.score}</div>
           </div>
         ))}
       </div>
@@ -276,20 +276,20 @@ export default function ProfilePage() {
         <>
           <Link
             href="/notifications"
-            className="flex items-center justify-center w-full h-12 bg-sunken text-ink font-medium text-[15px] rounded-full mt-8 active:scale-[0.98] transition-transform duration-150 ease-out"
+            className="flex items-center justify-center w-full h-12 bg-sunken text-ink font-medium text-body rounded-full mt-8 active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             Notifications
           </Link>
           <Link
             href="/my-games"
-            className="flex items-center justify-center w-full h-12 bg-sunken text-ink font-medium text-[15px] rounded-full mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
+            className="flex items-center justify-center w-full h-12 bg-sunken text-ink font-medium text-body rounded-full mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             My games
           </Link>
           <button
             type="button"
             onClick={startEdit}
-            className="block w-full h-12 text-center bg-sunken text-ink font-medium text-[15px] rounded-full mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
+            className="block w-full h-12 text-center bg-sunken text-ink font-medium text-body rounded-full mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
           >
             Edit profile
           </button>
@@ -298,7 +298,7 @@ export default function ProfilePage() {
       <button
         type="button"
         onClick={handleLogout}
-        className="block w-full text-center bg-transparent text-danger font-medium text-[15px] py-3 mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
+        className="block w-full text-center bg-transparent text-danger font-medium text-body py-3 mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
       >
         Log out
       </button>

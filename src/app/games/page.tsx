@@ -13,10 +13,10 @@ export default async function GamesPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
+      <h1 className="font-display text-display-md text-ink mt-2 relative">
         All games
       </h1>
-      <p className="text-[13px] text-ink-secondary mt-1">
+      <p className="text-label text-ink-secondary mt-1">
         {games.length} game{games.length === 1 ? "" : "s"} in the Loop.
       </p>
 

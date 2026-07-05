@@ -21,23 +21,23 @@ export type Game = {
 };
 
 // Turns a stored timestamp (e.g. "2026-06-10T17:30:00+00:00") into friendly
-// text like "Wed, 10 Jun, 5:30 pm". If the value isn't a date we understand,
+// text like "Wed 10 Jun, 18:30". If the value isn't a date we understand,
 // we just show it unchanged so nothing breaks.
-// Note: we display the time in UTC, the same timezone it's stored in, so the
-// time you typed in Supabase is exactly the time shown on screen.
+// Local time, 24h — the SAME policy as formatTimeRange/formatDay in
+// src/lib/types.ts. One game must never show two different clocks: the old
+// UTC display here put the home hero an hour off the detail page.
 export function formatGameTime(value: string): string {
   const date = new Date(value);
   if (isNaN(date.getTime())) {
     return value;
   }
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat("en-IE", {
     weekday: "short",
     day: "numeric",
     month: "short",
-    hour: "numeric",
+    hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
-    timeZone: "UTC",
+    hour12: false,
   }).format(date);
 }
 

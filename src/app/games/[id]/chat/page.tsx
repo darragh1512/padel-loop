@@ -34,7 +34,7 @@ export default async function GameChatPage({
           <Link
             href="/chat"
             aria-label="Back to chats"
-            className="pl-press shrink-0 text-ink-secondary hover:text-ink rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="pl-press pl-hit shrink-0 text-ink-secondary hover:text-ink rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path

@@ -36,8 +36,8 @@ function ResultRow({
         className="size-11"
       />
       <div className="min-w-0 flex-1">
-        <div className="font-semibold text-[15px] text-ink truncate">{name}</div>
-        <div className="text-[13px] text-ink-secondary truncate mt-0.5">
+        <div className="font-semibold text-body text-ink truncate">{name}</div>
+        <div className="text-label text-ink-secondary truncate mt-0.5">
           {person.home_club || "No home club"}
           {person.skill_level ? <> · {person.skill_level}</> : null}
         </div>
@@ -96,10 +96,10 @@ export default function SearchPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
+      <h1 className="font-display text-display-md text-ink mt-2 relative">
         Find players
       </h1>
-      <p className="text-[13px] text-ink-secondary mt-1 mb-4">
+      <p className="text-label text-ink-secondary mt-1 mb-4">
         Search for people by name.
       </p>
 
@@ -116,7 +116,7 @@ export default function SearchPage() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name"
           autoFocus
-          className="w-full pl-surface rounded-full text-[15px] text-ink placeholder:text-ink-faint pl-10 pr-9 py-2.5 focus:outline-none focus:border-accent"
+          className="w-full pl-surface rounded-full text-body text-ink placeholder:text-ink-faint pl-10 pr-9 py-2.5 focus:outline-none focus:border-accent"
         />
         {query && (
           <button
@@ -134,20 +134,20 @@ export default function SearchPage() {
 
       <div className="mt-5">
         {query.trim() === "" ? (
-          <p className="text-[13px] text-ink-faint text-center mt-6">
+          <p className="text-label text-ink-faint text-center mt-6">
             Start typing a name to find players.
           </p>
         ) : searching ? (
           // Skeleton row while the search runs — sunken, subtle pulse.
           <div className="space-y-3">
-            <div className="bg-sunken rounded-(--radius-card) h-[72px] animate-pulse" />
+            <div className="bg-sunken rounded-card h-18 pl-skeleton" />
           </div>
         ) : results.length > 0 ? (
           results.map((person, i) => (
             <ResultRow key={person.id} person={person} delay={i * 40} />
           ))
         ) : searched ? (
-          <div className="pl-surface rounded-(--radius-card) px-4 py-5 text-center text-[13px] text-ink-secondary">
+          <div className="pl-surface rounded-card px-4 py-5 text-center text-label text-ink-secondary">
             No players found for “{query.trim()}”.
           </div>
         ) : null}

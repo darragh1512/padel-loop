@@ -133,7 +133,7 @@ export function ChipButton({
   return (
     <button
       type="button"
-      className={`pl-press shrink-0 ${CHIP_LOOK(active)} ${
+      className={`pl-press pl-hit shrink-0 ${CHIP_LOOK(active)} ${
         active ? "hover:bg-sage-mist" : "hover:bg-sunken-strong"
       } ${FOCUS} ${DISABLED} ${className}`}
       {...props}

@@ -88,9 +88,9 @@
   --shadow-sheet: 0 8px 32px rgb(28 27 23 / 0.08);
 
   /* ── Motion ── quiet at rest, responsive under the thumb.
-     Entrances ease out; exits ease in; nothing over 300ms.                 */
+     Everything eases out (ease-in delays the moment the user watches);
+     exits are simply FASTER than entrances. Nothing over 300ms.           */
   --ease-out-strong:  cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-soft:     cubic-bezier(0.55, 0, 0.55, 0.2);
   --ease-sheet:       cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -108,7 +108,7 @@ body {
    .pl-press    — soft press feedback for anything tappable.
    .pl-rise     — entrance: fade + 8px rise, 200ms ease-out.
    .pl-pop      — menu/popover entrance: fade + slight scale from its origin.
-   .pl-fade-out — exit: quick fade, ease-in.
+   .pl-fade-out — exit: quick fade, faster than any entrance.
    .pl-skeleton — loading placeholder with a slow shimmer.
    All motion respects prefers-reduced-motion: movement is removed, opacity
    transitions stay (reduced ≠ zero).                                       */
@@ -165,8 +165,9 @@ body {
   }
 }
 
-/* Exit: faster than entry, ease-in — the system responding, not deciding. */
-.pl-fade-out { animation: pl-fade-out 150ms var(--ease-in-soft) both; }
+/* Exit: faster than entry (150ms vs 200ms) — the system responding, not
+   deciding. Still eases out; the asymmetry lives in the duration. */
+.pl-fade-out { animation: pl-fade-out 150ms var(--ease-out-strong) both; }
 @keyframes pl-fade-out {
   to { opacity: 0; }
 }
@@ -196,6 +197,20 @@ body {
 }
 @keyframes pl-shimmer {
   to { transform: translateX(100%); }
+}
+
+/* Invisible tap-target extension. Small controls (chips, icon buttons) stay
+   visually small, but the thumb gets at least 44×44px (PRODUCT.md baseline).
+   The ::after only widens the hit area — it paints nothing.               */
+.pl-hit { position: relative; }
+.pl-hit::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: max(100%, 44px);
+  height: max(100%, 44px);
 }
 
 /* hide the scrollbar on horizontal filter rows (design intent) */

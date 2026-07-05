@@ -43,10 +43,10 @@ function NotificationItem({ n, delay = 0 }: { n: Notification; delay?: number })
         }`}
       />
       <div className="flex-1">
-        <div className={`text-[15px] ${n.is_read ? "text-ink-secondary font-normal" : "text-ink font-medium"}`}>
+        <div className={`text-body ${n.is_read ? "text-ink-secondary font-normal" : "text-ink font-medium"}`}>
           {n.message}
         </div>
-        <div className="text-[13px] text-ink-faint mt-1">{timeAgo(n.created_at)}</div>
+        <div className="text-label text-ink-faint mt-1">{timeAgo(n.created_at)}</div>
       </div>
       {n.game_id != null && (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 text-ink-faint shrink-0">
@@ -97,25 +97,25 @@ export default function NotificationsPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-[28px] tracking-tight leading-tight text-ink mt-2 relative">
+      <h1 className="font-display text-display-md text-ink mt-2 relative">
         Notifications
       </h1>
-      <p className="text-[13px] text-ink-secondary mt-1 mb-4">
+      <p className="text-label text-ink-secondary mt-1 mb-4">
         Updates about the games you run.
       </p>
 
       {loading ? (
         // Skeleton rows in the shape of the list — sunken, subtle pulse.
         <div className="space-y-3">
-          <div className="bg-sunken rounded-(--radius-card) h-[72px] animate-pulse" />
-          <div className="bg-sunken rounded-(--radius-card) h-[72px] animate-pulse" />
+          <div className="bg-sunken rounded-card h-18 pl-skeleton" />
+          <div className="bg-sunken rounded-card h-18 pl-skeleton" />
         </div>
       ) : items.length > 0 ? (
         items.map((n, i) => <NotificationItem key={n.id} n={n} delay={i * 40} />)
       ) : (
         <div className="pl-card px-4 py-6 text-center">
-          <div className="font-display text-[19px] text-ink">Nothing yet.</div>
-          <div className="text-[13px] text-ink-secondary mt-1.5">
+          <div className="font-display text-display-xs text-ink">Nothing yet.</div>
+          <div className="text-label text-ink-secondary mt-1.5">
             We’ll tell you here when one of your games fills up.
           </div>
         </div>

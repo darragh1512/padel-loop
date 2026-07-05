@@ -30,8 +30,8 @@ export default function NotificationBell() {
   return (
     <Link
       href="/notifications"
-      aria-label="Notifications"
-      className="relative inline-flex text-ink-secondary hover:text-ink rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
+      className="pl-hit relative inline-flex text-ink-secondary hover:text-ink rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path

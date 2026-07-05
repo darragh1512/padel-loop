@@ -415,7 +415,7 @@ export default function LogResult({
             <button
               type="button"
               onClick={addSet}
-              className="text-label text-accent font-medium rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="pl-hit text-label text-accent font-medium rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               + Add set
             </button>
@@ -452,7 +452,7 @@ export default function LogResult({
                 <button
                   type="button"
                   onClick={() => removeSet(i)}
-                  className="ml-auto text-label text-ink-faint rounded-field hover:text-ink-secondary active:opacity-70 transition-[color,opacity] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="pl-hit ml-auto text-label text-ink-faint rounded-field hover:text-ink-secondary active:opacity-70 transition-[color,opacity] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   Remove
                 </button>

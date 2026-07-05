@@ -33,7 +33,7 @@ export default async function GameDetailPage({
       <Link
         href="/discover"
         aria-label="Back to games"
-        className="inline-flex text-ink-secondary hover:text-ink rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="pl-hit inline-flex text-ink-secondary hover:text-ink rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
