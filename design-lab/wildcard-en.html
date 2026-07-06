@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THE PEÑA (English) — Padel Loop design lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ── THE PEÑA, English cut ─────────────────────────────────────────────
+     Same corkboard: blue court, riso posters, staples, your ticket stub,
+     the club stamp. All copy in English — the accent survives in the ink,
+     not the words.                                                        */
+  :root{
+    --pista:   #1C5BBF;
+    --pista-d: #14459A;
+    --papel:   #F3E9D2;
+    --tinta:   #191407;
+    --naranja: #FF5A1F;
+    --lima:    #D8E24A;
+    --ease: cubic-bezier(.23,1,.32,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{background:var(--pista-d)}
+  body{
+    font-family:"Bricolage Grotesque",system-ui,sans-serif;
+    color:var(--tinta);
+    background:var(--pista-d);
+    min-height:100dvh; display:flex; justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .phone{
+    width:min(420px,100%); min-height:100dvh; position:relative; overflow:hidden;
+    background:
+      radial-gradient(rgb(255 255 255 / .07) 1px, transparent 1.2px) 0 0/14px 14px,
+      linear-gradient(176deg, var(--pista) 0%, var(--pista-d) 90%);
+    box-shadow:0 0 90px rgb(10 25 60 / .8);
+  }
+  .paint{position:absolute; inset:0; pointer-events:none; opacity:.5}
+  .stack{position:relative; padding:0 18px 122px; z-index:1}
+
+  .banner{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:16px 2px 0; color:var(--papel);
+  }
+  .banner .club{
+    font-family:"Space Mono",monospace; font-size:11px; font-weight:700;
+    letter-spacing:.18em;
+  }
+  .banner .hola{
+    font-size:12.5px; font-weight:500; color:rgb(243 233 210 / .8);
+  }
+  .banner .hola b{color:var(--lima); font-weight:800}
+
+  /* ── THE MATCH POSTER ── */
+  .poster{
+    position:relative; display:block; text-decoration:none; color:var(--tinta);
+    background:var(--papel); border-radius:4px;
+    margin-top:18px; padding:22px 20px 18px;
+    transform:rotate(-1.2deg);
+    box-shadow:0 14px 34px -12px rgb(8 20 50 / .7);
+    background-image:radial-gradient(rgb(25 20 7 / .05) 1px, transparent 1.2px);
+    background-size:9px 9px;
+  }
+  .poster::before,.poster::after{
+    content:""; position:absolute; top:8px; width:14px; height:4px;
+    background:rgb(25 20 7 / .35); border-radius:2px;
+  }
+  .poster::before{left:26px; transform:rotate(-24deg)}
+  .poster::after{right:26px; transform:rotate(18deg)}
+  .poster .fecha{
+    font-family:"Space Mono",monospace; font-size:11px; font-weight:700;
+    letter-spacing:.22em; text-transform:uppercase; text-align:center;
+    color:var(--naranja);
+  }
+  .poster h1{
+    font-weight:800; font-stretch:90%;
+    font-size:66px; line-height:.9; letter-spacing:-.025em;
+    text-transform:uppercase; text-align:center; margin-top:10px;
+  }
+  .poster h1 .o1{color:var(--naranja)}
+  .poster .sub{
+    text-align:center; margin-top:10px; font-size:14px; font-weight:500;
+  }
+  .poster .sub b{font-weight:800}
+  .venue-strip{
+    margin:16px -20px 0; padding:11px 20px;
+    background:var(--naranja); color:var(--papel);
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:"Space Mono",monospace; font-size:11.5px; font-weight:700;
+    letter-spacing:.12em; text-transform:uppercase;
+  }
+  .poster .squad{
+    display:flex; justify-content:center; gap:6px; margin-top:14px;
+    font-size:13px; font-weight:500; flex-wrap:wrap;
+  }
+  .poster .squad .p{
+    border:1.5px solid var(--tinta); border-radius:99px; padding:4px 11px;
+  }
+  .poster .squad .p.open{
+    border-style:dashed; color:var(--naranja); border-color:var(--naranja);
+    font-weight:800;
+  }
+
+  /* ── TICKET STUB ── */
+  .ticket{
+    position:relative; display:flex; text-decoration:none; color:var(--tinta);
+    margin-top:20px; transform:rotate(.8deg);
+    filter:drop-shadow(0 12px 22px rgb(8 20 50 / .55));
+  }
+  .ticket .main{
+    flex:1; background:var(--lima); border-radius:4px 0 0 4px;
+    padding:14px 16px;
+    -webkit-mask:radial-gradient(circle 5px at right, transparent 96%, #000) right/12px 24px repeat-y, linear-gradient(#000,#000) left/calc(100% - 6px) 100% no-repeat;
+            mask:radial-gradient(circle 5px at right, transparent 96%, #000) right/12px 24px repeat-y, linear-gradient(#000,#000) left/calc(100% - 6px) 100% no-repeat;
+  }
+  .ticket .main .tag{
+    display:block; font-family:"Space Mono",monospace; font-size:9.5px; font-weight:700;
+    letter-spacing:.24em; text-transform:uppercase;
+  }
+  .ticket .main .t{
+    display:block; font-weight:800; font-size:21px; letter-spacing:-.01em; margin-top:5px;
+    text-transform:uppercase; font-stretch:92%;
+  }
+  .ticket .main .d{
+    display:block; font-family:"Space Mono",monospace; font-size:10.5px; margin-top:6px;
+  }
+  .ticket .rip{
+    width:86px; background:var(--papel); border-radius:0 4px 4px 0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; padding:10px 6px;
+    -webkit-mask:radial-gradient(circle 5px at left, transparent 96%, #000) left/12px 24px repeat-y, linear-gradient(#000,#000) right/calc(100% - 6px) 100% no-repeat;
+            mask:radial-gradient(circle 5px at left, transparent 96%, #000) left/12px 24px repeat-y, linear-gradient(#000,#000) right/calc(100% - 6px) 100% no-repeat;
+  }
+  .ticket .rip .eur{font-weight:800; font-size:22px}
+  .ticket .rip .bar{
+    width:52px; height:26px;
+    background:repeating-linear-gradient(90deg, var(--tinta) 0 2px, transparent 2px 4px, var(--tinta) 4px 7px, transparent 7px 9px);
+  }
+  .ticket .rip small{
+    font-family:"Space Mono",monospace; font-size:8.5px; letter-spacing:.14em;
+  }
+
+  /* ── marquee ── */
+  .cinta{
+    margin:22px -18px 0; background:var(--tinta); color:var(--papel);
+    overflow:hidden; padding:8px 0; transform:rotate(-.6deg) scale(1.02);
+  }
+  .cinta .run{
+    display:flex; gap:34px; width:max-content; white-space:nowrap;
+    font-family:"Space Mono",monospace; font-size:11px; font-weight:700;
+    letter-spacing:.18em; text-transform:uppercase;
+  }
+  .cinta .run b{color:var(--lima)}
+  @media (prefers-reduced-motion: no-preference){
+    .cinta .run{animation:cinta 22s linear infinite}
+    @keyframes cinta{to{transform:translateX(-50%)}}
+  }
+
+  /* ── ON THE BOARD ── */
+  .tablon-t{
+    margin:24px 2px 0; color:var(--papel);
+    font-family:"Space Mono",monospace; font-size:11px; font-weight:700;
+    letter-spacing:.22em; text-transform:uppercase;
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .tablon-t a{color:var(--lima); text-decoration:none}
+  .minis{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
+  .mini{
+    background:var(--papel); border-radius:4px; padding:13px 13px 11px;
+    text-decoration:none; color:var(--tinta); position:relative;
+    background-image:radial-gradient(rgb(25 20 7 / .05) 1px, transparent 1.2px);
+    background-size:9px 9px;
+    box-shadow:0 10px 20px -10px rgb(8 20 50 / .6);
+  }
+  .mini:nth-child(1){transform:rotate(1.1deg)}
+  .mini:nth-child(2){transform:rotate(-1.4deg)}
+  .mini .dia{
+    display:block; font-family:"Space Mono",monospace; font-size:9.5px; font-weight:700;
+    letter-spacing:.2em; text-transform:uppercase; color:var(--naranja);
+  }
+  .mini .v{
+    display:block; font-weight:800; font-size:16.5px; line-height:1.08; margin-top:6px;
+    text-transform:uppercase; letter-spacing:-.01em; font-stretch:92%;
+  }
+  .mini .m{display:block; font-family:"Space Mono",monospace; font-size:10px; margin-top:7px}
+  .mini .go{
+    display:inline-block; margin-top:10px; font-size:12px; font-weight:800;
+    text-transform:uppercase; letter-spacing:.04em;
+    border-bottom:2px solid var(--naranja);
+  }
+
+  /* ── the club stamp ── */
+  .stamp-row{display:flex; justify-content:center; margin-top:26px}
+  .stamp{width:118px; height:118px; color:var(--papel); opacity:.92}
+  @media (prefers-reduced-motion: no-preference){
+    .stamp{animation:spin 40s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  }
+
+  /* ── nav ── */
+  nav{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:min(420px,100%); z-index:5;
+    background:var(--papel); border-top:3px solid var(--tinta);
+    display:flex; justify-content:space-around; align-items:center;
+    padding:11px 8px calc(11px + env(safe-area-inset-bottom));
+  }
+  nav a{
+    font-family:"Space Mono",monospace; font-size:9px; font-weight:700;
+    letter-spacing:.16em; text-transform:uppercase;
+    color:var(--tinta); text-decoration:none; text-align:center;
+    display:flex; flex-direction:column; align-items:center; gap:4px; width:60px;
+  }
+  nav a svg{width:20px;height:20px}
+  nav a.on{color:var(--naranja)}
+  nav a.fab{
+    width:54px; height:54px; margin-top:-24px; border-radius:99px;
+    background:var(--naranja); color:var(--papel); justify-content:center;
+    border:3px solid var(--tinta);
+    box-shadow:3px 3px 0 var(--tinta);
+  }
+
+  a{transition:transform 150ms var(--ease), box-shadow 150ms var(--ease)}
+  a:focus-visible{outline:3px solid var(--lima); outline-offset:3px; border-radius:4px}
+  @media (prefers-reduced-motion: no-preference){
+    a:active{transform:scale(.97)}
+    .poster:active{transform:rotate(-1.2deg) scale(.98)}
+    .ticket:active{transform:rotate(.8deg) scale(.98)}
+    nav a.fab:active{transform:scale(.94); box-shadow:1px 1px 0 var(--tinta)}
+    .slap{opacity:0; animation:slap 260ms var(--ease) forwards}
+    @keyframes slap{
+      from{opacity:0; transform:scale(.94) rotate(0deg)}
+      to{opacity:1; transform:scale(1) rotate(var(--r,0deg))}
+    }
+    .poster.slap{--r:-1.2deg} .ticket.slap{--r:.8deg}
+    .mini.slap:nth-child(1){--r:1.1deg} .mini.slap:nth-child(2){--r:-1.4deg}
+    .s1{animation-delay:60ms}.s2{animation-delay:140ms}.s3{animation-delay:220ms}
+    .s4{animation-delay:280ms}.s5{animation-delay:340ms}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .slap{opacity:1}
+  }
+  @media (hover:hover) and (pointer:fine){
+    .poster:hover{transform:rotate(-.6deg)}
+    .ticket:hover{transform:rotate(0deg)}
+    .mini:hover{transform:rotate(0deg)}
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <svg class="paint" viewBox="0 0 420 900" preserveAspectRatio="none" aria-hidden="true">
+    <g stroke="rgb(243 233 210 / .18)" stroke-width="3" fill="none">
+      <line x1="0" y1="210" x2="420" y2="196"/>
+      <line x1="210" y1="0" x2="214" y2="900"/>
+      <line x1="0" y1="620" x2="420" y2="640"/>
+    </g>
+  </svg>
+
+  <div class="stack">
+    <div class="banner slap">
+      <span class="club">PADEL LOOP · DUBLIN</span>
+      <span class="hola">Hey, <b>Darragh</b> · level 1.8</span>
+    </div>
+
+    <!-- tonight's match poster -->
+    <a class="poster slap s1" href="#game" aria-label="Your match: Thursday 23 July, 19:30, Malahide Padel Club, court 2, one spot open, 13 euro per head">
+      <div class="fecha">Thursday · 23 Jul · 19:30</div>
+      <h1>Game <span class="o1">o</span>n?</h1>
+      <p class="sub">Your match is set. <b>One spot still open.</b></p>
+      <div class="venue-strip">
+        <span>Malahide Padel Club</span><span>Court 2</span>
+      </div>
+      <div class="squad">
+        <span class="p">Darragh</span><span class="p">Sofía</span><span class="p">Marco</span><span class="p open">+ you?</span>
+      </div>
+    </a>
+
+    <!-- your ticket -->
+    <a class="ticket slap s2" href="#game" aria-label="Your ticket: entry 13 euro, Thursday 19:30, court 2">
+      <span class="main">
+        <span class="tag">Your ticket · keep this</span>
+        <span class="t">Darragh · Court 2</span>
+        <span class="d">THU 23 JUL — 19:30→21:00 · DOUBLES</span>
+      </span>
+      <span class="rip">
+        <span class="eur">€13</span>
+        <span class="bar" aria-hidden="true"></span>
+        <small>No. 0014</small>
+      </span>
+    </a>
+
+    <!-- news ribbon -->
+    <div class="cinta slap s3" aria-hidden="true">
+      <div class="run">
+        <span>TONIGHT — CLONTARF <b>19:00</b> · 2 SPOTS</span>
+        <span>SANDYFORD <b>20:00</b> · 1 SPOT</span>
+        <span>STREAK: <b>3 WINS</b> ★</span>
+        <span>TONIGHT — CLONTARF <b>19:00</b> · 2 SPOTS</span>
+        <span>SANDYFORD <b>20:00</b> · 1 SPOT</span>
+        <span>STREAK: <b>3 WINS</b> ★</span>
+      </div>
+    </div>
+
+    <!-- the board -->
+    <div class="tablon-t slap s4"><span>On the board</span><a href="#all">See all →</a></div>
+    <div class="minis">
+      <a class="mini slap s4" href="#g2">
+        <span class="dia">Tue 7 Jul</span>
+        <span class="v">Clontarf Padel Centre</span>
+        <span class="m">19:00 · LEVEL 1–2 · €11</span>
+        <span class="go">Count me in</span>
+      </a>
+      <a class="mini slap s5" href="#g3">
+        <span class="dia">Thu 9 Jul</span>
+        <span class="v">Sandyford Padel Club</span>
+        <span class="m">20:00 · LEVEL 3.5+ · €14</span>
+        <span class="go">Count me in</span>
+      </a>
+    </div>
+
+    <!-- club stamp — the one nod to where this style comes from -->
+    <div class="stamp-row slap s5">
+      <svg class="stamp" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+        <defs>
+          <path id="ring" d="M60 12 a48 48 0 1 1 -0.01 0"/>
+        </defs>
+        <circle cx="60" cy="60" r="56" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="60" cy="60" r="40" stroke="currentColor" stroke-width="1.5"/>
+        <text font-family="Space Mono, monospace" font-size="10.5" font-weight="700" letter-spacing="3.5" fill="currentColor">
+          <textPath href="#ring">PADEL LOOP · EST. 2026 · LA PEÑA · DUBLIN ·</textPath>
+        </text>
+        <path d="M45 72 C52 48 68 46 76 52 C84 58 78 72 64 70 C52 68 52 56 62 54"
+              stroke="currentColor" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+        <circle cx="62" cy="54" r="4" fill="currentColor"/>
+      </svg>
+    </div>
+  </div>
+
+  <nav aria-label="Main">
+    <a class="on" href="#home" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3V10.5Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
+      Home
+    </a>
+    <a href="#games">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15" rx="2.5" stroke="currentColor" stroke-width="2.4"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Games
+    </a>
+    <a class="fab" href="#create" aria-label="Create game">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+    </a>
+    <a href="#chat">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
+      Chat
+    </a>
+    <a href="#you">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2.4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      You
+    </a>
+  </nav>
+</div>
+</body>
+</html>

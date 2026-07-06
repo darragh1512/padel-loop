@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLUB HOUSE — Padel Loop design lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── CLUB HOUSE, at its ceiling ────────────────────────────────────────
+     Six o'clock light in a stone pavilion. Linen, leather grips, a brass
+     plaque by the door. The app is the club's bulletin: a drenched pine
+     panel carries the evening's fixture like an engraved invitation, and
+     the rest reads like a well-set menu — dot leaders, small caps, one
+     hand-drawn loop of the ball.                                         */
+  :root{
+    --paper:  #F4EEE1;   /* aged cream paper */
+    --card:   #FBF7EE;   /* fresh linen */
+    --ink:    #211D14;   /* reading ink */
+    --quiet:  #6E6654;   /* secondary */
+    --faint:  #A79D87;   /* tertiary */
+    --pine:   #24402E;   /* the drenched hero — deep club green */
+    --pine-2: #2E4E39;
+    --brass:  #A8894F;   /* engraved details */
+    --rule:   #DDD3BE;   /* hairlines on paper */
+    --rule-d: rgb(244 238 225 / .22);  /* hairlines on pine */
+    --ease: cubic-bezier(.23,1,.32,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{background:#E7DFCE}
+  body{
+    font-family:"Instrument Sans",system-ui,sans-serif;
+    color:var(--ink); background:#E7DFCE;
+    min-height:100dvh; display:flex; justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .phone{
+    width:min(420px,100%); min-height:100dvh; background:var(--paper);
+    position:relative; overflow:hidden;
+    box-shadow:0 0 90px rgb(60 50 30 / .25);
+  }
+  .stack{padding:0 22px 116px}
+
+  /* ── masthead ── */
+  .masthead{
+    text-align:center; padding:26px 0 18px;
+    border-bottom:1px solid var(--rule);
+  }
+  .masthead .mark{
+    font-family:"Instrument Serif",serif; font-size:30px; letter-spacing:-.01em;
+  }
+  .masthead .issue{
+    margin-top:7px; font-size:10.5px; font-weight:500;
+    letter-spacing:.28em; text-transform:uppercase; color:var(--quiet);
+  }
+  .masthead .issue b{color:var(--brass); font-weight:500}
+
+  .salut{
+    text-align:center; padding:22px 0 20px;
+    font-family:"Instrument Serif",serif; font-style:italic;
+    font-size:21px; color:var(--quiet);
+  }
+  .salut b{color:var(--ink); font-weight:400}
+
+  /* ── the invitation: drenched pine panel ── */
+  .invite{
+    position:relative; display:block; text-decoration:none;
+    background:linear-gradient(168deg, var(--pine-2), var(--pine) 55%);
+    color:var(--paper); border-radius:6px; overflow:hidden;
+    padding:26px 24px 22px;
+    box-shadow:0 22px 44px -20px rgb(36 64 46 / .55);
+  }
+  .invite::after{ /* brass keyline, inset like an engraved plate */
+    content:""; position:absolute; inset:9px; border-radius:3px;
+    border:1px solid rgb(168 137 79 / .55); pointer-events:none;
+  }
+  .invite .over{
+    font-size:10.5px; letter-spacing:.3em; text-transform:uppercase;
+    color:var(--brass); text-align:center;
+  }
+  .invite h1{
+    font-family:"Instrument Serif",serif; font-weight:400;
+    text-align:center; font-size:44px; line-height:1.02;
+    letter-spacing:-.015em; margin-top:12px;
+  }
+  .invite h1 em{font-style:italic}
+  .invite .when{
+    margin-top:14px; text-align:center;
+    font-family:"Instrument Serif",serif; font-size:64px; line-height:1;
+    letter-spacing:-.02em;
+  }
+  .invite .when small{
+    display:block; margin-top:6px; font-family:"Instrument Sans",sans-serif;
+    font-size:11px; letter-spacing:.24em; text-transform:uppercase;
+    color:rgb(244 238 225 / .66);
+  }
+  /* engraved court, drawn in brass */
+  .etch{display:block; margin:20px auto 0; width:200px}
+  .invite .foot{
+    margin-top:18px; padding-top:14px; border-top:1px solid var(--rule-d);
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:12.5px; color:rgb(244 238 225 / .8);
+  }
+  .invite .foot b{color:var(--paper); font-weight:500}
+  .invite .foot .go{
+    font-family:"Instrument Serif",serif; font-style:italic; font-size:15px;
+    color:var(--brass);
+  }
+
+  /* ── the party: guest list ── */
+  .plaque-title{
+    margin:30px 0 4px; text-align:center;
+    font-size:10.5px; font-weight:500; letter-spacing:.3em;
+    text-transform:uppercase; color:var(--quiet);
+    display:flex; align-items:center; gap:14px;
+  }
+  .plaque-title::before,.plaque-title::after{
+    content:""; flex:1; height:1px; background:var(--rule);
+  }
+  .guests{list-style:none}
+  .guests li{
+    display:flex; align-items:baseline; gap:10px;
+    padding:11px 2px; font-size:15px;
+  }
+  .guests li + li{border-top:1px solid var(--rule)}
+  .guests .name{font-weight:500}
+  .guests .name em{
+    font-family:"Instrument Serif",serif; font-style:italic; font-weight:400;
+    color:var(--quiet); font-size:14px; margin-left:6px;
+  }
+  .guests .lead{flex:1; border-bottom:1px dotted var(--faint); transform:translateY(-4px)}
+  .guests .lvl{
+    font-size:12px; color:var(--quiet); font-variant-numeric:tabular-nums;
+  }
+  .guests li.open .name{color:var(--brass); font-weight:400;
+    font-family:"Instrument Serif",serif; font-style:italic; font-size:16px}
+  .guests li.open .lvl{color:var(--brass)}
+
+  /* ── on the board: fixtures as a set menu ── */
+  .menu{list-style:none}
+  .menu a{
+    display:flex; align-items:baseline; gap:10px; padding:13px 2px;
+    text-decoration:none; color:inherit;
+  }
+  .menu li + li{border-top:1px solid var(--rule)}
+  .menu .dish{min-width:0; max-width:70%}
+  .menu .dish .n{display:block; font-weight:500; font-size:15px}
+  .menu .dish .d{
+    display:block; font-family:"Instrument Serif",serif; font-style:italic;
+    font-size:13.5px; color:var(--quiet); margin-top:3px;
+  }
+  .menu .lead{flex:1; min-width:22px; border-bottom:1px dotted var(--faint); transform:translateY(-4px)}
+  .menu .price{
+    font-family:"Instrument Serif",serif; font-size:19px; white-space:nowrap;
+  }
+  .menu .price small{
+    font-family:"Instrument Sans",sans-serif; font-size:10px;
+    letter-spacing:.14em; color:var(--faint); display:block; text-align:right;
+  }
+
+  /* ── the season, engraved brass plaque ── */
+  .season{
+    margin-top:26px; border:1px solid var(--rule); border-radius:6px;
+    background:var(--card); padding:16px 6px 14px;
+    display:grid; grid-template-columns:1fr 1fr 1fr; text-align:center;
+    position:relative;
+  }
+  .season::after{
+    content:""; position:absolute; inset:5px; border:1px solid var(--rule);
+    border-radius:3px; pointer-events:none;
+  }
+  .season .v{font-family:"Instrument Serif",serif; font-size:30px; line-height:1}
+  .season .v em{font-style:italic}
+  .season .k{
+    margin-top:6px; font-size:9.5px; letter-spacing:.26em;
+    text-transform:uppercase; color:var(--quiet);
+  }
+  .season .cell + .cell{border-left:1px solid var(--rule)}
+
+  /* ── closing line ── */
+  .colophon{
+    margin-top:30px; text-align:center;
+    font-family:"Instrument Serif",serif; font-style:italic;
+    font-size:16px; color:var(--quiet);
+  }
+  .colophon .fleuron{color:var(--brass); font-style:normal; font-size:13px; letter-spacing:.4em}
+
+  /* ── nav: quiet text links on linen ── */
+  nav{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:min(420px,100%); z-index:5;
+    background:rgb(251 247 238 / .95); backdrop-filter:blur(10px);
+    border-top:1px solid var(--rule);
+    display:flex; justify-content:space-around; align-items:center;
+    padding:15px 8px calc(15px + env(safe-area-inset-bottom));
+  }
+  nav a{
+    font-size:10.5px; font-weight:500; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--faint); text-decoration:none;
+    padding:4px 2px;
+  }
+  nav a.on{color:var(--ink); border-bottom:1px solid var(--brass); padding-bottom:5px}
+  nav a.new{
+    font-family:"Instrument Serif",serif; font-style:italic; font-size:15px;
+    text-transform:none; letter-spacing:0; color:var(--pine);
+  }
+
+  /* ── interaction + motion ── */
+  a{transition:transform 150ms var(--ease), color 150ms ease, opacity 150ms ease}
+  a:focus-visible{outline:2px solid var(--pine); outline-offset:3px; border-radius:4px}
+  @media (prefers-reduced-motion: no-preference){
+    a:active{transform:scale(.98)}
+    .rise{opacity:0; transform:translateY(8px); animation:rise 240ms var(--ease) forwards}
+    @keyframes rise{to{opacity:1; transform:none}}
+    .d1{animation-delay:60ms}.d2{animation-delay:120ms}.d3{animation-delay:180ms}
+    .d4{animation-delay:240ms}.d5{animation-delay:300ms}
+    /* the invitation unveils like a plate being laid */
+    .invite{clip-path:inset(0 0 100% 0); animation:unveil 640ms var(--ease) 180ms forwards}
+    @keyframes unveil{to{clip-path:inset(0 0 0% 0)}}
+    /* the ball's loop, drawn once in brass */
+    .loop-path{stroke-dasharray:340; stroke-dashoffset:340; animation:draw 900ms var(--ease) 720ms forwards}
+    @keyframes draw{to{stroke-dashoffset:0}}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .invite{clip-path:none}
+  }
+  @media (hover:hover) and (pointer:fine){
+    .menu a:hover .n{color:var(--pine)}
+    .invite:hover .go{text-decoration:underline}
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="stack">
+
+    <header class="masthead rise">
+      <div class="mark">padel loop</div>
+      <div class="issue">Members&rsquo; bulletin · <b>Thursday 23 July</b></div>
+    </header>
+
+    <p class="salut rise d1">Good evening, <b>Darragh</b> — the court is holding your place.</p>
+
+    <a class="invite" href="#game" aria-label="Your fixture: Malahide Padel Club, Court 2, Thursday 23 July, 19:30 to 21:00">
+      <div class="over">Your fixture</div>
+      <h1>An evening at<br><em>Malahide Padel Club</em></h1>
+      <div class="when">19:30<small>Court 2 · until 21:00 · doubles</small></div>
+
+      <svg class="etch" viewBox="0 0 200 96" fill="none" aria-hidden="true">
+        <g stroke="#A8894F" stroke-width="1">
+          <rect x="14" y="10" width="172" height="76" rx="2" stroke-opacity=".8"/>
+          <line x1="100" y1="10" x2="100" y2="86" stroke-opacity=".8"/>
+          <line x1="57" y1="10" x2="57" y2="86" stroke-opacity=".4"/>
+          <line x1="143" y1="10" x2="143" y2="86" stroke-opacity=".4"/>
+          <line x1="14" y1="48" x2="57" y2="48" stroke-opacity=".4"/>
+          <line x1="143" y1="48" x2="186" y2="48" stroke-opacity=".4"/>
+        </g>
+        <path class="loop-path" d="M 140 70 C 158 26 118 8 88 20 C 60 32 64 62 90 60 C 116 58 126 34 108 26"
+              stroke="#E9DFC8" stroke-width="1.6" stroke-dasharray="4 3.4" stroke-linecap="round"/>
+        <circle cx="108" cy="26" r="4.5" fill="#E9DFC8"/>
+      </svg>
+
+      <div class="foot">
+        <span><b>Darragh · Sofía · Marco</b> — one seat open</span>
+        <span class="go">View the game →</span>
+      </div>
+    </a>
+
+    <div class="plaque-title rise d2">The party</div>
+    <ul class="guests rise d2">
+      <li><span class="name">Darragh <em>organiser</em></span><span class="lead"></span><span class="lvl">level 1.8</span></li>
+      <li><span class="name">Sofía R.</span><span class="lead"></span><span class="lvl">level 2.1</span></li>
+      <li><span class="name">Marco B.</span><span class="lead"></span><span class="lvl">level 2.4</span></li>
+      <li class="open"><span class="name">A seat remains — invite a friend</span><span class="lead"></span><span class="lvl">€13</span></li>
+    </ul>
+
+    <div class="plaque-title rise d3">On the board this week</div>
+    <ul class="menu rise d3">
+      <li><a href="#g2">
+        <span class="dish"><span class="n">Clontarf Padel Centre</span><span class="d">Tuesday, seven o&rsquo;clock — gentle pace</span></span>
+        <span class="lead"></span>
+        <span class="price">€11<small>per head</small></span>
+      </a></li>
+      <li><a href="#g3">
+        <span class="dish"><span class="n">Sandyford Padel Club</span><span class="d">Thursday, eight o&rsquo;clock — a quick four</span></span>
+        <span class="lead"></span>
+        <span class="price">€14<small>per head</small></span>
+      </a></li>
+      <li><a href="#g4">
+        <span class="dish"><span class="n">Bushy Park Courts</span><span class="d">Saturday morning — bring a jumper</span></span>
+        <span class="lead"></span>
+        <span class="price">€9<small>per head</small></span>
+      </a></li>
+    </ul>
+
+    <div class="plaque-title rise d4">Your season</div>
+    <div class="season rise d4" role="group" aria-label="Your season record">
+      <div class="cell"><div class="v">14</div><div class="k">Played</div></div>
+      <div class="cell"><div class="v">9</div><div class="k">Won</div></div>
+      <div class="cell"><div class="v"><em>64%</em></div><div class="k">Win rate</div></div>
+    </div>
+
+    <p class="colophon rise d5">
+      <span class="fleuron">· · ·</span><br>
+      The Loop fills the spots. Set a game once,<br>and the club takes care of the rest.
+    </p>
+  </div>
+
+  <nav aria-label="Main">
+    <a class="on" href="#home" aria-current="page">Home</a>
+    <a href="#games">Games</a>
+    <a class="new" href="#create">+ New game</a>
+    <a href="#chat">Chat</a>
+    <a href="#you">You</a>
+  </nav>
+</div>
+</body>
+</html>

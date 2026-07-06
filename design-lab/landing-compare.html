@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Padel Loop — landing page: A or B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:"Bricolage Grotesque",system-ui,sans-serif;
+    background:#101216; color:#F0EEE8;
+    min-height:100dvh; display:flex; flex-direction:column;
+  }
+  header{
+    text-align:center; padding:26px 20px 18px;
+  }
+  header h1{font-weight:800; font-size:clamp(22px,4vw,34px); letter-spacing:-.02em}
+  header p{margin-top:8px; font-size:14.5px; color:#9AA0AB}
+  header p b{color:#F0EEE8}
+  header p a{color:#9AA0AB}
+
+  .duel{
+    flex:1; display:grid; grid-template-columns:1fr 1fr;
+    gap:14px; padding:0 14px 18px; min-height:0;
+  }
+  .side{display:flex; flex-direction:column; min-height:0}
+  .tag{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:10px; font-weight:800; font-size:14px; letter-spacing:.06em;
+    text-transform:uppercase; border-radius:10px 10px 0 0;
+  }
+  .tag .pill{
+    width:26px;height:26px;border-radius:99px;display:inline-flex;
+    align-items:center;justify-content:center;font-size:13px;
+  }
+  .tag a{margin-left:6px; font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:none}
+  .side.a .tag{background:#1A2130; color:#DDFF3D}
+  .side.a .tag .pill{background:#DDFF3D; color:#10130A}
+  .side.a .tag a{color:#DDFF3D}
+  .side.b .tag{background:#1C5BBF; color:#F3E9D2}
+  .side.b .tag .pill{background:#FF5A1F; color:#F3E9D2}
+  .side.b .tag a{color:#F3E9D2}
+  .frame{
+    flex:1; min-height:0; border-radius:0 0 10px 10px; overflow:hidden;
+    border:1px solid #262B35; border-top:0;
+  }
+  iframe{width:100%; height:100%; border:0; display:block}
+
+  footer{
+    text-align:center; padding:0 20px 22px; font-size:13px; color:#9AA0AB;
+  }
+  footer b{color:#F0EEE8}
+
+  /* landing pages are full websites: stack, give each a full screen of height */
+  @media (max-width: 1080px){
+    .duel{grid-template-columns:1fr; gap:20px}
+    .frame{height:92dvh; flex:none}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Padel Loop — the landing page, two ways</h1>
+    <p>Same pitch, two personalities — each one matches its app design. Scroll both, then tell Darragh:
+       <b>A or B — and one word for why.</b></p>
+  </header>
+
+  <div class="duel">
+    <section class="side a" aria-label="Option A: Floodlit landing page">
+      <div class="tag"><span class="pill">A</span> Floodlit <a href="./landing-floodlit.html" target="_blank">open full ↗</a></div>
+      <div class="frame"><iframe src="./landing-floodlit.html" title="Option A — Floodlit landing page"></iframe></div>
+    </section>
+    <section class="side b" aria-label="Option B: The Peña landing page">
+      <div class="tag"><span class="pill">B</span> The Peña <a href="./landing-pena.html" target="_blank">open full ↗</a></div>
+      <div class="frame"><iframe src="./landing-pena.html" title="Option B — The Peña landing page"></iframe></div>
+    </section>
+  </div>
+
+  <footer>These are full landing pages — every button leads to the real app. The app-design duel is still at <b>index.html</b>.</footer>
+</body>
+</html>

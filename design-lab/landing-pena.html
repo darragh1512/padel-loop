@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Padel Loop — game on?</title>
+<meta name="description" content="Padel Loop finds you a padel game near you, at your level. Real games, real open spots, one tap to join.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ── THE PEÑA / landing ────────────────────────────────────────────────
+     The club corkboard, blown up to a whole wall. Blue court paint, riso
+     posters stapled at angles, your ticket stub, the club stamp. The
+     landing page IS the noticeboard — and every poster points at the app. */
+  :root{
+    --pista:   #1C5BBF;
+    --pista-d: #14459A;
+    --papel:   #F3E9D2;
+    --tinta:   #191407;
+    --naranja: #FF5A1F;
+    --naranja-d: #C93E0F;  /* darker cut for small text on papel */
+    --lima:    #D8E24A;
+    --ease: cubic-bezier(.23,1,.32,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{background:var(--pista-d); scroll-behavior:smooth}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+  body{
+    font-family:"Bricolage Grotesque",system-ui,sans-serif;
+    color:var(--tinta);
+    background:
+      radial-gradient(rgb(255 255 255 / .06) 1px, transparent 1.2px) 0 0/16px 16px,
+      linear-gradient(174deg, var(--pista) 0%, var(--pista-d) 100%);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--lima); color:var(--tinta)}
+
+  .wrap{width:min(1140px,100% - 40px); margin-inline:auto}
+
+  /* painted court lines across the whole wall */
+  .paint{position:fixed; inset:0; pointer-events:none; opacity:.55; z-index:0}
+
+  /* paper texture, shared by everything papel */
+  .grain{
+    background-image:radial-gradient(rgb(25 20 7 / .05) 1px, transparent 1.2px);
+    background-size:9px 9px;
+  }
+
+  /* staples */
+  .stapled{position:relative}
+  .stapled::before,.stapled::after{
+    content:""; position:absolute; top:9px; width:15px; height:4px;
+    background:rgb(25 20 7 / .35); border-radius:2px;
+  }
+  .stapled::before{left:26px; transform:rotate(-24deg)}
+  .stapled::after{right:26px; transform:rotate(18deg)}
+
+  /* ── top banner ── */
+  .top{position:relative; z-index:2}
+  .top .wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    padding-block:18px; color:var(--papel); gap:14px; flex-wrap:wrap;
+  }
+  .club{
+    font-family:"Space Mono",monospace; font-size:12px; font-weight:700;
+    letter-spacing:.2em; text-transform:uppercase; color:var(--papel);
+    text-decoration:none;
+  }
+  .top-cta{
+    font-family:"Space Mono",monospace; font-size:11px; font-weight:700;
+    letter-spacing:.14em; text-transform:uppercase; text-decoration:none;
+    color:var(--tinta); background:var(--lima);
+    border:2.5px solid var(--tinta); border-radius:99px;
+    padding:9px 17px; box-shadow:3px 3px 0 var(--tinta);
+  }
+
+  /* ── hero: the big match poster + the phone pinned beside it ── */
+  .hero{position:relative; z-index:1; padding:clamp(20px,4vh,48px) 0 0}
+  .hero .wrap{
+    display:grid; grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);
+    gap:clamp(26px,4.5vw,64px); align-items:start;
+  }
+  .poster{
+    display:block; text-decoration:none; color:var(--tinta);
+    background:var(--papel); border-radius:4px;
+    padding:clamp(26px,4vw,46px) clamp(22px,3.4vw,42px) clamp(22px,3vw,36px);
+    transform:rotate(-1.1deg);
+    box-shadow:0 22px 50px -16px rgb(8 20 50 / .7);
+  }
+  .fecha{
+    font-family:"Space Mono",monospace; font-size:clamp(11px,1.1vw,12.5px); font-weight:700;
+    letter-spacing:.22em; text-transform:uppercase; text-align:center;
+    color:var(--naranja-d);
+  }
+  h1{
+    font-weight:800; font-stretch:90%;
+    font-size:clamp(58px,8.4vw,96px); line-height:.9; letter-spacing:-.025em;
+    text-transform:uppercase; text-align:center; margin-top:14px; text-wrap:balance;
+  }
+  h1 .o1{color:var(--naranja)}
+  .lede{
+    text-align:center; margin:16px auto 0; max-width:42ch;
+    font-size:clamp(15px,1.5vw,17.5px); line-height:1.6; font-weight:500;
+  }
+  .lede b{font-weight:800}
+  .venue-strip{
+    margin:22px calc(clamp(22px,3.4vw,42px) * -1) 0;
+    padding:14px clamp(22px,3.4vw,42px);
+    background:var(--naranja); color:var(--papel);
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    font-family:"Space Mono",monospace; font-size:clamp(11.5px,1.2vw,13.5px);
+    font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    text-decoration:none;
+  }
+  a.venue-strip:hover{background:#E8490F}
+  .squad{
+    display:flex; justify-content:center; gap:7px; margin-top:18px;
+    font-size:13.5px; font-weight:500; flex-wrap:wrap;
+  }
+  .squad .p{border:1.5px solid var(--tinta); border-radius:99px; padding:5px 13px}
+  .squad .p.open{
+    border-style:dashed; color:var(--naranja-d); border-color:var(--naranja);
+    font-weight:800;
+  }
+
+  /* the phone — a poster of the app, stapled up beside the big one */
+  .stage{display:flex; flex-direction:column; align-items:center; gap:16px}
+  .device{
+    background:var(--papel); border-radius:6px; padding:12px 12px 40px;
+    transform:rotate(1.4deg);
+    box-shadow:0 22px 50px -16px rgb(8 20 50 / .7);
+    position:relative;
+  }
+  .device::before,.device::after{
+    content:""; position:absolute; top:7px; width:15px; height:4px;
+    background:rgb(25 20 7 / .35); border-radius:2px;
+  }
+  .device::before{left:22px; transform:rotate(-24deg)}
+  .device::after{right:22px; transform:rotate(18deg)}
+  .device .screen{
+    width:min(360px,74vw); height:min(680px,68vh);
+    border-radius:4px; overflow:hidden; background:var(--pista-d);
+  }
+  .device iframe{width:100%; height:100%; border:0; display:block; pointer-events:none}
+  .device .caption{
+    position:absolute; bottom:10px; left:0; right:0; text-align:center;
+    font-family:"Space Mono",monospace; font-size:10px; font-weight:700;
+    letter-spacing:.2em; text-transform:uppercase; color:var(--tinta);
+  }
+
+  /* ── ticket stub CTA ── */
+  .ticket{
+    position:relative; display:flex; text-decoration:none; color:var(--tinta);
+    width:min(430px,100%); margin-top:4px;
+    transform:rotate(-.8deg);
+    filter:drop-shadow(0 14px 24px rgb(8 20 50 / .55));
+  }
+  .ticket .main{
+    flex:1; background:var(--lima); border-radius:4px 0 0 4px;
+    padding:16px 18px;
+    -webkit-mask:radial-gradient(circle 5px at right, transparent 96%, #000) right/12px 24px repeat-y, linear-gradient(#000,#000) left/calc(100% - 6px) 100% no-repeat;
+            mask:radial-gradient(circle 5px at right, transparent 96%, #000) right/12px 24px repeat-y, linear-gradient(#000,#000) left/calc(100% - 6px) 100% no-repeat;
+  }
+  .ticket .tag{
+    display:block; font-family:"Space Mono",monospace; font-size:10px; font-weight:700;
+    letter-spacing:.24em; text-transform:uppercase;
+  }
+  .ticket .t{
+    display:block; font-weight:800; font-size:23px; letter-spacing:-.01em; margin-top:6px;
+    text-transform:uppercase; font-stretch:92%;
+  }
+  .ticket .d{
+    display:block; font-family:"Space Mono",monospace; font-size:11px; margin-top:7px;
+  }
+  .ticket .rip{
+    width:92px; background:var(--papel); border-radius:0 4px 4px 0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:5px; padding:10px 6px;
+    -webkit-mask:radial-gradient(circle 5px at left, transparent 96%, #000) left/12px 24px repeat-y, linear-gradient(#000,#000) right/calc(100% - 6px) 100% no-repeat;
+            mask:radial-gradient(circle 5px at left, transparent 96%, #000) left/12px 24px repeat-y, linear-gradient(#000,#000) right/calc(100% - 6px) 100% no-repeat;
+  }
+  .ticket .rip .eur{font-weight:800; font-size:20px}
+  .ticket .rip .bar{
+    width:52px; height:26px;
+    background:repeating-linear-gradient(90deg, var(--tinta) 0 2px, transparent 2px 4px, var(--tinta) 4px 7px, transparent 7px 9px);
+  }
+  .ticket .rip small{font-family:"Space Mono",monospace; font-size:8.5px; letter-spacing:.14em}
+
+  /* ── marquee ── */
+  .cinta{
+    margin-top:clamp(48px,7vh,80px); background:var(--tinta); color:var(--papel);
+    overflow:hidden; padding:10px 0; transform:rotate(-.5deg) scale(1.02);
+    position:relative; z-index:1;
+  }
+  .cinta .run{
+    display:flex; gap:38px; width:max-content; white-space:nowrap;
+    font-family:"Space Mono",monospace; font-size:12px; font-weight:700;
+    letter-spacing:.18em; text-transform:uppercase;
+  }
+  .cinta .run b{color:var(--lima)}
+  @media (prefers-reduced-motion: no-preference){
+    .cinta .run{animation:cinta 26s linear infinite}
+    @keyframes cinta{to{transform:translateX(-50%)}}
+  }
+
+  /* ── how it works: three posters on the board ── */
+  .board{position:relative; z-index:1; padding:clamp(56px,9vh,110px) 0 0}
+  .board-t{
+    color:var(--papel); text-align:center;
+    font-weight:800; font-stretch:92%; text-transform:uppercase;
+    font-size:clamp(34px,4.8vw,54px); line-height:.95; letter-spacing:-.02em;
+    text-wrap:balance;
+  }
+  .board-t .o1{color:var(--lima)}
+  .board-sub{
+    text-align:center; margin-top:12px; color:rgb(243 233 210 / .85);
+    font-family:"Space Mono",monospace; font-size:12px; font-weight:700;
+    letter-spacing:.2em; text-transform:uppercase;
+  }
+  .minis{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+    gap:clamp(16px,2.6vw,28px); margin-top:clamp(30px,4vh,48px);
+  }
+  .mini{
+    background:var(--papel); border-radius:4px;
+    padding:clamp(20px,2.4vw,28px) clamp(18px,2.2vw,26px);
+    color:var(--tinta); position:relative;
+    box-shadow:0 14px 30px -12px rgb(8 20 50 / .65);
+  }
+  .mini:nth-child(1){transform:rotate(1.2deg)}
+  .mini:nth-child(2){transform:rotate(-1.3deg)}
+  .mini:nth-child(3){transform:rotate(.9deg)}
+  .mini .paso{
+    font-family:"Space Mono",monospace; font-size:10.5px; font-weight:700;
+    letter-spacing:.22em; text-transform:uppercase; color:var(--naranja-d);
+  }
+  .mini h3{
+    font-weight:800; font-stretch:92%; font-size:clamp(22px,2.2vw,27px);
+    line-height:1; text-transform:uppercase; letter-spacing:-.01em; margin-top:10px;
+  }
+  .mini p{margin-top:10px; font-size:14.5px; line-height:1.6; font-weight:500}
+  .mini p b{font-weight:800}
+
+  /* ── organiser strip ── */
+  .duo{
+    position:relative; z-index:1; margin-top:clamp(56px,9vh,110px);
+  }
+  .duo .card{
+    background:var(--papel); border-radius:4px; transform:rotate(.6deg);
+    padding:clamp(26px,4vw,48px);
+    display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);
+    gap:clamp(24px,4vw,56px); align-items:center;
+    box-shadow:0 22px 50px -16px rgb(8 20 50 / .7);
+  }
+  .duo h2{
+    font-weight:800; font-stretch:90%; text-transform:uppercase;
+    font-size:clamp(30px,4vw,46px); line-height:.95; letter-spacing:-.02em;
+    text-wrap:balance;
+  }
+  .duo h2 .o1{color:var(--naranja)}
+  .duo p{margin-top:14px; font-size:clamp(14.5px,1.4vw,16.5px); line-height:1.65; font-weight:500; max-width:50ch}
+  .duo p b{font-weight:800}
+  .duo .sello{display:flex; justify-content:center}
+  .stamp{width:clamp(130px,16vw,190px); height:auto; color:var(--tinta); opacity:.92}
+  @media (prefers-reduced-motion: no-preference){
+    .stamp{animation:spin 46s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  }
+
+  /* ── final poster CTA ── */
+  .close{position:relative; z-index:1; padding:clamp(56px,9vh,110px) 0 clamp(44px,6vh,72px)}
+  .close .big-poster{
+    display:block; text-decoration:none; color:var(--papel);
+    background:var(--naranja); border-radius:4px; text-align:center;
+    padding:clamp(40px,6.5vw,80px) clamp(22px,4vw,48px);
+    transform:rotate(-.7deg);
+    box-shadow:0 26px 60px -18px rgb(8 20 50 / .8);
+    position:relative; overflow:hidden;
+  }
+  .close .big-poster::after{
+    content:""; position:absolute; inset:0;
+    background:radial-gradient(rgb(25 20 7 / .07) 1px, transparent 1.2px) 0 0/9px 9px;
+    pointer-events:none;
+  }
+  .close .k{
+    font-family:"Space Mono",monospace; font-size:12px; font-weight:700;
+    letter-spacing:.24em; text-transform:uppercase;
+  }
+  .close .h{
+    font-weight:800; font-stretch:90%; text-transform:uppercase;
+    font-size:clamp(48px,8vw,92px); line-height:.9; letter-spacing:-.025em;
+    margin-top:14px; text-wrap:balance;
+  }
+  .close .h span{color:var(--lima)}
+  .close .go{
+    display:inline-block; margin-top:26px;
+    font-family:"Space Mono",monospace; font-size:13px; font-weight:700;
+    letter-spacing:.16em; text-transform:uppercase;
+    color:var(--tinta); background:var(--lima);
+    border:3px solid var(--tinta); border-radius:99px;
+    padding:14px 26px; box-shadow:4px 4px 0 var(--tinta);
+  }
+
+  footer{
+    position:relative; z-index:1;
+    border-top:3px solid rgb(243 233 210 / .25);
+    padding:20px 0 calc(24px + env(safe-area-inset-bottom));
+  }
+  footer .wrap{
+    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    font-family:"Space Mono",monospace; font-size:10.5px; font-weight:700;
+    letter-spacing:.18em; text-transform:uppercase; color:rgb(243 233 210 / .8);
+  }
+  footer a{color:var(--lima); text-decoration:none}
+
+  /* ── interaction + motion ── */
+  a{transition:transform 160ms var(--ease), box-shadow 160ms var(--ease), background-color 160ms ease}
+  a:focus-visible{outline:3px solid var(--lima); outline-offset:4px; border-radius:4px}
+  @media (hover:hover) and (pointer:fine){
+    a.poster:hover{transform:rotate(-.4deg)}
+    .ticket:hover{transform:rotate(0deg)}
+    .close .big-poster:hover{transform:rotate(0deg)}
+    .top-cta:hover,.close .go:hover{box-shadow:5px 5px 0 var(--tinta); transform:translate(-1px,-1px)}
+  }
+  @media (prefers-reduced-motion: no-preference){
+    a:active{transform:scale(.98)}
+    .top-cta:active,.close .go:active{box-shadow:1px 1px 0 var(--tinta)}
+    .slap{opacity:0; animation:slap 300ms var(--ease) forwards}
+    @keyframes slap{
+      from{opacity:0; transform:scale(.95) rotate(0deg)}
+      to{opacity:1; transform:scale(1) rotate(var(--r,0deg))}
+    }
+    .poster.slap{--r:-1.1deg} .device.slap{--r:1.4deg} .ticket.slap{--r:-.8deg}
+    .s1{animation-delay:70ms}.s2{animation-delay:150ms}.s3{animation-delay:230ms}
+  }
+  @media (prefers-reduced-motion: reduce){ .slap{opacity:1} }
+
+  /* ── responsive ── */
+  @media (max-width: 940px){
+    .hero .wrap{grid-template-columns:1fr}
+    .stage{margin-top:8px}
+    .duo .card{grid-template-columns:1fr}
+    .duo .sello{order:-1}
+  }
+</style>
+</head>
+<body>
+
+<svg class="paint" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
+  <g stroke="rgb(243 233 210 / .16)" stroke-width="3" fill="none">
+    <line x1="0" y1="196" x2="1440" y2="180"/>
+    <line x1="716" y1="0" x2="724" y2="900"/>
+    <line x1="0" y1="640" x2="1440" y2="662"/>
+  </g>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="club" href="#">PADEL LOOP · DUBLIN</a>
+    <a class="top-cta" href="https://padel-loop-one.vercel.app">Open the app</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <a class="poster grain stapled slap" href="https://padel-loop-one.vercel.app">
+        <div class="fecha">Dublin · every night this summer</div>
+        <h1>Game <span class="o1">o</span>n?</h1>
+        <p class="lede">
+          Padel Loop finds you a padel game <b>near you, at your level</b> —
+          real games, real open spots, and your name on the roster in
+          <b>one tap</b>. No more group-chat roulette.
+        </p>
+        <span class="venue-strip">
+          <span>Open Padel Loop</span><span>Free · No install →</span>
+        </span>
+        <div class="squad" aria-hidden="true">
+          <span class="p">Darragh</span><span class="p">Sofía</span><span class="p">Marco</span><span class="p open">+ you?</span>
+        </div>
+      </a>
+
+      <div class="stage" style="align-items:flex-start; margin-top:26px">
+        <a class="ticket slap s2" href="https://padel-loop-one.vercel.app" aria-label="Your spot is waiting — open the app to claim it">
+          <span class="main">
+            <span class="tag">Admit one · tonight</span>
+            <span class="t">Your spot's waiting</span>
+            <span class="d">NEAR YOU · AT YOUR LEVEL · ONE TAP</span>
+          </span>
+          <span class="rip">
+            <span class="eur">FREE</span>
+            <span class="bar" aria-hidden="true"></span>
+            <small>No. 0001</small>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="device grain slap s1">
+        <div class="screen">
+          <iframe src="./wildcard-en.html" title="Padel Loop app preview — tonight's match poster" loading="lazy" tabindex="-1" scrolling="no"></iframe>
+        </div>
+        <span class="caption">← The app · Fresh from the board</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cinta" aria-hidden="true">
+    <div class="run">
+      <span>TONIGHT — CLONTARF <b>19:00</b> · 2 SPOTS</span>
+      <span>SANDYFORD <b>20:00</b> · 1 SPOT</span>
+      <span>BUSHY PARK <b>21:00</b> · 3 SPOTS</span>
+      <span>MALAHIDE <b>19:30</b> · 1 SPOT</span>
+      <span>TONIGHT — CLONTARF <b>19:00</b> · 2 SPOTS</span>
+      <span>SANDYFORD <b>20:00</b> · 1 SPOT</span>
+      <span>BUSHY PARK <b>21:00</b> · 3 SPOTS</span>
+      <span>MALAHIDE <b>19:30</b> · 1 SPOT</span>
+    </div>
+  </div>
+</section>
+
+<section class="board wrap" id="how">
+  <h2 class="board-t">From the board<br>t<span class="o1">o</span> the court</h2>
+  <p class="board-sub">How it works · three moves</p>
+  <div class="minis">
+    <div class="mini grain stapled">
+      <span class="paso">Paso 1</span>
+      <h3>Open the app</h3>
+      <p>Games near you, tonight and this week — already filtered to <b>your level</b>. The board's always fresh.</p>
+    </div>
+    <div class="mini grain stapled">
+      <span class="paso">Paso 2</span>
+      <h3>Pick a poster</h3>
+      <p>Venue, time, level range, who's in, what it costs. If it says <b>one spot open</b>, it's really open.</p>
+    </div>
+    <div class="mini grain stapled">
+      <span class="paso">Paso 3</span>
+      <h3>Count me in</h3>
+      <p>One tap and your name's on the roster. <b>Ticket sorted</b> — just bring your racket.</p>
+    </div>
+  </div>
+</section>
+
+<section class="duo wrap">
+  <div class="card grain stapled">
+    <div>
+      <h2>Set it up once.<br>The Loop fills<br>the sl<span class="o1">o</span>ts.</h2>
+      <p>
+        Running the game? Pin it to the board and the open spots fill
+        themselves — <b>no more chasing the group chat for a fourth</b>.
+        Roster, chat and match results in one place, stamped and sorted.
+      </p>
+    </div>
+    <div class="sello">
+      <svg class="stamp" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+        <defs><path id="ring" d="M60 12 a48 48 0 1 1 -0.01 0"/></defs>
+        <circle cx="60" cy="60" r="56" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="60" cy="60" r="40" stroke="currentColor" stroke-width="1.5"/>
+        <text font-family="Space Mono, monospace" font-size="10.5" font-weight="700" letter-spacing="3.5" fill="currentColor">
+          <textPath href="#ring">PADEL LOOP · EST. 2026 · LA PEÑA · DUBLIN ·</textPath>
+        </text>
+        <path d="M45 72 C52 48 68 46 76 52 C84 58 78 72 64 70 C52 68 52 56 62 54"
+              stroke="currentColor" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+        <circle cx="62" cy="54" r="4" fill="currentColor"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="close wrap">
+  <a class="big-poster" href="https://padel-loop-one.vercel.app">
+    <span class="k">The board is live · Dublin</span>
+    <div class="h">See wh<span>o</span>'s playing tonight</div>
+    <span class="go">Open Padel Loop →</span>
+  </a>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>PADEL LOOP · LA PEÑA · EST. 2026</span>
+    <a href="https://padel-loop-one.vercel.app">PADEL-LOOP-ONE.VERCEL.APP →</a>
+  </div>
+</footer>
+
+</body>
+</html>

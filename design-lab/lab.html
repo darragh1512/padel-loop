@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Padel Loop — design lab</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:system-ui,sans-serif; background:#111; color:#eee;
+    min-height:100dvh; display:flex; flex-direction:column;
+  }
+  header{padding:20px 24px 12px; font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:#888}
+  header b{color:#eee}
+  .row{flex:1; display:flex; gap:2px; min-height:0}
+  .row iframe{flex:1; border:0; height:100%; background:#222}
+  .labels{display:flex; gap:2px; padding:0 0 2px}
+  .labels a{
+    flex:1; text-align:center; padding:10px; font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:#aaa; text-decoration:none; background:#1a1a1a;
+  }
+  .labels a:hover{color:#fff}
+</style>
+</head>
+<body>
+  <header><b>Padel Loop</b> — design lab · three identities, side by side</header>
+  <div class="labels">
+    <a href="/floodlit.html" target="_blank">1 · Floodlit ↗</a>
+    <a href="/clubhouse.html" target="_blank">2 · Club House ↗</a>
+    <a href="/wildcard.html" target="_blank">3 · Peña (wild card) ↗</a>
+  </div>
+  <div class="row">
+    <iframe src="/floodlit.html" title="Floodlit"></iframe>
+    <iframe src="/clubhouse.html" title="Club House"></iframe>
+    <iframe src="/wildcard.html" title="Peña"></iframe>
+  </div>
+</body>
+</html>

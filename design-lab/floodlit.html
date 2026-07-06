@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLOODLIT — Padel Loop design lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600&family=Chivo+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ── FLOODLIT ──────────────────────────────────────────────────────────
+     21:47 on a glass court. Floodlights burn against a navy sky; the ball
+     is the brightest thing in the world. Scoreboard data, condensed poster
+     type, one optic-yellow accent — the colour of the ball itself.       */
+  :root{
+    --night:  #070B12;   /* the sky beyond the lights */
+    --court:  #0D141F;   /* raised surfaces */
+    --glass:  #182231;   /* panel edges / court glass */
+    --line:   #223044;   /* court lines at night */
+    --chalk:  #E9EEF4;   /* primary text — floodlit white */
+    --dim:    #7C8AA0;   /* secondary text */
+    --faint:  #45536A;   /* tertiary */
+    --ball:   #DDFF3D;   /* optic yellow — THE accent */
+    --ball-dim: rgb(221 255 61 / .14);
+    --ease: cubic-bezier(.23,1,.32,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{background:#04070C}
+  body{
+    font-family:"Barlow",system-ui,sans-serif;
+    color:var(--chalk);
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #0E1826 0%, transparent 60%),
+      #04070C;
+    min-height:100dvh;
+    display:flex; justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .phone{
+    width:min(420px,100%);
+    min-height:100dvh;
+    background:var(--night);
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 0 120px rgb(20 34 54 / .9);
+  }
+
+  /* the floodlight — a cold beam falling across the hero */
+  .beam{
+    position:absolute; inset:0 0 auto 0; height:520px;
+    background:
+      conic-gradient(from 168deg at 82% -8%,
+        transparent 0deg,
+        rgb(221 255 61 / .045) 12deg,
+        rgb(233 238 244 / .10) 26deg,
+        rgb(221 255 61 / .05) 38deg,
+        transparent 52deg);
+    pointer-events:none;
+  }
+  /* court perspective lines, rushing away under the lights */
+  .court-lines{
+    position:absolute; inset:auto 0 0 0; height:46%;
+    pointer-events:none; opacity:.55;
+  }
+
+  .stack{position:relative; padding:0 20px 118px; z-index:1}
+
+  /* ── status bar ── */
+  .status{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 0 0; font-family:"Chivo Mono",monospace;
+    font-size:11px; letter-spacing:.14em; color:var(--dim);
+  }
+  .status .live{display:flex; align-items:center; gap:7px; color:var(--ball)}
+  .dot{width:7px;height:7px;border-radius:99px;background:var(--ball)}
+  @media (prefers-reduced-motion: no-preference){
+    .dot{animation:pulse 2s var(--ease) infinite}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--ball-dim)}50%{box-shadow:0 0 0 7px transparent}}
+  }
+
+  /* ── hero: matchday countdown ── */
+  .hero{padding:34px 0 6px}
+  .kicker{
+    font-family:"Chivo Mono",monospace; font-size:11px; letter-spacing:.22em;
+    color:var(--dim); text-transform:uppercase;
+  }
+  h1{
+    font-family:"Anton",sans-serif; font-weight:400;
+    font-size:88px; line-height:.92; letter-spacing:.01em;
+    text-transform:uppercase; margin-top:10px;
+    color:var(--chalk);
+  }
+  h1 .ball-txt{color:var(--ball)}
+  .until{
+    display:flex; align-items:baseline; gap:14px; margin-top:16px;
+    font-family:"Chivo Mono",monospace;
+  }
+  .until .num{
+    font-family:"Anton",sans-serif; font-size:44px; color:var(--ball);
+    line-height:1; letter-spacing:.02em;
+  }
+  .until .unit{font-size:11px; letter-spacing:.18em; color:var(--dim); text-transform:uppercase}
+  .until .sep{color:var(--faint); font-size:28px; transform:translateY(-2px)}
+
+  /* ── next match card: the fixture strip ── */
+  .fixture{
+    margin-top:26px; background:var(--court);
+    border:1px solid var(--line); border-radius:14px;
+    overflow:hidden; display:block; color:inherit; text-decoration:none;
+  }
+  .fixture-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 16px; border-bottom:1px solid var(--line);
+    font-family:"Chivo Mono",monospace; font-size:10.5px;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
+  }
+  .fixture-head b{color:var(--ball); font-weight:500}
+  .fixture-body{padding:16px; display:flex; justify-content:space-between; gap:14px}
+  .venue{
+    font-family:"Anton",sans-serif; font-size:26px; line-height:1.05;
+    text-transform:uppercase; letter-spacing:.015em;
+  }
+  .fixture-meta{margin-top:9px; font-size:13.5px; color:var(--dim); font-weight:500}
+  .fixture-meta b{color:var(--chalk); font-weight:600}
+  .clock{
+    text-align:right; font-family:"Chivo Mono",monospace;
+    display:flex; flex-direction:column; justify-content:center; gap:2px;
+  }
+  .clock .t{font-size:26px; color:var(--chalk); font-weight:500}
+  .clock .z{font-size:10.5px; color:var(--faint); letter-spacing:.14em}
+  .fixture-foot{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px; border-top:1px solid var(--line);
+  }
+  .squad{display:flex; align-items:center}
+  .av{
+    width:30px;height:30px;border-radius:99px;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:600; letter-spacing:.03em;
+    border:2px solid var(--court);
+    background:var(--glass); color:var(--chalk);
+  }
+  .av + .av{margin-left:-9px}
+  .av.open{
+    background:transparent;border:1.5px dashed var(--faint);
+    color:var(--faint); font-weight:500;
+  }
+  .spots{font-family:"Chivo Mono",monospace;font-size:11px;letter-spacing:.12em;color:var(--ball)}
+
+  /* ── stat strip: the scoreboard ── */
+  .board{
+    margin-top:14px; display:grid; grid-template-columns:1fr 1fr 1fr;
+    background:var(--court); border:1px solid var(--line); border-radius:14px;
+    overflow:hidden;
+  }
+  .board .cell{padding:14px 8px 12px; text-align:center; position:relative}
+  .board .cell + .cell::before{
+    content:""; position:absolute; left:0; top:14px; bottom:14px;
+    width:1px; background:var(--line);
+  }
+  .board .v{
+    font-family:"Anton",sans-serif; font-size:30px; line-height:1;
+    color:var(--chalk);
+  }
+  .board .cell:last-child .v{color:var(--ball)}
+  .board .k{
+    margin-top:6px; font-family:"Chivo Mono",monospace; font-size:9.5px;
+    letter-spacing:.2em; color:var(--faint); text-transform:uppercase;
+  }
+
+  /* ── primary action ── */
+  .cta{
+    margin-top:14px; display:flex; align-items:center; justify-content:space-between;
+    background:var(--ball); color:#0B0F07; border-radius:14px;
+    padding:18px 20px; text-decoration:none;
+    box-shadow:0 0 44px rgb(221 255 61 / .17);
+  }
+  .cta .big{
+    font-family:"Anton",sans-serif; font-size:28px; text-transform:uppercase;
+    letter-spacing:.02em; line-height:1;
+  }
+  .cta .sub{font-size:12.5px; font-weight:600; margin-top:5px; opacity:.72}
+  .cta svg{flex-shrink:0}
+
+  /* ── tonight ticker ── */
+  .ticker-wrap{
+    margin:26px -20px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    overflow:hidden; padding:9px 0; position:relative;
+  }
+  .ticker{
+    display:flex; gap:38px; white-space:nowrap; width:max-content;
+    font-family:"Chivo Mono",monospace; font-size:11px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--dim);
+  }
+  .ticker b{color:var(--ball); font-weight:500}
+  @media (prefers-reduced-motion: no-preference){
+    .ticker{animation:slide 26s linear infinite}
+    @keyframes slide{to{transform:translateX(-50%)}}
+  }
+
+  /* ── open games ── */
+  .sect{
+    margin-top:24px; font-family:"Chivo Mono",monospace; font-size:11px;
+    letter-spacing:.22em; text-transform:uppercase; color:var(--dim);
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .sect a{color:var(--ball); text-decoration:none; font-size:10.5px}
+  .game{
+    margin-top:12px; display:flex; align-items:center; gap:14px;
+    background:var(--court); border:1px solid var(--line); border-radius:14px;
+    padding:14px 16px; text-decoration:none; color:inherit;
+  }
+  .game .when{
+    font-family:"Anton",sans-serif; font-size:19px; line-height:1;
+    color:var(--ball); min-width:64px; text-transform:uppercase;
+  }
+  .game .when small{
+    display:block; font-family:"Chivo Mono",monospace; font-size:9.5px;
+    letter-spacing:.16em; color:var(--faint); margin-top:5px;
+  }
+  .game .who{flex:1; min-width:0}
+  .game .who .n{font-weight:600; font-size:15px}
+  .game .who .m{font-size:12.5px; color:var(--dim); margin-top:3px}
+  .game .join{
+    font-family:"Chivo Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+    color:var(--ball); border:1px solid rgb(221 255 61 / .35);
+    padding:8px 12px; border-radius:99px; white-space:nowrap;
+  }
+
+  /* ── tab bar ── */
+  nav{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:min(420px,100%); z-index:5;
+    background:rgb(7 11 18 / .92); backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);
+    display:flex; justify-content:space-around; align-items:center;
+    padding:12px 8px calc(12px + env(safe-area-inset-bottom));
+  }
+  nav a{
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    font-family:"Chivo Mono",monospace; font-size:9px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--faint); text-decoration:none; width:58px;
+  }
+  nav a.on{color:var(--ball)}
+  nav a.fab{
+    width:52px;height:52px;border-radius:99px;background:var(--ball);
+    color:#0B0F07; margin-top:-22px; justify-content:center;
+    box-shadow:0 0 34px rgb(221 255 61 / .3);
+  }
+  nav svg{width:21px;height:21px}
+
+  /* ── interaction + motion ── */
+  a{transition:transform 150ms var(--ease), opacity 150ms ease, box-shadow 150ms ease}
+  a:focus-visible{outline:2px solid var(--ball); outline-offset:3px; border-radius:14px}
+  @media (prefers-reduced-motion: no-preference){
+    a:active{transform:scale(.97)}
+    nav a.fab:active{transform:scale(.94)}
+    .rise{opacity:0; transform:translateY(8px); animation:rise 220ms var(--ease) forwards}
+    @keyframes rise{to{opacity:1; transform:none}}
+    .d1{animation-delay:40ms}.d2{animation-delay:80ms}.d3{animation-delay:120ms}
+    .d4{animation-delay:160ms}.d5{animation-delay:200ms}.d6{animation-delay:240ms}
+  }
+  @media (hover:hover) and (pointer:fine){
+    .fixture:hover,.game:hover{border-color:rgb(221 255 61 / .35)}
+    .cta:hover{box-shadow:0 0 64px rgb(221 255 61 / .28)}
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="beam" aria-hidden="true"></div>
+
+  <!-- perspective court lines under the lights -->
+  <svg class="court-lines" viewBox="0 0 420 380" preserveAspectRatio="none" aria-hidden="true">
+    <g stroke="#1B2739" stroke-width="1" fill="none">
+      <path d="M210 0 L210 380"/>
+      <path d="M150 0 L20 380"/><path d="M270 0 L400 380"/>
+      <path d="M96 60 L324 60"/><path d="M62 140 L358 140"/>
+      <path d="M20 250 L400 250"/>
+    </g>
+    <path d="M210 0 L210 380" stroke="#243450" stroke-width="1.5"/>
+  </svg>
+
+  <div class="stack">
+    <div class="status rise">
+      <span>MALAHIDE · DUBLIN</span>
+      <span class="live"><span class="dot"></span>2 COURTS LIVE NOW</span>
+    </div>
+
+    <header class="hero rise d1">
+      <div class="kicker">Next match — Thu 23 Jul</div>
+      <h1>Match<br>day<span class="ball-txt">.</span></h1>
+      <div class="until" role="text" aria-label="18 days, 7 hours, 43 minutes to your next game">
+        <span class="num" id="dd">18</span><span class="unit">days</span>
+        <span class="sep">/</span>
+        <span class="num" id="hh">07</span><span class="unit">hrs</span>
+        <span class="sep">/</span>
+        <span class="num" id="mm">43</span><span class="unit">min</span>
+      </div>
+    </header>
+
+    <a class="fixture rise d2" href="#game">
+      <div class="fixture-head"><span>Your fixture</span><b>CONFIRMED</b></div>
+      <div class="fixture-body">
+        <div>
+          <div class="venue">Malahide<br>Padel Club</div>
+          <div class="fixture-meta">Court 2 · Doubles · <b>Level 1.5–2.5</b></div>
+        </div>
+        <div class="clock">
+          <span class="t">19:30</span>
+          <span class="z">– 21:00</span>
+        </div>
+      </div>
+      <div class="fixture-foot">
+        <div class="squad">
+          <span class="av">DA</span><span class="av">SO</span><span class="av">MA</span><span class="av open">+</span>
+        </div>
+        <span class="spots">1 SPOT OPEN · €13</span>
+      </div>
+    </a>
+
+    <div class="board rise d3" role="group" aria-label="Your season">
+      <div class="cell"><div class="v">14</div><div class="k">Played</div></div>
+      <div class="cell"><div class="v">9</div><div class="k">Won</div></div>
+      <div class="cell"><div class="v">W3</div><div class="k">Streak</div></div>
+    </div>
+
+    <a class="cta rise d4" href="#discover">
+      <div>
+        <div class="big">Find a game</div>
+        <div class="sub">6 open courts near you tonight</div>
+      </div>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 12h14m0 0-6-6m6 6-6 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+
+    <div class="ticker-wrap rise d5" aria-hidden="true">
+      <div class="ticker">
+        <span>TONIGHT — CLONTARF <b>19:00</b> · 2 SPOTS</span>
+        <span>SANDYFORD <b>20:00</b> · 1 SPOT</span>
+        <span>BUSHY PARK <b>21:00</b> · 3 SPOTS</span>
+        <span>TONIGHT — CLONTARF <b>19:00</b> · 2 SPOTS</span>
+        <span>SANDYFORD <b>20:00</b> · 1 SPOT</span>
+        <span>BUSHY PARK <b>21:00</b> · 3 SPOTS</span>
+      </div>
+    </div>
+
+    <div class="sect rise d5"><span>Open games</span><a href="#discover">All 6 →</a></div>
+
+    <a class="game rise d6" href="#g2">
+      <div class="when">TUE<small>7 JUL</small></div>
+      <div class="who">
+        <div class="n">Clontarf Padel Centre</div>
+        <div class="m">19:00 – 20:30 · Level 1.0–2.0 · €11</div>
+      </div>
+      <span class="join">JOIN</span>
+    </a>
+    <a class="game rise d6" href="#g3">
+      <div class="when">THU<small>9 JUL</small></div>
+      <div class="who">
+        <div class="n">Sandyford Padel Club</div>
+        <div class="m">20:00 – 21:30 · Level 3.5–4.5 · €14</div>
+      </div>
+      <span class="join">JOIN</span>
+    </a>
+  </div>
+
+  <nav aria-label="Main">
+    <a class="on" href="#home" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3V10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      Home
+    </a>
+    <a href="#games">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Games
+    </a>
+    <a class="fab" href="#create" aria-label="Create game">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+    </a>
+    <a href="#chat">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      Chat
+    </a>
+    <a href="#profile">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      You
+    </a>
+  </nav>
+</div>
+
+<script>
+  // Live countdown to the fixture — scoreboard truth, ticking once a minute.
+  const target = new Date("2026-07-23T19:30:00+01:00");
+  function tick(){
+    let ms = target - Date.now();
+    if (ms < 0) ms = 0;
+    const d = Math.floor(ms/864e5), h = Math.floor(ms%864e5/36e5), m = Math.floor(ms%36e5/6e4);
+    dd.textContent = String(d);
+    hh.textContent = String(h).padStart(2,"0");
+    mm.textContent = String(m).padStart(2,"0");
+  }
+  tick(); setInterval(tick, 30_000);
+</script>
+</body>
+</html>
