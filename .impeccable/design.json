@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-04T00:00:00Z",
+  "title": "Design System: Padel Loop",
+  "extensions": {
+    "colorMeta": {
+      "clubhouse-bone": { "role": "neutral", "displayName": "Clubhouse Bone", "canonical": "#FAF8F3", "tonalRamp": ["#2A2820", "#4A473A", "#6B675A", "#8F8A7B", "#B3AEA0", "#D3CFC2", "#EAE7DD", "#FAF8F3"] },
+      "court-white": { "role": "neutral", "displayName": "Court White", "canonical": "#FFFFFF", "tonalRamp": ["#33312A", "#55524A", "#77746A", "#99968C", "#BBB8B0", "#DDDBD5", "#F2F1ED", "#FFFFFF"] },
+      "pressed-bone": { "role": "neutral", "displayName": "Pressed Bone", "canonical": "#F1EEE6", "tonalRamp": ["#26241D", "#443F33", "#645E4E", "#847D6B", "#A59E8C", "#C6C0B1", "#E0DBCF", "#F1EEE6"] },
+      "evening-ink": { "role": "neutral", "displayName": "Evening Ink", "canonical": "#1C1B17", "tonalRamp": ["#0E0D0B", "#1C1B17", "#33312A", "#4F4C41", "#6E6A5E", "#8F8A7B", "#B3AEA0", "#D8D4C8"] },
+      "quiet-ink": { "role": "neutral", "displayName": "Quiet Ink", "canonical": "#6E6A5E", "tonalRamp": ["#1C1B17", "#33312A", "#4F4C41", "#6E6A5E", "#8F8A7B", "#B3AEA0", "#D3CFC2", "#EFEDE6"] },
+      "faint-ink": { "role": "neutral", "displayName": "Faint Ink", "canonical": "#A8A395", "tonalRamp": ["#2A2820", "#4A473A", "#6B675A", "#8F8A7B", "#A8A395", "#C3BFB3", "#DDDAD1", "#F2F0EA"] },
+      "court-sage": { "role": "primary", "displayName": "Court Sage", "canonical": "#5A6B4D", "tonalRamp": ["#1C2415", "#2E3823", "#404D33", "#5A6B4D", "#7A8A6C", "#9CAA8F", "#C1CBB6", "#E8ECE2"] },
+      "soft-sage": { "role": "primary", "displayName": "Soft Sage", "canonical": "#E8ECE2", "tonalRamp": ["#2E3823", "#404D33", "#5A6B4D", "#7A8A6C", "#9CAA8F", "#C1CBB6", "#DCE2D4", "#E8ECE2"] },
+      "soft-clay": { "role": "tertiary", "displayName": "Soft Clay", "canonical": "#EFE3D7", "tonalRamp": ["#3A2C1F", "#5C4733", "#7E624A", "#9F8065", "#BC9F85", "#D5BFA9", "#E5D3C2", "#EFE3D7"] },
+      "sage-mist": { "role": "tertiary", "displayName": "Sage Mist", "canonical": "#E4E7DC", "tonalRamp": ["#2E3328", "#474F3E", "#636C57", "#818A74", "#A0A893", "#BFC5B3", "#D5D9CB", "#E4E7DC"] },
+      "bone-hairline": { "role": "neutral", "displayName": "Bone Hairline", "canonical": "#E7E3D8", "tonalRamp": ["#26241D", "#443F33", "#645E4E", "#847D6B", "#A59E8C", "#C6C0B1", "#D9D4C7", "#E7E3D8"] },
+      "clay-court-red": { "role": "tertiary", "displayName": "Clay Court Red", "canonical": "#A65D4E", "tonalRamp": ["#2E1712", "#4A251C", "#673528", "#864838", "#A65D4E", "#C07E6F", "#D6A396", "#EBCCC4"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Instrument Serif — screen titles, hero numbers, the Home greeting, the wordmark. Regular weight, sentence case, nowhere else." },
+      "title": { "displayName": "Title", "purpose": "Instrument Sans 600 — card titles (venue names) and section labels." },
+      "body": { "displayName": "Body", "purpose": "Instrument Sans 400 at 15px — all reading text." },
+      "label": { "displayName": "Label", "purpose": "Instrument Sans 500 at 13px — chips, metadata, small buttons." }
+    },
+    "shadows": [
+      { "name": "sheet", "value": "0 8px 32px rgba(28, 27, 23, 0.08)", "purpose": "Bottom sheets and modals only — the single allowed shadow in the app." }
+    ],
+    "motion": [
+      { "name": "press", "value": "transform 150ms ease-out (active: scale 0.98)", "purpose": "The soft press response on every tappable element." },
+      { "name": "pl-rise", "value": "0.35s ease-out; opacity 0→1, translateY 10px→0", "purpose": "Card/list entrance, staggered via animation-delay; disabled under prefers-reduced-motion." },
+      { "name": "color-transition", "value": "colors 150ms ease-out", "purpose": "Nav tab and chip active-state changes." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one sage action on the screen — join, create, confirm.",
+      "html": "<button class=\"ds-btn-primary\">Join game</button>",
+      "css": ".ds-btn-primary { display: block; width: 100%; height: 48px; background: var(--color-accent, #5A6B4D); color: #fff; font-family: 'Instrument Sans', system-ui, sans-serif; font-weight: 500; font-size: 15px; border: none; border-radius: 9999px; cursor: pointer; transition: transform 150ms ease-out; } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-accent, #5A6B4D); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "The quiet sibling — same pill, sunken bone fill.",
+      "html": "<button class=\"ds-btn-secondary\">Maybe later</button>",
+      "css": ".ds-btn-secondary { display: block; width: 100%; height: 48px; background: var(--color-sunken, #F1EEE6); color: var(--color-ink, #1C1B17); font-family: 'Instrument Sans', system-ui, sans-serif; font-weight: 500; font-size: 15px; border: none; border-radius: 9999px; cursor: pointer; transition: transform 150ms ease-out; } .ds-btn-secondary:active { transform: scale(0.98); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--color-accent, #5A6B4D); outline-offset: 2px; }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Pill filter chip; sage tint when active, pressed bone at rest.",
+      "html": "<span class=\"ds-chip\">All levels</span> <span class=\"ds-chip ds-chip--active\">Intermediate</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 13px; font-weight: 500; border-radius: 9999px; padding: 6px 14px; white-space: nowrap; background: var(--color-sunken, #F1EEE6); color: var(--color-ink-secondary, #6E6A5E); transition: background-color 150ms ease-out, color 150ms ease-out; } .ds-chip--active { background: var(--color-accent-soft, #E8ECE2); color: var(--color-accent, #5A6B4D); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The canonical .pl-card — white linen on the bone table, hairline border, no shadow.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Padel Club Dublin</div><div class=\"ds-card-meta\">Sat 5 Jul · <strong>10:00–11:30</strong> · Level 3.0–4.0</div></div>",
+      "css": ".ds-card { background: var(--color-surface, #FFFFFF); border: 1px solid var(--color-line, #E7E3D8); border-radius: 16px; padding: 16px; font-family: 'Instrument Sans', system-ui, sans-serif; } .ds-card-title { font-size: 15px; font-weight: 600; color: var(--color-ink, #1C1B17); } .ds-card-meta { font-size: 13px; color: var(--color-ink-secondary, #6E6A5E); margin-top: 4px; } .ds-card-meta strong { color: var(--color-ink, #1C1B17); font-weight: 500; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Sunken pressed-bone field; the border only appears (in sage) on focus.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search venues\" />",
+      "css": ".ds-input { width: 100%; background: var(--color-sunken, #F1EEE6); border: 1px solid transparent; border-radius: 12px; padding: 12px 16px; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 15px; color: var(--color-ink, #1C1B17); outline: none; transition: border-color 150ms ease-out; } .ds-input::placeholder { color: var(--color-ink-faint, #A8A395); } .ds-input:focus { border-color: var(--color-accent, #5A6B4D); }"
+    },
+    {
+      "name": "Bottom Nav Item",
+      "kind": "nav",
+      "description": "One tab of the four-tab bottom nav: 22px stroke icon over a 10px label; sage when active, faint ink at rest.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-item--active\" href=\"#\"><svg viewBox=\"0 0 24 24\" fill=\"none\" width=\"22\" height=\"22\"><path d=\"M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3V10.5Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/></svg>Home</a><a class=\"ds-nav-item\" href=\"#\"><svg viewBox=\"0 0 24 24\" fill=\"none\" width=\"22\" height=\"22\"><path d=\"M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/></svg>Chat</a></nav>",
+      "css": ".ds-nav { display: flex; gap: 8px; font-family: 'Instrument Sans', system-ui, sans-serif; } .ds-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 56px; font-size: 10px; font-weight: 500; text-decoration: none; color: var(--color-ink-faint, #A8A395); transition: color 150ms ease-out; } .ds-nav-item--active { color: var(--color-accent, #5A6B4D); }"
+    },
+    {
+      "name": "Screen Title",
+      "kind": "custom",
+      "refersTo": "display",
+      "description": "The serif brand moment — Instrument Serif, regular, sentence case.",
+      "html": "<h1 class=\"ds-screen-title\">Ready to play?</h1>",
+      "css": ".ds-screen-title { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 32px; line-height: 1.1; letter-spacing: -0.02em; color: var(--color-ink, #1C1B17); margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Members' Club",
+    "overview": "Padel Loop looks and feels like a calm, well-kept club you're glad to belong to. Quiet quality, a warm welcome, nothing shouting. The ground everywhere is a warm bone — never pure white — with white cards resting on it like fresh linen on a clubhouse table. One deep sage accent speaks for the whole interface: it marks the door to a game and stays silent everywhere else. The system explicitly rejects the corporate / bland SaaS look and noise in all forms: decorative drop shadows, badge clutter, promo banners, gamified streaks and confetti. Surfaces are quiet, but touch is not: every pressable thing responds softly under the thumb — full-round pills, generous radii, a gentle press-scale. Soft and tactile, never stiff.",
+    "keyCharacteristics": [
+      "Warm bone ground (#FAF8F3), white cards, hairline borders — depth without shadows",
+      "One deep sage accent (#5A6B4D) used scarcely, so it's unmissable",
+      "Instrument Serif for the few words that matter; Instrument Sans for everything else",
+      "Full-round pill buttons and chips; soft press feedback (scale 0.98) on everything tappable",
+      "Mobile-first, one job per screen, primary action always in thumb reach"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Court Sage appears on at most ~10% of any screen — the primary action and active states, nothing else. Its rarity is what makes it unmissable.", "section": "colors" },
+      { "name": "The Never-Pure-White Rule", "body": "The page background is always Clubhouse Bone. Court White exists only on cards and sheets; a full-bleed white screen is a bug.", "section": "colors" },
+      { "name": "The Scarce Serif Rule", "body": "Instrument Serif appears only where the brand speaks: screen titles, hero numbers, the greeting, the wordmark. Regular weight, sentence case, never bold, never uppercase. If the serif is everywhere, it's nowhere.", "section": "typography" },
+      { "name": "The Hairline Rule", "body": "If a surface needs separating, give it a 1px #E7E3D8 border, not a shadow. One shadow exists in the whole app, and it belongs to sheets.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep Clubhouse Bone (#FAF8F3) as the page background of every screen — white belongs to cards only.",
+      "Do reserve Court Sage (#5A6B4D) for the primary action and active states; if two things on a screen are sage, one of them is wrong.",
+      "Do use Instrument Serif only for screen titles, hero numbers, the greeting, and the wordmark — regular weight, sentence case.",
+      "Do give every tappable element the soft press response (active:scale-[0.98], 150ms ease-out) — tactile is the personality.",
+      "Do separate surfaces with 1px #E7E3D8 hairlines, and check text contrast: Quiet Ink (#6E6A5E) is for secondary text only, never body copy on tinted surfaces.",
+      "Do respect prefers-reduced-motion on every animation, as .pl-rise already does."
+    ],
+    "donts": [
+      "Don't drift back toward \"corporate / bland SaaS\" — the navy #1e5cff blue-and-white startup look was explicitly rejected and replaced by this system.",
+      "Don't add drop shadows as decoration. One shadow exists (--shadow-sheet, sheets/modals); everything else is flat with hairlines.",
+      "Don't add badge clutter, promo banners, streaks, or confetti — anything that makes a calm club feel like a busy marketplace.",
+      "Don't use pure alarm-red for danger; destructive is always the muted Clay Court Red (#A65D4E), text-only buttons.",
+      "Don't bold or uppercase the serif, and don't let it leak into body text, buttons, or labels.",
+      "Don't invent new colours or radii inline — every value flows from the tokens in src/app/globals.css (@theme)."
+    ]
+  }
+}

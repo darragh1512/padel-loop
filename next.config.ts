@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Hide the floating Next.js dev-tools badge during local development —
+  // it has no effect on the deployed site (and keeps screenshots clean).
+  devIndicators: false,
 };
 
 export default nextConfig;

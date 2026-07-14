@@ -1,5 +1,9 @@
 # Padel Loop
 
+## Design context (read before any UI work)
+- **PRODUCT.md** (project root) — who this is for, brand personality ("calm, premium, welcoming — The Members' Club"), anti-references, and the 5 design principles.
+- **DESIGN.md** (project root) — the visual system: colours (warm bone / deep sage), typography (Instrument Serif/Sans), components, and hard Do's & Don'ts. The tokens themselves live in `src/app/globals.css` (`@theme`) — that file is normative; DESIGN.md explains how to use it.
+
 ## What this project is
 Padel Loop is a mobile/web app that helps padel players **find and join a padel game near them, at their level**.
 
