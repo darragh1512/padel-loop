@@ -94,7 +94,7 @@ function FilterChip({
       </ChipButton>
 
       {open && (
-        <div className="pl-pop absolute z-30 left-0 mt-1.5 min-w-40 rounded-field bg-surface border border-line p-1.5 shadow-sheet">
+        <div className="pl-pop absolute z-30 left-0 mt-1.5 min-w-40 rounded-field bg-papel border-2 border-tinta p-1.5 shadow-sheet">
           {showSearch && (
             <input
               type="text"
@@ -102,14 +102,14 @@ function FilterChip({
               onChange={(e) => setOptQuery(e.target.value)}
               placeholder={`Search ${label.toLowerCase()}`}
               autoFocus
-              className="pl-surface w-full rounded-field text-label text-ink placeholder:text-ink-faint px-3 py-2 mb-1 focus:outline-none focus:border-accent"
+              className="pl-surface w-full rounded-field text-label font-medium text-tinta placeholder:text-tinta/45 px-3 py-2 mb-1 focus:outline-none focus:border-naranja"
             />
           )}
           <button
             type="button"
             onClick={() => onChange(null)}
-            className={`block w-full text-left text-label rounded-field px-3 py-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${
-              value == null ? "text-accent bg-accent-soft" : "text-ink-secondary hover:bg-sunken"
+            className={`block w-full text-left text-label rounded-field px-3 py-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja ${
+              value == null ? "font-extrabold text-tinta bg-lima" : "font-medium text-tinta/70 hover:bg-tinta/6"
             }`}
           >
             {allLabel}
@@ -119,15 +119,15 @@ function FilterChip({
               key={o}
               type="button"
               onClick={() => onChange(o)}
-              className={`block w-full text-left text-label rounded-field px-3 py-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${
-                value === o ? "text-accent bg-accent-soft" : "text-ink hover:bg-sunken"
+              className={`block w-full text-left text-label rounded-field px-3 py-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja ${
+                value === o ? "font-extrabold text-tinta bg-lima" : "font-medium text-tinta hover:bg-tinta/6"
               }`}
             >
               {o}
             </button>
           ))}
           {showSearch && visibleOptions.length === 0 && (
-            <div className="px-3 py-2 text-label text-ink-faint">No {label.toLowerCase()}s found</div>
+            <div className="px-3 py-2 text-label text-tinta/45">No {label.toLowerCase()}s found</div>
           )}
         </div>
       )}
@@ -266,14 +266,14 @@ export default function GameFilters({
 
       {greeting && (
         <h1 className="mt-3.5 relative">
-          <span className="font-display text-display-md text-ink">{greeting}</span>
+          <span className="t-display text-display-md text-papel">{greeting}</span>
           <br />
-          <span className="text-body text-ink-secondary">{headlineText}</span>
+          <span className="text-body font-medium text-papel/85">{headlineText}</span>
         </h1>
       )}
 
       <div className="relative mt-4">
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none">
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tinta/45 pointer-events-none">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
             <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -284,14 +284,14 @@ export default function GameFilters({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search venue or area"
-          className="pl-surface w-full rounded-pill text-body text-ink placeholder:text-ink-faint pl-10 pr-9 py-2.5 focus:outline-none focus:border-accent"
+          className="pl-surface w-full rounded-pill text-body font-medium text-tinta placeholder:text-tinta/45 pl-10 pr-9 py-2.5 focus:outline-none focus:border-naranja"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
             aria-label="Clear search"
-            className="pl-hit absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent rounded-pill"
+            className="pl-hit absolute right-3 top-1/2 -translate-y-1/2 text-tinta/45 hover:text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima rounded-pill"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -370,11 +370,11 @@ export default function GameFilters({
         filtered.map((g, i) => <GameCard key={g.id} game={g} delay={Math.min(i, 6) * 50} />)
       ) : (
         <EmptyState
-          title={anyActive ? "Nothing matches — yet." : "No games on the board."}
+          title={anyActive ? "Nothing matches — yet." : "The board is empty. ¿Jugamos?"}
           body={
             anyActive
-              ? "Loosen a filter or two and more games will appear."
-              : "Be the one who gets a game going — the Loop fills the spots."
+              ? "Loosen a filter or two and more posters will appear."
+              : "Be the one who pins a game up — the Loop fills the spots."
           }
           action={
             anyActive ? (

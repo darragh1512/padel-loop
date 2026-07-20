@@ -36,20 +36,20 @@ function NotificationItem({ n, delay = 0 }: { n: Notification; delay?: number })
       className="pl-card p-4 mb-3 flex items-start gap-3 pl-rise"
       style={{ animationDelay: `${delay}ms` }}
     >
-      {/* Unread = solid accent dot; read = hollow, muted. */}
+      {/* Unread = the naranja stamp dot; read = hollow, muted. */}
       <span
-        className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
-          n.is_read ? "border border-line" : "bg-accent"
+        className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${
+          n.is_read ? "border-[1.5px] border-tinta/30" : "bg-naranja border border-tinta"
         }`}
       />
       <div className="flex-1">
-        <div className={`text-body ${n.is_read ? "text-ink-secondary font-normal" : "text-ink font-medium"}`}>
+        <div className={`text-body ${n.is_read ? "text-tinta/70 font-medium" : "text-tinta font-extrabold"}`}>
           {n.message}
         </div>
-        <div className="text-label text-ink-faint mt-1">{timeAgo(n.created_at)}</div>
+        <div className="t-mono text-[9px] tracking-[0.1em] text-tinta/45 mt-1.5">{timeAgo(n.created_at)}</div>
       </div>
       {n.game_id != null && (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 text-ink-faint shrink-0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 text-tinta/45 shrink-0">
           <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       )}
@@ -97,25 +97,26 @@ export default function NotificationsPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-display-md text-ink mt-2 relative">
-        Notifications
+      <p className="t-mono text-micro text-papel/80 mt-2">Fresh from the board</p>
+      <h1 className="t-display text-display-md text-papel mt-1.5 relative">
+        N<span className="text-lima">o</span>tifications
       </h1>
-      <p className="text-label text-ink-secondary mt-1 mb-4">
+      <p className="text-label font-medium text-papel/85 mt-1.5 mb-4">
         Updates about the games you run.
       </p>
 
       {loading ? (
-        // Skeleton rows in the shape of the list — sunken, subtle pulse.
+        // Skeleton rows in the shape of the list — papel ghosts.
         <div className="space-y-3">
-          <div className="bg-sunken rounded-card h-18 pl-skeleton" />
-          <div className="bg-sunken rounded-card h-18 pl-skeleton" />
+          <div className="rounded-card h-18 pl-skeleton" />
+          <div className="rounded-card h-18 pl-skeleton" />
         </div>
       ) : items.length > 0 ? (
         items.map((n, i) => <NotificationItem key={n.id} n={n} delay={i * 40} />)
       ) : (
-        <div className="pl-card px-4 py-6 text-center">
-          <div className="font-display text-display-xs text-ink">Nothing yet.</div>
-          <div className="text-label text-ink-secondary mt-1.5">
+        <div className="pl-card pena-staples pena-tilt-b px-4 pt-7 pb-6 text-center">
+          <div className="t-display text-display-xs text-tinta">Nothing yet.</div>
+          <div className="text-label font-medium text-tinta/70 mt-2">
             We’ll tell you here when one of your games fills up.
           </div>
         </div>

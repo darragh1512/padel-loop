@@ -116,11 +116,11 @@ export default function EditGamePage() {
     // Skeletons in the shape of the form — sunken, subtle pulse.
     return (
       <main className="px-5 pt-6 relative">
-        <div className="bg-sunken rounded-field h-9 w-44 mt-2 pl-skeleton" />
+        <div className="rounded-field h-9 w-44 mt-2 pl-skeleton" />
         <div className="mt-8 space-y-2.5">
-          <div className="bg-sunken rounded-field h-[60px] pl-skeleton" />
-          <div className="bg-sunken rounded-field h-[60px] pl-skeleton" />
-          <div className="bg-sunken rounded-field h-[60px] pl-skeleton" />
+          <div className="rounded-field h-[60px] pl-skeleton" />
+          <div className="rounded-field h-[60px] pl-skeleton" />
+          <div className="rounded-field h-[60px] pl-skeleton" />
         </div>
         <BottomNav />
       </main>
@@ -128,21 +128,22 @@ export default function EditGamePage() {
   }
 
   const fieldClass =
-    "w-full bg-transparent text-body font-medium text-ink outline-none placeholder:text-ink-faint [color-scheme:light]";
+    "w-full bg-transparent text-body font-semibold text-tinta outline-none placeholder:text-tinta/45 placeholder:font-normal [color-scheme:light]";
 
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-display-md text-ink mt-2 relative">
+      <p className="t-mono text-micro text-papel/80 mt-2">Fix the poster</p>
+      <h1 className="t-display text-display-md text-papel mt-1.5 relative">
         Edit a game
       </h1>
-      <p className="text-label text-ink-secondary mt-1 mb-4">
+      <p className="text-label font-medium text-papel/85 mt-1.5 mb-4">
         Update the details — players see the changes straight away.
       </p>
 
       <SectionLabel>Where &amp; when</SectionLabel>
 
-      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-accent">
-        <label className="block text-label text-ink-secondary mb-1">Venue</label>
+      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-naranja">
+        <label className="t-mono block text-micro tracking-[0.12em] text-tinta/70 mb-1">Venue</label>
         <input
           type="text"
           value={venue}
@@ -152,8 +153,8 @@ export default function EditGamePage() {
         />
       </div>
 
-      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-accent">
-        <label className="block text-label text-ink-secondary mb-1">Location</label>
+      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-naranja">
+        <label className="t-mono block text-micro tracking-[0.12em] text-tinta/70 mb-1">Location</label>
         <input
           type="text"
           value={location}
@@ -163,8 +164,8 @@ export default function EditGamePage() {
         />
       </div>
 
-      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-accent">
-        <label className="block text-label text-ink-secondary mb-1">Date &amp; time</label>
+      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-naranja">
+        <label className="t-mono block text-micro tracking-[0.12em] text-tinta/70 mb-1">Date &amp; time</label>
         <input
           type="datetime-local"
           value={gameTime}
@@ -183,8 +184,8 @@ export default function EditGamePage() {
             onClick={() => setSkillLevel(s)}
             className={`flex-1 text-center text-label py-2 rounded-full transition-colors duration-150 ease-out ${
               skillLevel === s
-                ? "bg-surface text-accent font-medium border border-line"
-                : "text-ink-secondary font-medium border border-transparent"
+                ? "bg-lima text-tinta font-extrabold border-[1.5px] border-tinta"
+                : "text-tinta/70 font-semibold border-[1.5px] border-transparent"
             }`}
           >
             {s}
@@ -193,22 +194,22 @@ export default function EditGamePage() {
       </div>
 
       <div className="pl-surface rounded-field px-4 py-3 mb-2.5 flex justify-between items-center">
-        <label className="text-label text-ink-secondary">Max players</label>
+        <label className="t-mono text-micro tracking-[0.12em] text-tinta/70">Max players</label>
         <div className="flex items-center gap-3">
           <button
             type="button"
             aria-label="Fewer players"
             onClick={() => setMaxPlayers((n) => Math.max(2, n - 1))}
-            className="w-7 h-7 rounded-full bg-accent-soft text-accent text-lg leading-none flex items-center justify-center active:scale-95 transition-transform duration-150 ease-out"
+            className="w-7 h-7 rounded-full bg-papel border-[1.5px] border-tinta text-tinta text-lg leading-none flex items-center justify-center active:scale-95 transition-transform duration-150 ease-out"
           >
             −
           </button>
-          <span className="text-body font-semibold text-ink w-4 text-center">{maxPlayers}</span>
+          <span className="text-body font-extrabold text-tinta w-4 text-center">{maxPlayers}</span>
           <button
             type="button"
             aria-label="More players"
             onClick={() => setMaxPlayers((n) => Math.min(8, n + 1))}
-            className="w-7 h-7 rounded-full bg-accent-soft text-accent text-lg leading-none flex items-center justify-center active:scale-95 transition-transform duration-150 ease-out"
+            className="w-7 h-7 rounded-full bg-lima border-[1.5px] border-tinta text-tinta text-lg leading-none flex items-center justify-center active:scale-95 transition-transform duration-150 ease-out"
           >
             +
           </button>
@@ -221,7 +222,7 @@ export default function EditGamePage() {
         {saving ? "Saving…" : "Save changes"}
       </PrimaryButton>
       {error && (
-        <p className="text-center text-label text-danger mt-2">
+        <p className="text-center text-label font-semibold text-papel bg-naranja-d rounded-field px-3 py-1.5 mt-2">
           Couldn&apos;t save those changes. Please try again.
         </p>
       )}

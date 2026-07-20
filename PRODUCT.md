@@ -20,22 +20,24 @@ Deliberately out of scope for now: payments/court booking, rankings/tournaments,
 
 ## Brand Personality
 
-**Calm, premium, welcoming.** A considered-club feel — closer to a wellness-lifestyle brand than to sporty tech. Quiet confidence: the serif speaks, the interface doesn't shout. Warmth comes from type, tone of voice, and the sage accent used sparingly — never from noise, badges, or gamification. Voice is plain, friendly, and short ("Ready to play?", "Your next game").
+**THE PEÑA: warm, loud, physical, social.** A neighbourhood Spanish padel club's corkboard, not a software product: blue court paint, riso-printed match posters, ticket stubs, the club stamp. Confidence comes from shouting the right things in condensed capitals and printing the details in letterspaced mono — never from gradients or gloss. Voice is plain, friendly and short, with a wink of club Spanish where natural ("Game on?", "¿Jugamos?", "+ you?", "Count me in"). See DESIGN.md — the peña system is final; the earlier wellness/Members' Club exploration is dead.
+
+**Brand architecture:** Loop is the parent brand; Padel Loop = THE PEÑA. Future sibling products (e.g. a 5-a-side football app) get their own names and identities — the FLOODLIT direction in /design-lab is reserved for those, never Padel Loop.
 
 ## Anti-references
 
-- **Corporate / bland SaaS**: the generic blue-and-white dashboard that could be any software product. The app's original navy `#1e5cff` "startup tech" look was explicitly rejected and replaced — never drift back toward it.
-- Drop shadows as decoration, badge clutter, promo banners, streaks/confetti gamification.
-- Anything that makes a calm club feel like a busy marketplace.
+- **Corporate / bland SaaS**: the generic blue-and-white dashboard that could be any software product. The app's original navy `#1e5cff` "startup tech" look was explicitly rejected — never drift back toward it. (The peña's pista blue is court paint with grain and posters on it, not a SaaS ground.)
+- **Sports-tech gloss**: glassy gradients, glow effects, dark-mode neon.
+- Badge clutter, promo banners, confetti gamification — the board carries real games, not engagement bait.
 
 ## Design Principles
 
 1. **One job per screen.** Every screen answers one question (home: "what's my next game?"; discover: "what can I join?"). If an element doesn't serve the screen's job, it goes.
 2. **Fast to a game.** The primary action (find / join / create a game) is always the most prominent thing on screen. Minimise taps and decisions between "I want to play" and "I'm in".
-3. **Quiet surfaces, one accent.** Depth from hairline borders, not shadows; sage reserved for the key action and active states. When everything is calm, the one accented thing is unmissable.
-4. **The serif is the brand moment.** Instrument Serif appears only for screen titles, hero numbers, and the greeting — that scarcity is what makes it feel premium.
+3. **Everything is paper on the wall.** Content lives on papel posters — stapled, tilted, grained — against the painted court wall. Depth is the poster's shadow and the hard riso offset, never soft decorative glow.
+4. **Shout the headline, print the details.** Bricolage Grotesque 800 caps for the few big words; Space Mono 700 caps for dates, labels and metadata; body stays sentence-case 500. Weight, case and family do all the contrast work — no italics, ever.
 5. **Explain like a friend.** UX copy in plain, warm English — no jargon, no corporate voice. (Mirrors how the project itself is built: the owner is a first-time builder.)
 
 ## Accessibility & Inclusion
 
-WCAG AA as the baseline: body text ≥ 4.5:1 contrast against its background (watch muted `ink-secondary` on tinted surfaces), large text ≥ 3:1. Every animation respects `prefers-reduced-motion` (the existing `.pl-rise` pattern already does this — keep it up). Mobile-first and one-hand usable: primary actions in thumb reach, tap targets ≥ 44px. No meaning carried by colour alone (e.g. confirmation states pair the tick with the tint).
+WCAG AA as the baseline: body text ≥ 4.5:1 contrast against its background (tinta on papel is ~15:1; watch reduced-alpha text — `tinta/70` on papel and `papel/80` on pista are the muted floors, and naranja-d, not naranja, is the orange for small text on papel), large text ≥ 3:1. Every animation respects `prefers-reduced-motion` (slap, stamp spin and marquee all render static). Mobile-first and one-hand usable: primary actions in thumb reach, tap targets ≥ 44px. No meaning carried by colour alone (e.g. confirmation states pair the tick with the tint; the winning team gets the word "Winner", not just lima).

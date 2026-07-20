@@ -1,130 +1,219 @@
 @import "tailwindcss";
 
-/* ── Padel Loop design tokens ─────────────────────────────────────────────
-   The single source of truth for colour, type, spacing, radius, depth and
-   motion. Tailwind v4: everything in @theme becomes a utility automatically,
-   e.g. bg-bone, text-ink, text-body, rounded-card, ease-out-strong.
+/* ── Padel Loop design tokens — THE PEÑA ──────────────────────────────────
+   The single source of truth for colour, type, radius, depth and motion.
+   Tailwind v4: everything in @theme becomes a utility automatically,
+   e.g. bg-papel, text-tinta, border-naranja, rounded-card.
 
-   The system (see DESIGN.md): warm bone ground, white cards, one deep sage
-   accent used scarcely, warm ink text. Depth comes from hairline borders,
-   never drop shadows — the one exception is the ambient sheet shadow.      */
+   The system (see DESIGN.md): every screen IS the club corkboard. A court-
+   blue painted wall; everything on it is a piece of paper — match posters,
+   ticket stubs, stamped notices. Derived tones are ALWAYS a token at alpha
+   (bg-tinta/6, text-papel/80…) — never a new hex.                          */
 @theme {
-  /* ── Colour ── */
-
-  /* Grounds */
-  --color-bone:    #FAF8F3; /* app background everywhere — never pure white */
-  --color-surface: #FFFFFF; /* cards and sheets only — the layer ON the bone */
-  --color-sunken:  #F1EEE6; /* pressed bone — inputs, inactive chips, secondary buttons */
-  --color-sunken-strong: #EAE5DA; /* pressed bone, pressed — hover/active on sunken surfaces */
-
-  /* Ink */
-  --color-ink:           #1C1B17; /* primary text — warm near-black */
-  --color-ink-secondary: #6E6A5E; /* secondary text, labels, timestamps */
-  --color-ink-faint:     #A8A395; /* placeholders and disabled only */
-
-  /* Accent — court sage. The single voice of action: primary buttons,
-     active nav/chips, live state. At most ~10% of any screen. */
-  --color-accent:        #5A6B4D;
-  --color-accent-strong: #4C5B41; /* sage, pressed — hover/active on accent surfaces */
-  --color-accent-soft:   #E8ECE2; /* sage whisper — active chip fills, subtle highlights */
-  --color-on-accent:     #FFFFFF; /* text/icons on an accent fill */
-
-  /* Decorative avatar tints — bone/sage/clay range, palette-harmonious.
-     Clay-soft doubles as the hover wash behind destructive text buttons. */
-  --color-clay-soft: #EFE3D7;
-  --color-sage-mist: #E4E7DC;
-
-  /* Lines, status, scrim */
-  --color-line:    #E7E3D8; /* the 1px hairline that does the work shadows would */
-  --color-success: #5A6B4D; /* success speaks in the accent's voice */
-  --color-danger:  #A65D4E; /* muted terracotta — a warning, never an alarm */
-  --color-scrim:   rgb(28 27 23 / 0.4); /* behind sheets and dialogs */
+  /* ── Colour — the peña palette, extracted 1:1 from
+        design-lab/landing-pena.html + wildcard-en.html ── */
+  --color-pista:     #1C5BBF; /* court paint — the wall (gradient start) */
+  --color-pista-d:   #14459A; /* court paint, evening — gradient end, html bg */
+  --color-papel:     #F3E9D2; /* poster paper — every card, sheet, nav, input */
+  --color-tinta:     #191407; /* print ink — text on papel, borders, riso shadows */
+  --color-naranja:   #FF5A1F; /* riso orange — active nav, FAB, venue strips, the "o" */
+  --color-naranja-d: #C93E0F; /* dark cut — small orange text on papel; danger */
+  --color-lima:      #D8E24A; /* faded lime — primary CTAs, active chips, highlights */
+  --color-scrim:     rgb(25 20 7 / 0.55); /* behind dialogs */
 
   /* ── Type ──
-     Instrument Serif = display only (screen titles, hero numbers, greeting,
-     wordmark). Instrument Sans = everything else.                          */
-  --font-display: var(--font-instrument-serif), Georgia, serif;
-  --font-sans:    var(--font-instrument-sans), system-ui, sans-serif;
+     Bricolage Grotesque (500/800) = everything; Space Mono (400/700) = the
+     printed-label voice. Contrast = WEIGHT + CASE + FAMILY. NO ITALICS.    */
+  --font-display: var(--font-bricolage), "Arial Black", system-ui, sans-serif;
+  --font-sans:    var(--font-bricolage), system-ui, sans-serif;
+  --font-mono:    var(--font-space-mono), "Courier New", monospace;
 
-  /* One scale, fixed rem, ~1.2 ratio, anchored on the 13/15px sans pair
-     and the 22–40px serif display range DESIGN.md mandates. */
-  --text-nav: 0.625rem;              /* 10px — bottom-nav labels only */
+  /* One scale, fixed rem. Body/label sizes carry over; display sizes are the
+     poster-headline range (used with .t-display for weight/case/stretch).  */
+  --text-nav: 0.5625rem;             /* 9px — bottom-nav mono labels only */
   --text-nav--line-height: 1.4;
-  --text-micro: 0.6875rem;           /* 11px — faintest annotations ("/ head") */
+  --text-micro: 0.6875rem;           /* 11px — faintest mono annotations */
   --text-micro--line-height: 1.4;
   --text-label: 0.8125rem;           /* 13px — chips, metadata, small buttons */
   --text-label--line-height: 1.4;
   --text-body: 0.9375rem;            /* 15px — all reading text */
   --text-body--line-height: 1.6;
-  --text-title: 0.9375rem;           /* 15px — card/section titles (semibold) */
-  --text-title--line-height: 1.4;
-  --text-display-xs: 1.125rem;       /* 18px — serif moments inside cards */
-  --text-display-xs--line-height: 1.15;
-  --text-display-xs--letter-spacing: -0.02em;
+  --text-title: 1.0625rem;           /* 17px — poster card titles (800 caps) */
+  --text-title--line-height: 1.1;
+  --text-display-xs: 1.125rem;       /* 18px — small poster moments in cards */
+  --text-display-xs--line-height: 1;
   --text-display-sm: 1.375rem;       /* 22px — card-level display, hero numbers */
-  --text-display-sm--line-height: 1.1;
-  --text-display-sm--letter-spacing: -0.02em;
-  --text-display-md: 1.625rem;       /* 26px — screen titles, the greeting */
-  --text-display-md--line-height: 1.1;
-  --text-display-md--letter-spacing: -0.02em;
-  --text-display-lg: 2rem;           /* 32px — the wordmark */
-  --text-display-lg--line-height: 1.1;
-  --text-display-lg--letter-spacing: -0.02em;
-  --text-display-xl: 2.5rem;         /* 40px — the largest brand moment */
-  --text-display-xl--line-height: 1.05;
-  --text-display-xl--letter-spacing: -0.02em;
+  --text-display-sm--line-height: 1;
+  --text-display-md: 1.75rem;        /* 28px — screen titles */
+  --text-display-md--line-height: 0.95;
+  --text-display-lg: 2.25rem;        /* 36px — the wordmark */
+  --text-display-lg--line-height: 0.95;
+  --text-display-xl: 3rem;           /* 48px — the biggest poster shout */
+  --text-display-xl--line-height: 0.9;
 
-  /* ── Space ── the 4px grid (Tailwind's default step, declared as intent).
-     Chip padding (6px 14px) is the one DESIGN.md-mandated exception.       */
+  /* ── Space ── the 4px grid. */
   --spacing: 0.25rem;
 
-  /* ── Shape ── */
-  --radius-field: 12px;  /* inputs and menus */
-  --radius-card:  16px;  /* cards and sheets */
+  /* ── Shape ── posters are barely rounded; pills stay pills. */
+  --radius-field: 4px;   /* inputs and menus */
+  --radius-card:  4px;   /* posters, sheets */
   --radius-pill:  9999px; /* buttons and chips */
 
-  /* ── Depth ── flat by conviction. One shadow in the whole app, and it
-     belongs to sheets/dialogs (The Hairline Rule).                         */
-  --shadow-sheet: 0 8px 32px rgb(28 27 23 / 0.08);
+  /* ── Depth ── two shadows only: the poster's deep drop, and the hard riso
+     offset on controls (see .pena-riso). Nothing soft or decorative.       */
+  --shadow-sheet:  0 14px 34px -12px rgb(8 20 50 / 0.7);  /* pinned poster */
+  --shadow-poster: 0 22px 50px -16px rgb(8 20 50 / 0.7);  /* hero poster */
 
-  /* ── Motion ── quiet at rest, responsive under the thumb.
-     Everything eases out (ease-in delays the moment the user watches);
-     exits are simply FASTER than entrances. Nothing over 300ms.           */
-  --ease-out-strong:  cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-sheet:       cubic-bezier(0.32, 0.72, 0, 1);
+  /* ── Motion ── one ease for everything; exits simply run faster. */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-sheet:      cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* The wall: court-blue gradient + halftone dot grain, fixed so posters
+   scroll over the paint. Court lines are painted by <CourtPaint /> (SVG). */
+html {
+  background: var(--color-pista-d);
+}
 body {
-  background: var(--color-bone);
-  color: var(--color-ink);
+  background:
+    radial-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1.2px) 0 0 / 16px 16px,
+    linear-gradient(174deg, var(--color-pista) 0%, var(--color-pista-d) 100%);
+  background-attachment: fixed;
+  color: var(--color-papel);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
+::selection {
+  background: var(--color-lima);
+  color: var(--color-tinta);
+}
+
+/* ── Type voices ──────────────────────────────────────────────────────────
+   .t-display — the poster shout: Bricolage 800, caps, condensed.
+   .t-mono    — the printed label: Space Mono 700, caps, tracked wide.
+   Pair with a size utility (text-display-md, text-label, …).              */
+.t-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 90%;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+.t-mono {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
 
 /* ── Shared primitives ────────────────────────────────────────────────────
-   .pl-card     — a card: white surface, hairline border, card radius.
-   .pl-surface  — a sunken field: inputs, chips, quiet panels. Carries a
-                  transparent border so focus:border-accent doesn't shift.
-   .pl-press    — soft press feedback for anything tappable.
-   .pl-rise     — entrance: fade + 8px rise, 200ms ease-out.
-   .pl-pop      — menu/popover entrance: fade + slight scale from its origin.
-   .pl-fade-out — exit: quick fade, faster than any entrance.
-   .pl-skeleton — loading placeholder with a slow shimmer.
-   All motion respects prefers-reduced-motion: movement is removed, opacity
-   transitions stay (reduced ≠ zero).                                       */
+   .pl-card      — a pinned poster: papel + paper grain + 4px radius + the
+                   deep poster shadow.
+   .pl-surface   — a printed field: papel with a 2px tinta border (inputs,
+                   quiet panels). Focus turns the border naranja.
+   .pena-staples — two drawn staples at the top corners.
+   .pena-tilt-*  — the poster tilt; interactive posters straighten on hover.
+   .pena-riso    — hard riso offset shadow for lima/naranja controls.
+   .pena-cinta   — the marquee tape (decorative, aria-hidden).
+   .pl-press     — press feedback for anything tappable.
+   .pl-rise      — the "slap": posters land on the board.
+   .pl-skeleton  — loading placeholder (papel ghost on the wall).
+   All motion respects prefers-reduced-motion.                              */
 
 .pl-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
+  background-color: var(--color-papel);
+  background-image: radial-gradient(rgb(25 20 7 / 0.05) 1px, transparent 1.2px);
+  background-size: 9px 9px;
   border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sheet);
+  color: var(--color-tinta);
 }
 .pl-surface {
-  background: var(--color-sunken);
-  border: 1px solid transparent;
+  background: var(--color-papel);
+  border: 2px solid var(--color-tinta);
+  color: var(--color-tinta);
 }
 
-/* Press feedback — the tactile personality. Transform is gated behind
-   reduced-motion; colour still responds so feedback never disappears. */
+/* Staples — the paper is pinned, not floating. */
+.pena-staples {
+  position: relative;
+}
+.pena-staples::before,
+.pena-staples::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  width: 14px;
+  height: 4px;
+  background: rgb(25 20 7 / 0.35);
+  border-radius: 2px;
+}
+.pena-staples::before { left: 22px; transform: rotate(-24deg); }
+.pena-staples::after  { right: 22px; transform: rotate(18deg); }
+
+/* Tilt — posters sit at angles; straighten under a fine pointer's hover. */
+.pena-tilt-a { rotate: -1.2deg; transition: rotate 160ms var(--ease-out-strong); }
+.pena-tilt-b { rotate: 1.1deg;  transition: rotate 160ms var(--ease-out-strong); }
+.pena-tilt-c { rotate: -0.8deg; transition: rotate 160ms var(--ease-out-strong); }
+@media (hover: hover) and (pointer: fine) {
+  a.pena-tilt-a:hover, a.pena-tilt-b:hover, a.pena-tilt-c:hover,
+  button.pena-tilt-a:hover, button.pena-tilt-b:hover, button.pena-tilt-c:hover {
+    rotate: 0deg;
+  }
+}
+
+/* Riso offset — print register on primary controls. Pairs with a 2px tinta
+   border. Pressing pushes the paper flat. */
+.pena-riso {
+  box-shadow: 3px 3px 0 var(--color-tinta);
+  transition:
+    box-shadow 150ms var(--ease-out-strong),
+    translate 150ms var(--ease-out-strong);
+}
+.pena-riso:active {
+  box-shadow: 1px 1px 0 var(--color-tinta);
+  translate: 2px 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pena-riso:not(:active):hover {
+    box-shadow: 4px 4px 0 var(--color-tinta);
+    translate: -1px -1px;
+  }
+}
+
+/* The marquee tape — a tilted tinta band with a scrolling run of fixtures.
+   Content is decorative (aria-hidden); reduced motion parks it. */
+.pena-cinta {
+  background: var(--color-tinta);
+  color: var(--color-papel);
+  overflow: hidden;
+  padding: 8px 0;
+  transform: rotate(-0.6deg) scale(1.02);
+}
+.pena-cinta .run {
+  display: flex;
+  gap: 34px;
+  width: max-content;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.pena-cinta .run b { color: var(--color-lima); font-weight: 700; }
+@media (prefers-reduced-motion: no-preference) {
+  .pena-cinta .run { animation: pena-cinta 26s linear infinite; }
+  @keyframes pena-cinta { to { transform: translateX(-50%); } }
+}
+
+/* The club stamp spins slowly (the SVG lives in brand.tsx). */
+@media (prefers-reduced-motion: no-preference) {
+  .pena-stamp { animation: pena-spin 40s linear infinite; }
+  @keyframes pena-spin { to { transform: rotate(360deg); } }
+}
+
+/* Press feedback — colour always responds; transform is motion-gated. */
 .pl-press {
   transition:
     transform 150ms var(--ease-out-strong),
@@ -137,13 +226,14 @@ body {
   .pl-press:active { transform: scale(0.98); }
 }
 
-/* Entrance: fade + 8px rise. Stagger with animation-delay (≤ 60ms steps). */
+/* Entrance: the slap — the poster lands on the board. Stagger with
+   animation-delay (≤ 60ms steps). Reduced motion: already in place. */
 @media (prefers-reduced-motion: no-preference) {
-  .pl-rise { animation: pl-rise 200ms var(--ease-out-strong) both; }
+  .pl-rise { animation: pena-slap 260ms var(--ease-out-strong) both; }
 }
-@keyframes pl-rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes pena-slap {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 /* Menu/popover entrance — scales in from its trigger corner on insertion. */
@@ -165,19 +255,17 @@ body {
   }
 }
 
-/* Exit: faster than entry (150ms vs 200ms) — the system responding, not
-   deciding. Still eases out; the asymmetry lives in the duration. */
+/* Exit: faster than entry. */
 .pl-fade-out { animation: pl-fade-out 150ms var(--ease-out-strong) both; }
 @keyframes pl-fade-out {
   to { opacity: 0; }
 }
 
-/* Skeletons: sunken blocks matching the real content's layout. The shimmer
-   is decorative and vanishes entirely under reduced motion.               */
+/* Skeletons: papel ghosts on the wall, matching the real content's layout. */
 .pl-skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--color-sunken);
+  background: rgb(243 233 210 / 0.25);
   border-radius: var(--radius-field);
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -189,7 +277,7 @@ body {
     background: linear-gradient(
       90deg,
       transparent,
-      rgb(255 255 255 / 0.55),
+      rgb(243 233 210 / 0.35),
       transparent
     );
     animation: pl-shimmer 1.6s ease-in-out infinite;
@@ -199,9 +287,7 @@ body {
   to { transform: translateX(100%); }
 }
 
-/* Invisible tap-target extension. Small controls (chips, icon buttons) stay
-   visually small, but the thumb gets at least 44×44px (PRODUCT.md baseline).
-   The ::after only widens the hit area — it paints nothing.               */
+/* Invisible tap-target extension — small controls keep a 44×44px hit area. */
 .pl-hit { position: relative; }
 .pl-hit::after {
   content: "";

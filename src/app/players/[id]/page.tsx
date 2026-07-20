@@ -42,16 +42,17 @@ import { getPlayerMatchStats, type PlayerMatchStats } from "../../match-results"
 // One upcoming-game card. The whole card links to that game's detail page —
 // styled to match the cards on "My games" so the app feels consistent.
 function UpcomingGameCard({ game, delay = 0 }: { game: Game; delay?: number }) {
+  const tilt = Math.round(delay / 50) % 2 === 0 ? "pena-tilt-a" : "pena-tilt-b";
   return (
     <Link
       href={`/games/${game.id}`}
-      className="pl-card pl-press pl-rise block p-4 mb-3 hover:bg-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      className={`pl-card pena-staples ${tilt} pl-press pl-rise block p-4 pt-5 mb-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima`}
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex justify-between items-start gap-3">
-        <div>
-          <div className="text-title font-semibold text-ink">{game.venue}</div>
-          <div className="text-label text-ink-secondary mt-1">
+        <div className="min-w-0">
+          <div className="t-display text-title text-tinta">{game.venue}</div>
+          <div className="t-mono text-micro tracking-[0.14em] text-tinta/70 mt-1.5">
             {formatGameTime(game.game_time)}
             {game.location ? <> · {game.location}</> : null}
           </div>
@@ -244,15 +245,15 @@ export default function PlayerProfilePage() {
   if (!profile) {
     return (
       <main className="px-5 pt-6 relative">
-        <h1 className="font-display text-display-md text-ink mt-2">
+        <h1 className="t-display text-display-md text-papel mt-2">
           Player not found
         </h1>
-        <p className="text-label text-ink-secondary mt-1">
+        <p className="text-label font-medium text-papel/85 mt-1.5">
           This player doesn&rsquo;t have a profile yet.
         </p>
         <Link
           href="/"
-          className="inline-block text-accent text-body font-medium mt-4 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="t-mono inline-block text-lima text-label mt-4 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
         >
           ← Back home
         </Link>
@@ -289,22 +290,23 @@ export default function PlayerProfilePage() {
           userId={playerId}
           avatarUrl={shownAvatar}
           name={displayName}
-          className="size-24 ring-1 ring-line"
+          className="size-24 ring-2 ring-tinta"
         />
-        <h1 className="font-display text-display-md text-ink mt-4 max-w-full truncate">
+        <h1 className="t-display text-display-md text-papel mt-4 max-w-full truncate">
           {displayName}
         </h1>
 
-        {/* Stats row — one card, divided into equal cells. Hero numbers get
-            the serif. The connections cell links to /connections for the owner. */}
-        <div className="w-full pl-card mt-5 flex divide-x divide-line">
+        {/* Stats row — one stapled poster, divided into equal cells. Hero
+            numbers get the poster shout; labels are printed mono. The
+            connections cell links to /connections for the owner. */}
+        <div className="w-full pl-card pena-staples pena-tilt-c mt-5 flex divide-x-2 divide-tinta/15 pt-2">
           {stats.map((s) => {
             const inner = (
               <>
-                <div className="font-display text-display-xs text-ink truncate">
+                <div className="t-display text-display-xs text-tinta truncate">
                   {s.value}
                 </div>
-                <div className="text-label text-ink-secondary mt-1">
+                <div className="t-mono text-[9px] tracking-[0.1em] text-naranja-d mt-1.5">
                   {s.label}
                 </div>
               </>
@@ -313,7 +315,7 @@ export default function PlayerProfilePage() {
               <Link
                 key={s.label}
                 href={s.href}
-                className="flex-1 min-w-0 px-2 py-3.5 rounded-field active:opacity-70 transition-opacity duration-150 ease-out hover:bg-bone focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+                className="flex-1 min-w-0 px-2 py-3.5 rounded-field active:opacity-70 transition-opacity duration-150 ease-out hover:bg-lima/20 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja"
               >
                 {inner}
               </Link>
@@ -360,7 +362,7 @@ export default function PlayerProfilePage() {
               >
                 {uploading ? "Uploading…" : "Change photo"}
               </Button>
-              <p className="text-label text-ink-faint mt-1.5">
+              <p className="text-label font-medium text-tinta/45 mt-1.5">
                 JPG or PNG. Replaces your current photo.
               </p>
             </div>
@@ -374,7 +376,7 @@ export default function PlayerProfilePage() {
           </div>
 
           <label className="block mt-4">
-            <span className="text-label font-medium text-ink-secondary">Display name</span>
+            <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Display name</span>
             <Input
               type="text"
               value={fName}
@@ -385,11 +387,11 @@ export default function PlayerProfilePage() {
           </label>
 
           <label className="block mt-3">
-            <span className="text-label font-medium text-ink-secondary">Skill level</span>
+            <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Skill level</span>
             <select
               value={fSkill}
               onChange={(e) => setFSkill(e.target.value)}
-              className="pl-surface w-full mt-1.5 rounded-field px-4 py-3 text-body text-ink outline-none focus:border-accent transition-colors duration-150 ease-out"
+              className="pl-surface w-full mt-1.5 rounded-field px-4 py-3 text-body font-medium text-tinta outline-none focus:border-naranja transition-colors duration-150 ease-out"
             >
               {SKILL_LEVELS.map((s) => (
                 <option key={s} value={s}>
@@ -400,7 +402,7 @@ export default function PlayerProfilePage() {
           </label>
 
           <label className="block mt-3">
-            <span className="text-label font-medium text-ink-secondary">Home club</span>
+            <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Home club</span>
             <Input
               type="text"
               value={fClub}
@@ -411,7 +413,7 @@ export default function PlayerProfilePage() {
           </label>
 
           <label className="block mt-3">
-            <span className="text-label font-medium text-ink-secondary">Bio</span>
+            <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Bio</span>
             <Textarea
               value={fBio}
               onChange={(e) => setFBio(e.target.value)}
@@ -440,7 +442,7 @@ export default function PlayerProfilePage() {
           </div>
           <p
             aria-live="polite"
-            className={`text-center text-label text-danger mt-2 ${error ? "" : "hidden"}`}
+            className={`text-center text-label font-semibold text-naranja-d mt-2 ${error ? "" : "hidden"}`}
           >
             {error}
           </p>
@@ -457,7 +459,7 @@ export default function PlayerProfilePage() {
               <UpcomingGameCard key={game.id} game={game} delay={Math.min(i, 6) * 50} />
             ))
           ) : (
-            <div className="pl-surface rounded-card px-4 py-5 text-center text-label text-ink-secondary">
+            <div className="pl-surface rounded-card px-4 py-5 text-center text-label font-medium text-tinta/70">
               {isOwner
                 ? "Nothing coming up — your next game is waiting on Discover."
                 : `${displayName} has no games coming up.`}
@@ -467,15 +469,15 @@ export default function PlayerProfilePage() {
           {/* About — home club, then bio (when set). */}
           <SectionLabel>About</SectionLabel>
           <div className="pl-card p-4">
-            <div className="flex items-center gap-2 text-label text-ink-secondary">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0 text-ink-faint">
+            <div className="flex items-center gap-2 text-label font-medium text-tinta/70">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0 text-naranja-d">
                 <path d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11Z" stroke="currentColor" strokeWidth="2" />
                 <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" />
               </svg>
               <span>{profile.home_club || "No home club set"}</span>
             </div>
             {profile.bio && (
-              <p className="text-body text-ink whitespace-pre-line mt-3 pt-3 border-t border-line">
+              <p className="text-body font-medium text-tinta whitespace-pre-line mt-3 pt-3 border-t-2 border-tinta/15">
                 {profile.bio}
               </p>
             )}
@@ -494,7 +496,7 @@ export default function PlayerProfilePage() {
           <div className="flex gap-2 mt-2">
             <Link
               href="/connections"
-              className="pl-press flex-1 h-12 flex items-center justify-center gap-2 bg-sunken hover:bg-sunken-strong text-ink font-medium text-body rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="pl-press t-mono flex-1 h-12 flex items-center justify-center gap-2 bg-papel hover:bg-lima/40 text-tinta border-2 border-tinta text-label tracking-[0.12em] rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
                 <circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="2" />
@@ -503,12 +505,12 @@ export default function PlayerProfilePage() {
                 <path d="M17.5 14.4c2 .6 3.5 2.4 3.5 4.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
               Connections
-              <span className="text-label text-ink-secondary">· {connCount}</span>
+              <span className="text-tinta/70">· {connCount}</span>
             </Link>
             <Link
               href="/profile"
               aria-label="Settings"
-              className="pl-press size-12 shrink-0 flex items-center justify-center bg-sunken hover:bg-sunken-strong text-ink rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="pl-press size-12 shrink-0 flex items-center justify-center bg-papel hover:bg-lima/40 text-tinta border-2 border-tinta rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />

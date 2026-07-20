@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Wordmark } from "@/components/brand";
+import { ClubStamp, Wordmark } from "@/components/brand";
 import { Button, Field, Input } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -38,15 +38,17 @@ export default function LoginPage() {
 
   return (
     <main className="px-5 pt-12">
-      <header className="pl-rise">
+      <header className="pl-rise text-papel">
         <Wordmark tagline="Find and join a padel game near you." />
-        <h1 className="font-display text-display-md text-ink mt-10">Log in</h1>
-        <p className="text-label text-ink-secondary mt-1">Welcome back.</p>
+        <h1 className="t-display text-display-md text-papel mt-10">
+          L<span className="text-lima">o</span>g in
+        </h1>
+        <p className="text-label font-medium text-papel/85 mt-1.5">Welcome back to the club.</p>
       </header>
 
       <form
         onSubmit={handleSubmit}
-        className="pl-rise mt-6 flex flex-col gap-3.5"
+        className="pl-rise pl-card pena-staples pena-tilt-c mt-6 p-5 pt-7 flex flex-col gap-3.5"
         style={{ animationDelay: "50ms" }}
       >
         <Field label="Email" htmlFor="login-email" error={null}>
@@ -79,21 +81,26 @@ export default function LoginPage() {
 
         <p
           aria-live="polite"
-          className={`text-center text-label text-danger ${error ? "" : "hidden"}`}
+          className={`text-center text-label font-semibold text-naranja-d ${error ? "" : "hidden"}`}
         >
           {error}
         </p>
       </form>
 
-      <p className="mt-6 text-center text-label text-ink-secondary">
+      <p className="mt-6 text-center text-label font-medium text-papel/85">
         Don&apos;t have an account?{" "}
         <Link
           href="/signup"
-          className="font-medium text-accent hover:underline rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="font-extrabold text-lima hover:underline rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
         >
           Sign up
         </Link>
       </p>
+
+      {/* The club stamp, inked in papel at the bottom of the door. */}
+      <div className="flex justify-center mt-10 text-papel/90" aria-hidden>
+        <ClubStamp size={104} />
+      </div>
     </main>
   );
 }

@@ -249,11 +249,11 @@ export default function LogResult({
           {/* Status line — finalised winner, or how many are left to confirm. */}
           <div className="text-center mb-3">
             {finalised ? (
-              <p className="font-display text-display-sm text-ink">
-                Team {detail.winningTeam} won
+              <p className="t-display text-display-sm text-tinta">
+                Team {detail.winningTeam} w<span className="text-naranja">o</span>n
               </p>
             ) : (
-              <p className="text-label text-ink-secondary">
+              <p className="t-mono text-micro tracking-[0.14em] text-tinta/70">
                 {pendingCount} {pendingCount === 1 ? "player" : "players"} still
                 to confirm
               </p>
@@ -261,7 +261,7 @@ export default function LogResult({
           </div>
 
           {/* Teams — two columns; the winning team is highlighted once final
-              (the sage wash + the "· Winner" word, never colour alone). */}
+              (the lima print pass + the "· Winner" word, never colour alone). */}
           <div className="grid grid-cols-2 gap-2.5">
             {([1, 2] as Team[]).map((team) => {
               const onTeam = detail.participants.filter((p) => p.team === team);
@@ -269,13 +269,13 @@ export default function LogResult({
               return (
                 <div
                   key={team}
-                  className={`rounded-field p-2.5 min-h-24 ${
-                    isWinner ? "bg-accent-soft" : "pl-surface"
+                  className={`rounded-field p-2.5 min-h-24 border-2 ${
+                    isWinner ? "bg-lima border-tinta" : "bg-tinta/6 border-transparent"
                   }`}
                 >
                   <div
-                    className={`text-label text-center mb-2 flex items-center justify-center gap-1 ${
-                      isWinner ? "text-accent font-medium" : "text-ink-secondary"
+                    className={`t-mono text-micro tracking-[0.12em] text-center mb-2 flex items-center justify-center gap-1 ${
+                      isWinner ? "text-tinta" : "text-tinta/70"
                     }`}
                   >
                     Team {team}
@@ -290,20 +290,20 @@ export default function LogResult({
                           name={p.name}
                           className="size-7"
                         />
-                        <span className="text-label font-medium text-ink truncate flex-1">
+                        <span className="text-label font-semibold text-tinta truncate flex-1">
                           {p.name}
                         </span>
                         {p.confirmation === "confirmed" ? (
                           <span
                             aria-label="Confirmed"
-                            className="text-accent text-label leading-none"
+                            className="text-tinta font-extrabold text-label leading-none"
                           >
                             ✓
                           </span>
                         ) : (
                           <span
                             aria-label="Not yet confirmed"
-                            className="text-ink-faint text-micro"
+                            className="t-mono text-tinta/45 text-[9px] tracking-[0.08em]"
                           >
                             pending
                           </span>
@@ -311,7 +311,7 @@ export default function LogResult({
                       </div>
                     ))}
                     {onTeam.length === 0 && (
-                      <div className="text-label text-ink-faint text-center py-2">
+                      <div className="text-label text-tinta/45 text-center py-2">
                         No players
                       </div>
                     )}
@@ -321,15 +321,15 @@ export default function LogResult({
             })}
           </div>
 
-          {/* Set scores — the numbers get the serif, calm and editorial. */}
+          {/* Set scores — the numbers get the poster shout. */}
           <div className="mt-5 space-y-2">
             {detail.sets.map((s) => (
               <div
                 key={s.setNumber}
                 className="flex items-baseline justify-between"
               >
-                <span className="text-label text-ink-secondary">Set {s.setNumber}</span>
-                <span className="font-display text-display-md leading-none text-ink tabular-nums">
+                <span className="t-mono text-micro tracking-[0.14em] text-tinta/70">Set {s.setNumber}</span>
+                <span className="t-display text-display-md leading-none text-tinta tabular-nums">
                   {s.team1Games}–{s.team2Games}
                 </span>
               </div>
@@ -343,13 +343,13 @@ export default function LogResult({
             </Button>
           )}
           {!finalised && myConfirmed && (
-            <p className="text-center text-label text-ink-secondary mt-3">
+            <p className="text-center text-label font-medium text-tinta/70 mt-3">
               You&apos;ve confirmed — waiting on the others.
             </p>
           )}
           <p
             aria-live="polite"
-            className={`text-center text-label text-danger mt-2 ${confirmError ? "" : "hidden"}`}
+            className={`text-center text-label font-semibold text-naranja-d mt-2 ${confirmError ? "" : "hidden"}`}
           >
             {confirmError}
           </p>
@@ -374,13 +374,13 @@ export default function LogResult({
       <SectionLabel>Log result</SectionLabel>
       <div className="pl-card p-4">
         {/* Teams — two columns; tap a player to switch their side. */}
-        <span className="text-label font-medium text-ink-secondary">Teams</span>
+        <span className="t-mono text-micro tracking-[0.14em] text-naranja-d">Teams</span>
         <div className="grid grid-cols-2 gap-2.5 mt-2">
           {([1, 2] as Team[]).map((team) => {
             const onTeam = players.filter((p) => teams[p.id] === team);
             return (
-              <div key={team} className="pl-surface rounded-field p-2.5 min-h-24">
-                <div className="text-label text-ink-secondary text-center mb-2">
+              <div key={team} className="bg-tinta/6 rounded-field p-2.5 min-h-24">
+                <div className="t-mono text-micro tracking-[0.12em] text-tinta/70 text-center mb-2">
                   Team {team}
                 </div>
                 <div className="space-y-1.5">
@@ -389,13 +389,13 @@ export default function LogResult({
                       key={p.id}
                       type="button"
                       onClick={() => flipTeam(p.id)}
-                      className="pl-press w-full text-left text-label font-medium text-ink bg-surface border border-line rounded-field px-2.5 py-2 truncate hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      className="pl-press w-full text-left text-label font-semibold text-tinta bg-papel border-[1.5px] border-tinta rounded-field px-2.5 py-2 truncate hover:border-naranja focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
                     >
                       {p.name}
                     </button>
                   ))}
                   {onTeam.length === 0 && (
-                    <div className="text-label text-ink-faint text-center py-2">
+                    <div className="text-label text-tinta/45 text-center py-2">
                       No players
                     </div>
                   )}
@@ -404,24 +404,24 @@ export default function LogResult({
             );
           })}
         </div>
-        <p className="text-label text-ink-faint mt-1.5 text-center">
+        <p className="text-label font-medium text-tinta/45 mt-1.5 text-center">
           Tap a player to switch their team.
         </p>
 
         {/* Set scores — 1 to 3 sets, games per team 0–7. */}
         <div className="flex items-center justify-between mt-5">
-          <span className="text-label font-medium text-ink-secondary">Set scores</span>
+          <span className="t-mono text-micro tracking-[0.14em] text-naranja-d">Set scores</span>
           {sets.length < 3 && (
             <button
               type="button"
               onClick={addSet}
-              className="pl-hit text-label text-accent font-medium rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="pl-hit text-label text-tinta font-extrabold uppercase tracking-[0.04em] border-b-2 border-naranja rounded-none active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
             >
               + Add set
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-2 text-label text-ink-faint">
+        <div className="t-mono flex items-center gap-2 mt-2 text-[9px] tracking-[0.1em] text-tinta/45">
           <span className="w-12" />
           <span className="w-14 text-center">Team 1</span>
           <span className="w-3" />
@@ -430,29 +430,29 @@ export default function LogResult({
         <div className="space-y-2 mt-1">
           {sets.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="text-label text-ink-secondary w-12">Set {i + 1}</span>
+              <span className="t-mono text-micro tracking-[0.1em] text-tinta/70 w-12">Set {i + 1}</span>
               <input
                 inputMode="numeric"
                 value={s.t1}
                 onChange={(e) => setScore(i, "t1", e.target.value)}
                 placeholder="0"
                 aria-label={`Set ${i + 1} Team 1 games`}
-                className="pl-surface w-14 text-center rounded-field py-2 font-display text-display-sm leading-none text-ink placeholder:text-ink-faint outline-none focus:border-accent transition-colors duration-150 ease-out"
+                className="pl-surface w-14 text-center rounded-field py-2 t-display text-display-sm leading-none text-tinta placeholder:text-tinta/45 outline-none focus:border-naranja transition-colors duration-150 ease-out"
               />
-              <span className="w-3 text-center text-ink-faint">–</span>
+              <span className="w-3 text-center text-tinta/45">–</span>
               <input
                 inputMode="numeric"
                 value={s.t2}
                 onChange={(e) => setScore(i, "t2", e.target.value)}
                 placeholder="0"
                 aria-label={`Set ${i + 1} Team 2 games`}
-                className="pl-surface w-14 text-center rounded-field py-2 font-display text-display-sm leading-none text-ink placeholder:text-ink-faint outline-none focus:border-accent transition-colors duration-150 ease-out"
+                className="pl-surface w-14 text-center rounded-field py-2 t-display text-display-sm leading-none text-tinta placeholder:text-tinta/45 outline-none focus:border-naranja transition-colors duration-150 ease-out"
               />
               {sets.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeSet(i)}
-                  className="pl-hit ml-auto text-label text-ink-faint rounded-field hover:text-ink-secondary active:opacity-70 transition-[color,opacity] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="pl-hit ml-auto text-label font-medium text-tinta/45 rounded-field hover:text-tinta active:opacity-70 transition-[color,opacity] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
                 >
                   Remove
                 </button>
@@ -475,7 +475,7 @@ export default function LogResult({
         </div>
         <p
           aria-live="polite"
-          className={`text-center text-label text-danger mt-2 ${error ? "" : "hidden"}`}
+          className={`text-center text-label font-semibold text-naranja-d mt-2 ${error ? "" : "hidden"}`}
         >
           {error}
         </p>

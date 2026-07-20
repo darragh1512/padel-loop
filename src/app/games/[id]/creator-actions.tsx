@@ -90,7 +90,7 @@ export default function CreatorActions({
         onClose={() => !working && setConfirming(false)}
         title="Cancel this game?"
       >
-        <p className="text-label text-ink-secondary mt-1.5">
+        <p className="text-label font-medium text-tinta/70 mt-2">
           Everyone in the game will see it&apos;s off. This can&apos;t be undone.
         </p>
 
@@ -115,7 +115,7 @@ export default function CreatorActions({
 
         <p
           aria-live="polite"
-          className={`text-center text-label text-danger mt-3 ${error ? "" : "hidden"}`}
+          className={`text-center text-label font-semibold text-naranja-d mt-3 ${error ? "" : "hidden"}`}
         >
           Couldn&apos;t cancel that game. Please try again.
         </p>

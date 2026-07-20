@@ -25,16 +25,17 @@ export default async function GameChatPage({
 
   return (
     // Fixed overlay so the chat truly fills the screen, ignoring the app
-    // shell's bottom-nav padding. Centred to the same phone width as the rest
-    // of the app.
-    <div className="fixed inset-0 z-40 bg-bone">
+    // shell's bottom-nav padding. The whole conversation is one big papel
+    // poster — writing on the noticeboard. Centred to the same phone width
+    // as the rest of the app.
+    <div className="fixed inset-0 z-40 bg-papel [background-image:radial-gradient(rgb(25_20_7_/_0.05)_1px,transparent_1.2px)] [background-size:9px_9px]">
       <div className="mx-auto max-w-md h-full flex flex-col">
         {/* Compact summary strip — venue, area · time, plus back + view game. */}
-        <header className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-line bg-surface">
+        <header className="shrink-0 flex items-center gap-3 px-4 py-3 border-b-2 border-tinta bg-papel text-tinta">
           <Link
             href="/chat"
             aria-label="Back to chats"
-            className="pl-press pl-hit shrink-0 text-ink-secondary hover:text-ink rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="pl-press pl-hit shrink-0 text-tinta/70 hover:text-tinta rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path
@@ -48,17 +49,17 @@ export default async function GameChatPage({
           </Link>
 
           <div className="min-w-0 flex-1">
-            <div className="text-title font-semibold text-ink truncate">
+            <div className="text-body font-extrabold text-tinta truncate">
               {game.venue}
             </div>
-            <div className="text-label text-ink-secondary truncate">
+            <div className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 truncate mt-0.5">
               {game.location} · {formatGameTime(game.game_time)}
             </div>
           </div>
 
           <Link
             href={`/games/${id}`}
-            className="pl-press shrink-0 text-label font-medium text-ink bg-sunken hover:bg-sunken-strong rounded-pill px-3 py-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="pl-press t-mono shrink-0 text-[9px] tracking-[0.1em] text-tinta bg-papel border-[1.5px] border-tinta hover:bg-lima/40 rounded-pill px-3 py-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
           >
             View game
           </Link>

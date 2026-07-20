@@ -88,16 +88,16 @@ export default function HomeDashboard() {
     };
   }, []);
 
-  // "Good morning, Darragh." — the signature moment of the app. Instrument
-  // Serif, calm and quiet. The time word always shows once mounted; the first
-  // name is added once the profile loads (omitted if there's no name yet).
+  // "GOOD EVENING, DARRAGH." — the poster shout at the top of the board,
+  // papel on the court paint, one "o" inked naranja. The time word always
+  // shows once mounted; the first name is added once the profile loads.
   const firstName = name ? name.trim().split(/\s+/)[0] : null;
   const header = (
     <div className="flex items-start justify-between gap-4">
-      <h1 className="font-display text-display-md text-ink min-h-8">
+      <h1 className="t-display text-display-md text-papel min-h-8">
         {period ? (
           <>
-            Good {period}
+            G<span className="text-lima">o</span>od {period}
             {firstName ? <>, {firstName}</> : null}.
           </>
         ) : null}
@@ -126,79 +126,83 @@ export default function HomeDashboard() {
   return (
     <>
       {header}
-      <div className="mt-6 space-y-3">
-        {/* Hero — the next game, or an invitation to find one. A quiet white
-            card either way: the sage on this screen belongs to Find a game. */}
+      <div className="mt-6 space-y-4">
+        {/* Hero — TONIGHT'S MATCH POSTER: the next game stapled to the board,
+            or an invitation to pin one up. */}
         {nextGame ? (
           <Link
             href={`/games/${nextGame.id}`}
-            className="pl-press pl-rise block pl-card p-5 hover:bg-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="pl-press pl-rise pena-tilt-a block pl-card pena-staples p-5 pt-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-label text-ink-secondary">Your next game</span>
+            <div className="flex items-center justify-between gap-3">
+              <span className="t-mono text-micro tracking-[0.2em] text-naranja-d">
+                Your next game
+              </span>
               <Chip>{nextGame.skill_level}</Chip>
             </div>
-            <div className="text-title font-semibold text-ink mt-2">
+            <div className="t-display text-display-sm text-tinta mt-2.5">
               {nextGame.venue}
             </div>
-            <div className="text-body text-ink mt-0.5">
+            <div className="t-mono text-label tracking-[0.12em] text-tinta mt-2">
               {formatGameTime(nextGame.game_time)}
             </div>
             <div className="flex items-center justify-between mt-2.5">
-              <span className="text-label text-ink-secondary">{nextGame.location}</span>
-              <ChevronRight className="text-ink-faint" />
+              <span className="text-label font-medium text-tinta/70">{nextGame.location}</span>
+              <ChevronRight className="text-tinta/45" />
             </div>
           </Link>
         ) : (
-          <div className="pl-card pl-rise p-5 flex items-center gap-4">
+          <div className="pl-card pena-staples pena-tilt-a pl-rise p-5 pt-6 flex items-center gap-4">
             <MiniLoop size={40} />
             <div>
-              <div className="text-title font-semibold text-ink">
-                Ready to play?
+              <div className="t-display text-display-xs text-tinta">
+                Game <span className="text-naranja">o</span>n?
               </div>
-              <div className="text-label text-ink-secondary mt-0.5">
-                Nothing booked yet — your next game is a tap away.
+              <div className="text-label font-medium text-tinta/70 mt-1">
+                Nothing on the board yet — your next game is a tap away.
               </div>
             </div>
           </div>
         )}
 
-        {/* Find a game — the primary action. The one solid sage thing here. */}
+        {/* Find a game — the primary action: the lima ticket with the hard
+            riso offset. The one loud thing on this screen. */}
         <Link
           href="/discover"
-          className="pl-press pl-rise flex items-center gap-3.5 rounded-card p-4 bg-accent hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="pl-rise pena-riso flex items-center gap-3.5 rounded-card p-4 bg-lima text-tinta border-2 border-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-papel"
           style={{ animationDelay: "50ms" }}
         >
-          <span className="size-11 rounded-pill bg-on-accent/15 text-on-accent flex items-center justify-center shrink-0">
+          <span className="size-11 rounded-pill border-2 border-tinta flex items-center justify-center shrink-0">
             <SearchIcon />
           </span>
           <span className="flex-1 min-w-0">
-            <span className="block font-medium text-body text-on-accent">Find a game</span>
-            <span className="block text-label text-on-accent/75 mt-0.5">
+            <span className="t-mono block text-label tracking-[0.14em]">Find a game</span>
+            <span className="block text-label font-medium text-tinta/75 mt-0.5">
               Open games near you, at your level
             </span>
           </span>
-          <ChevronRight className="text-on-accent/80" />
+          <ChevronRight />
         </Link>
 
-        {/* Connections — count + link to the connections list. */}
+        {/* Connections — count + link to the connections list. A quiet paper
+            strip on the board. */}
         <Link
           href="/connections"
-          className="pl-press pl-rise flex items-center gap-3.5 pl-card p-4 hover:bg-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="pl-press pl-rise flex items-center gap-3.5 pl-card p-4 hover:bg-lima/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
           style={{ animationDelay: "100ms" }}
         >
-          <span className="size-11 rounded-pill bg-sunken text-ink-secondary flex items-center justify-center shrink-0">
+          <span className="size-11 rounded-pill border-[1.5px] border-tinta text-tinta flex items-center justify-center shrink-0">
             <PeopleIcon />
           </span>
           <span className="flex-1 min-w-0">
-            <span className="block font-medium text-body text-ink">Connections</span>
-            <span className="block text-label text-ink-secondary mt-0.5">
+            <span className="block text-body font-extrabold text-tinta">Connections</span>
+            <span className="block text-label font-medium text-tinta/70 mt-0.5">
               {connCount === 0
                 ? "Build your circle of padel friends"
                 : `${connCount} ${connCount === 1 ? "friend" : "friends"} in your loop`}
             </span>
           </span>
-          <ChevronRight className="text-ink-faint" />
+          <ChevronRight className="text-tinta/45" />
         </Link>
       </div>
     </>

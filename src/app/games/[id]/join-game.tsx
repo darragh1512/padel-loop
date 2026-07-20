@@ -92,11 +92,11 @@ export default function JoinGame({
         onClick={joined ? handleLeave : handleJoin}
         loading={working}
       >
-        {joined ? "Leave game" : `Join game · €${perHead.toFixed(0)}`}
+        {joined ? "Leave game" : `Count me in · €${perHead.toFixed(0)}`}
       </Button>
       <p
         aria-live="polite"
-        className={`text-center text-label text-danger mt-2 ${error ? "" : "hidden"}`}
+        className={`text-center text-label font-semibold text-papel bg-naranja-d rounded-field px-3 py-1.5 mt-2 ${error ? "" : "hidden"}`}
       >
         {error}
       </p>

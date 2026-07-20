@@ -32,12 +32,12 @@ const ICONS = {
   ),
 };
 
-/* Shared look for a nav tab: sage when it's where you are, faint otherwise.
-   No press-scale here — tab switches happen constantly and should feel
-   instant, not animated. */
+/* Shared look for a nav tab: printed mono labels — naranja when it's where
+   you are, tinta otherwise. No press-scale here — tab switches happen
+   constantly and should feel instant, not animated. */
 const tabClass = (active: boolean) =>
-  `flex flex-col items-center gap-1 text-nav font-medium w-14 rounded-field transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-    active ? "text-accent" : "text-ink-faint"
+  `t-mono flex flex-col items-center gap-1 text-nav tracking-[0.14em] w-14 rounded-field transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja ${
+    active ? "text-naranja" : "text-tinta"
   }`;
 
 function NavItem({
@@ -104,7 +104,7 @@ function ProfileNavItem() {
         userId={userId}
         avatarUrl={avatarUrl}
         name={name}
-        className={`size-5.5 ${active ? "ring-2 ring-accent" : ""}`}
+        className={`size-5.5 ${active ? "ring-2 ring-naranja" : ""}`}
       />
       Profile
     </Link>
@@ -114,16 +114,19 @@ function ProfileNavItem() {
 export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-20">
-      <div className="mx-auto max-w-md h-21 border-t border-line bg-surface flex items-start justify-around px-4 pt-3">
+      {/* The nav is a papel strip pinned along the bottom of the board, with
+          the club's 3px ink rule on top. The create FAB is the naranja stamp:
+          tinta border + the hard riso offset. */}
+      <div className="mx-auto max-w-md h-21 border-t-[3px] border-tinta bg-papel text-tinta flex items-start justify-around px-4 pt-3">
         <NavItem href="/" label="Home" icon="home" />
         <NavItem href="/my-games" label="My Games" icon="myGames" />
         <Link
           href="/create"
           aria-label="Create game"
-          className="pl-press size-12 rounded-pill bg-accent text-on-accent hover:bg-accent-strong flex items-center justify-center -mt-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="pena-riso size-12 rounded-pill bg-naranja text-papel border-[3px] border-tinta flex items-center justify-center -mt-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
         >
           <svg viewBox="0 0 24 24" fill="none" className="size-5.5">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
           </svg>
         </Link>
         <NavItem href="/chat" label="Chat" icon="chat" />

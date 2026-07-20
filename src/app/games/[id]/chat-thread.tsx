@@ -171,7 +171,7 @@ export default function ChatThread({
       <>
         <SectionLabel>Group chat</SectionLabel>
         <div className="pl-surface rounded-card px-4 py-5 text-center">
-          <p className="text-label text-ink-secondary">
+          <p className="text-label font-medium text-tinta/70">
             Take a spot in this game and the group chat opens up.
           </p>
         </div>
@@ -183,8 +183,8 @@ export default function ChatThread({
 
   const messageList =
     messages.length === 0 ? (
-      <p className="text-label text-ink-secondary text-center my-6">
-        No messages yet — say hello to your group.
+      <p className="text-label font-medium text-tinta/70 text-center my-6">
+        No messages yet — say hello to your group. ¿Jugamos?
       </p>
     ) : (
       messages.map((m) => {
@@ -211,19 +211,20 @@ export default function ChatThread({
               </Link>
               <Link
                 href={`/players/${m.user_id}`}
-                className="text-label font-medium text-ink-secondary rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
               >
                 {mine ? "You" : m.senderName}
               </Link>
-              <span className="text-micro text-ink-faint">
+              <span className="t-mono text-[9px] tracking-[0.06em] text-tinta/45">
                 {shortTime(m.created_at)}
               </span>
             </div>
+            {/* Paper scraps on the board: yours get the lima print pass. */}
             <div
               className={
                 mine
-                  ? "bg-accent text-on-accent rounded-card rounded-br-md px-3.5 py-2 text-body leading-snug break-words"
-                  : "bg-sunken text-ink rounded-card rounded-bl-md px-3.5 py-2 text-body leading-snug break-words"
+                  ? "bg-lima text-tinta border-[1.5px] border-tinta rounded-card rounded-br-none px-3.5 py-2 text-body font-medium leading-snug break-words"
+                  : "bg-papel text-tinta border-[1.5px] border-tinta rounded-card rounded-bl-none px-3.5 py-2 text-body font-medium leading-snug break-words"
               }
             >
               {m.body}
@@ -238,7 +239,7 @@ export default function ChatThread({
   const composer = (
     <form
       onSubmit={handleSend}
-      className={`flex items-center gap-2 border-t border-line p-3 bg-surface ${
+      className={`flex items-center gap-2 border-t-2 border-tinta p-3 bg-papel ${
         fullScreen ? "pb-[max(0.75rem,env(safe-area-inset-bottom))]" : ""
       }`}
     >
@@ -248,13 +249,13 @@ export default function ChatThread({
         onChange={(e) => setText(e.target.value)}
         placeholder="Message your group…"
         aria-label="Type a message"
-        className="flex-1 pl-surface rounded-pill px-4 py-2.5 text-body text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+        className="flex-1 pl-surface rounded-pill px-4 py-2.5 text-body font-medium text-tinta placeholder:text-tinta/45 focus:outline-none focus:border-naranja transition-colors duration-150 ease-out"
       />
       <button
         type="submit"
         disabled={sending || text.trim().length === 0}
         aria-label="Send message"
-        className="pl-press pl-hit shrink-0 size-10 rounded-pill bg-accent text-on-accent hover:bg-accent-strong inline-flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="pena-riso pl-hit shrink-0 size-10 rounded-pill bg-naranja text-papel border-2 border-tinta inline-flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path
@@ -282,7 +283,7 @@ export default function ChatThread({
         </div>
         <p
           aria-live="polite"
-          className={`text-center text-label text-danger py-1 ${error ? "" : "hidden"}`}
+          className={`text-center text-label font-semibold text-naranja-d py-1 ${error ? "" : "hidden"}`}
         >
           {error}
         </p>
@@ -307,7 +308,7 @@ export default function ChatThread({
       </div>
       <p
         aria-live="polite"
-        className={`text-center text-label text-danger mt-2 ${error ? "" : "hidden"}`}
+        className={`text-center text-label font-semibold text-papel bg-naranja-d rounded-field px-3 py-1.5 mt-2 ${error ? "" : "hidden"}`}
       >
         {error}
       </p>

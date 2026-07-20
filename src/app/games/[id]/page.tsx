@@ -33,7 +33,7 @@ export default async function GameDetailPage({
       <Link
         href="/discover"
         aria-label="Back to games"
-        className="pl-hit inline-flex text-ink-secondary hover:text-ink rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="pl-hit inline-flex text-papel/85 hover:text-papel rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -42,12 +42,10 @@ export default async function GameDetailPage({
 
       <CourtHero />
 
-      <h1 className="font-display text-display-md text-ink mt-5">{game.venue}</h1>
-      <p className="text-label text-ink-secondary mt-1">
+      <h1 className="t-display text-display-md text-papel mt-5">{game.venue}</h1>
+      <p className="t-mono text-micro tracking-[0.16em] text-papel/85 mt-2">
         {game.courtLabel && <>{game.courtLabel} · </>}
-        <span className="text-ink font-medium">
-          {formatDay(game)}, {formatTimeRange(game)}
-        </span>
+        {formatDay(game)} · {formatTimeRange(game)}
       </p>
 
       {/* Owner-only actions: only the game's creator sees these (checked
@@ -61,8 +59,8 @@ export default async function GameDetailPage({
           ["Per head", `€${perHead.toFixed(0)}`],
         ].map(([k, v]) => (
           <div key={k} className="pl-card px-2.5 py-3 text-center">
-            <div className="text-label text-ink-secondary">{k}</div>
-            <div className="text-body font-semibold mt-1 text-ink">{v}</div>
+            <div className="t-mono text-micro tracking-[0.14em] text-naranja-d">{k}</div>
+            <div className="text-body font-extrabold mt-1 text-tinta">{v}</div>
           </div>
         ))}
       </div>
@@ -74,11 +72,11 @@ export default async function GameDetailPage({
         {game.players.map((p) => (
           <div
             key={p.id}
-            className="flex items-center justify-between py-2.5 border-b border-line last:border-0"
+            className="flex items-center justify-between py-2.5 border-b border-tinta/15 last:border-0"
           >
             <Link
               href={`/players/${p.id}`}
-              className="flex items-center gap-3 rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="flex items-center gap-3 rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
             >
               <PlayerAvatar
                 userId={p.id}
@@ -87,8 +85,8 @@ export default async function GameDetailPage({
                 className="size-9"
               />
               <div>
-                <div className="text-body font-medium text-ink">{p.name}</div>
-                <div className="text-label text-ink-secondary">
+                <div className="text-body font-extrabold text-tinta">{p.name}</div>
+                <div className="t-mono text-micro tracking-[0.1em] text-tinta/70">
                   {p.isOrganiser ? "Organiser · " : ""}
                   {p.gamesPlayed ?? 0} games
                 </div>
@@ -101,8 +99,8 @@ export default async function GameDetailPage({
           <div key={`s${i}`} className="flex items-center gap-3 py-2.5">
             <Avatar size="md" />
             <div>
-              <div className="text-body font-medium text-ink-secondary">Open spot</div>
-              <div className="text-label text-ink-faint">This could be you</div>
+              <div className="text-body font-extrabold text-naranja-d">+ you?</div>
+              <div className="text-label font-medium text-tinta/45">This spot is really open</div>
             </div>
           </div>
         ))}
@@ -110,17 +108,17 @@ export default async function GameDetailPage({
 
       <SectionLabel>Cost split</SectionLabel>
       <div className="pl-card p-4">
-        <div className="flex justify-between text-label text-ink-secondary py-1">
+        <div className="flex justify-between text-label font-medium text-tinta/70 py-1">
           <span>Court · {game.durationMins} min</span>
-          <span className="text-ink font-semibold">€{game.courtFee.toFixed(2)}</span>
+          <span className="text-tinta font-extrabold">€{game.courtFee.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between text-label text-ink-secondary py-1">
+        <div className="flex justify-between text-label font-medium text-tinta/70 py-1">
           <span>Split between</span>
-          <span className="text-ink font-semibold">{game.maxPlayers} players</span>
+          <span className="text-tinta font-extrabold">{game.maxPlayers} players</span>
         </div>
-        <div className="flex justify-between items-center text-body text-ink-secondary border-t border-line mt-1.5 pt-2.5">
+        <div className="flex justify-between items-center text-body font-medium text-tinta/70 border-t-2 border-tinta mt-1.5 pt-2.5">
           <span>You pay</span>
-          <span className="font-display text-display-sm text-ink">€{perHead.toFixed(2)}</span>
+          <span className="t-display text-display-sm text-tinta">€{perHead.toFixed(2)}</span>
         </div>
       </div>
 
@@ -128,9 +126,9 @@ export default async function GameDetailPage({
         {isCancelled(game) ? (
           /* Cancelled games can't be joined — show a clear notice in place of
              the Join button so anyone who already joined sees it's off. */
-          <div className="w-full rounded-card py-3 text-center border border-line bg-sunken">
-            <div className="font-medium text-body text-danger">Cancelled</div>
-            <div className="text-label text-ink-secondary mt-0.5">
+          <div className="w-full rounded-card py-4 text-center bg-papel border-2 border-dashed border-naranja-d">
+            <div className="t-mono text-label tracking-[0.14em] text-naranja-d">Cancelled</div>
+            <div className="text-label font-medium text-tinta/70 mt-1">
               This game is off — no need to turn up.
             </div>
           </div>

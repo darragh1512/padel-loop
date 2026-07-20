@@ -54,17 +54,19 @@ export default function SignupPage() {
 
   return (
     <main className="px-5 pt-12">
-      <header className="pl-rise">
+      <header className="pl-rise text-papel">
         <Wordmark tagline="Find and join a padel game near you." />
-        <h1 className="font-display text-display-md text-ink mt-10">Sign up</h1>
-        <p className="text-label text-ink-secondary mt-1">
-          Create an account and take your first spot.
+        <h1 className="t-display text-display-md text-papel mt-10">
+          J<span className="text-lima">o</span>in the club
+        </h1>
+        <p className="text-label font-medium text-papel/85 mt-1.5">
+          Create an account and take your first spot. ¿Jugamos?
         </p>
       </header>
 
       <form
         onSubmit={handleSubmit}
-        className="pl-rise mt-6 flex flex-col gap-3.5"
+        className="pl-rise pl-card pena-staples pena-tilt-c mt-6 p-5 pt-7 flex flex-col gap-3.5"
         style={{ animationDelay: "50ms" }}
       >
         <Field label="Name" htmlFor="signup-name" error={null}>
@@ -84,7 +86,7 @@ export default function SignupPage() {
             id="signup-skill"
             value={skillLevel}
             onChange={(e) => setSkillLevel(e.target.value)}
-            className="pl-surface w-full rounded-field px-4 py-3 text-body text-ink outline-none focus:border-accent transition-colors duration-150 ease-out"
+            className="pl-surface w-full rounded-field px-4 py-3 text-body font-medium text-tinta outline-none focus:border-naranja transition-colors duration-150 ease-out"
           >
             <option value="Beginner">Beginner</option>
             <option value="Intermediate">Intermediate</option>
@@ -123,23 +125,23 @@ export default function SignupPage() {
 
         <p
           aria-live="polite"
-          className={`text-center text-label text-danger ${error ? "" : "hidden"}`}
+          className={`text-center text-label font-semibold text-naranja-d ${error ? "" : "hidden"}`}
         >
           {error}
         </p>
         <p
           aria-live="polite"
-          className={`text-center text-label text-success ${notice ? "" : "hidden"}`}
+          className={`t-mono text-center text-micro text-tinta bg-lima border-[1.5px] border-tinta rounded-field px-3 py-2 ${notice ? "" : "hidden"}`}
         >
           {notice}
         </p>
       </form>
 
-      <p className="mt-6 text-center text-label text-ink-secondary">
+      <p className="mt-6 text-center text-label font-medium text-papel/85">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-medium text-accent hover:underline rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="font-extrabold text-lima hover:underline rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
         >
           Log in
         </Link>

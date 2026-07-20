@@ -29,12 +29,12 @@ export default function HomeGate() {
     };
   }, []);
 
-  // Splash while resolving: the serif wordmark on bone, gently fading in.
+  // Splash while resolving: the poster wordmark on the court paint.
   if (loggedIn === null) {
     return (
       <div className="min-h-dvh flex items-center justify-center">
-        <div className="font-display text-[28px] tracking-tight text-ink pl-fade">
-          padel loop
+        <div className="t-display text-display-md text-papel pl-fade">
+          Padel l<span className="text-naranja">o</span>op
         </div>
       </div>
     );
@@ -45,8 +45,8 @@ export default function HomeGate() {
   return (
     <main className="px-5 pt-6 relative">
       <div className="flex justify-between items-center relative">
-        <div className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
-          <MapPin size={16} strokeWidth={1.5} className="text-ink-faint" />
+        <div className="t-mono flex items-center gap-1.5 text-micro text-papel/85">
+          <MapPin size={16} strokeWidth={1.5} className="text-papel/60" />
           Malahide, Dublin
         </div>
         <div className="flex items-center gap-3.5">

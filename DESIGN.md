@@ -1,203 +1,146 @@
 ---
 name: Padel Loop
-description: Find and join padel games near you, at your level.
+description: Find and join a padel game near you, at your level. THE PEÑA design system.
 colors:
-  clubhouse-bone: "#FAF8F3"
-  court-white: "#FFFFFF"
-  pressed-bone: "#F1EEE6"
-  evening-ink: "#1C1B17"
-  quiet-ink: "#6E6A5E"
-  faint-ink: "#A8A395"
-  court-sage: "#5A6B4D"
-  soft-sage: "#E8ECE2"
-  soft-clay: "#EFE3D7"
-  sage-mist: "#E4E7DC"
-  bone-hairline: "#E7E3D8"
-  clay-court-red: "#A65D4E"
+  pista: "#1C5BBF"
+  pista-oscura: "#14459A"
+  papel: "#F3E9D2"
+  tinta: "#191407"
+  naranja: "#FF5A1F"
+  naranja-oscura: "#C93E0F"
+  lima: "#D8E24A"
 typography:
   display:
-    fontFamily: "Instrument Serif, Georgia, serif"
-    fontSize: "22px-40px"
-    fontWeight: 400
-    lineHeight: 1.1
+    fontFamily: "Bricolage Grotesque, Arial Black, sans-serif"
+    fontWeight: 800
+    textTransform: uppercase
+    fontStretch: "90%"
+    lineHeight: 0.95
     letterSpacing: "-0.02em"
   body:
-    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontFamily: "Bricolage Grotesque, system-ui, sans-serif"
     fontSize: "15px"
-    fontWeight: 400
-    lineHeight: 1.6
-  title:
-    fontFamily: "Instrument Sans, system-ui, sans-serif"
-    fontSize: "15px"
-    fontWeight: 600
-    lineHeight: 1.4
-  label:
-    fontFamily: "Instrument Sans, system-ui, sans-serif"
-    fontSize: "13px"
     fontWeight: 500
-    lineHeight: 1.4
+    lineHeight: 1.6
+  mono-label:
+    fontFamily: "Space Mono, monospace"
+    fontSize: "10px-13px"
+    fontWeight: 700
+    textTransform: uppercase
+    letterSpacing: "0.12em-0.24em"
 rounded:
-  field: "12px"
-  card: "16px"
+  poster: "4px"
+  field: "4px"
   pill: "9999px"
-spacing:
-  xs: "6px"
-  sm: "10px"
-  md: "16px"
-  lg: "24px"
-  xl: "32px"
-components:
-  button-primary:
-    backgroundColor: "{colors.court-sage}"
-    textColor: "{colors.court-white}"
-    rounded: "{rounded.pill}"
-    height: "48px"
-    typography: "{typography.body}"
-  button-secondary:
-    backgroundColor: "{colors.pressed-bone}"
-    textColor: "{colors.evening-ink}"
-    rounded: "{rounded.pill}"
-    height: "48px"
-  chip:
-    backgroundColor: "{colors.pressed-bone}"
-    textColor: "{colors.quiet-ink}"
-    rounded: "{rounded.pill}"
-    padding: "6px 14px"
-  chip-active:
-    backgroundColor: "{colors.soft-sage}"
-    textColor: "{colors.court-sage}"
-    rounded: "{rounded.pill}"
-    padding: "6px 14px"
-  card:
-    backgroundColor: "{colors.court-white}"
-    rounded: "{rounded.card}"
-    padding: "16px"
-  input:
-    backgroundColor: "{colors.pressed-bone}"
-    textColor: "{colors.evening-ink}"
-    rounded: "{rounded.field}"
-    padding: "12px 16px"
 ---
 
-# Design System: Padel Loop
+# Design System: Padel Loop — THE PEÑA
 
-## 1. Overview
+**Superseded the wellness/Club House exploration — peña is final.**
 
-**Creative North Star: "The Members' Club"**
+Source of truth for the identity: `design-lab/landing-pena.html` + `design-lab/wildcard-en.html`. This document is the law extracted from those two files; the live tokens are in `src/app/globals.css` (`@theme`). If this document and those source files ever disagree, the source files win.
 
-Padel Loop looks and feels like a calm, well-kept club you're glad to belong to. Quiet quality, a warm welcome, nothing shouting. The ground everywhere is a warm bone — never pure white — with white cards resting on it like fresh linen on a clubhouse table. One deep sage accent speaks for the whole interface: it marks the door to a game (the join button, the active tab) and stays silent everywhere else. The serif wordmark and screen titles are the brand's voice; everything else steps back and lets them talk.
+## 0. Brand Architecture
 
-The system explicitly rejects the corporate / bland SaaS look — the generic blue-and-white dashboard this app was deliberately redesigned away from (the old navy `#1e5cff` "startup tech" skin is the named anti-reference). It also rejects noise in all forms: decorative drop shadows, badge clutter, promo banners, gamified streaks and confetti. Calm is the luxury.
+**Loop is the parent brand. Padel Loop = THE PEÑA.** Future sibling products (e.g. a 5-a-side football app) are SEPARATE products with their own names/identities. The FLOODLIT direction in `/design-lab` is reserved for those, NOT Padel Loop. Never mix them.
 
-Surfaces are quiet, but touch is not: this is a phone-first app and every pressable thing responds softly under the thumb — full-round pills, generous radii, a gentle press-scale. Soft and tactile, never stiff.
+## 1. The idea
 
-**Key Characteristics:**
-- Warm bone ground (`#FAF8F3`), white cards, hairline borders — depth without shadows
-- One deep sage accent (`#5A6B4D`) used scarcely, so it's unmissable
-- Instrument Serif for the few words that matter; Instrument Sans for everything else
-- Full-round pill buttons and chips; soft press feedback (`scale 0.98`) on everything tappable
-- Mobile-first, one job per screen, primary action always in thumb reach
+Padel wasn't born in a gym — it was born on blue courts in Marbella and Buenos Aires, announced on riso-printed posters stapled to the club corkboard. **Every screen IS the corkboard**: a court-blue painted wall, and everything on it is a piece of paper — a match poster, a ticket stub, a stamped notice. Warm, loud, physical, analogue and social. A neighbourhood club with regulars and in-jokes — never sports-tech, never SaaS.
 
-## 2. Colors
+## 2. Colours (the only palette — no other hex values anywhere)
 
-A warm, natural palette — bone, sage, clay — that reads more wellness club than sports tech.
+| Token | Hex | Role |
+|---|---|---|
+| `--color-pista` | `#1C5BBF` | Court paint. The wall — page background gradient start. |
+| `--color-pista-d` | `#14459A` | Court paint, evening. Gradient end, `<html>` background, theme colour. |
+| `--color-papel` | `#F3E9D2` | Poster paper. Every card, sheet, nav bar, input; text on blue and on naranja. |
+| `--color-tinta` | `#191407` | Print ink. All text on papel, all borders, riso offset shadows, the marquee tape. |
+| `--color-naranja` | `#FF5A1F` | Riso orange. THE active colour: active nav tab, the create FAB, venue strips, the coloured "o". |
+| `--color-naranja-d` | `#C93E0F` | Riso orange, dark cut. Small orange text ON papel (contrast), and the danger voice. |
+| `--color-lima` | `#D8E24A` | Faded lime, second print pass. Primary CTAs, active chips, your chat bubbles, highlights, focus rings. |
 
-### Primary
-- **Court Sage** (`#5A6B4D`, token `--color-accent`): the single voice of action. Join/create buttons, active nav tab, active filter chips, key highlights. Also doubles as the success colour — in this club, success and action are the same green.
-- **Soft Sage** (`#E8ECE2`, token `--color-accent-soft`): the sage whisper. Backgrounds of active chips and subtle highlights, always paired with Court Sage text.
+Derived tones are **always alpha of a token**, via Tailwind opacity modifiers — never new hexes:
+- Pressed paper / quiet fills on papel: `bg-tinta/6` – `bg-tinta/10`
+- Secondary text on papel: `text-tinta/70`; faint/placeholders: `text-tinta/45`
+- Secondary text on the blue wall: `text-papel/80`; faint: `text-papel/60`
+- Hairlines inside papel cards: `border-tinta/15`
+- Scrim behind dialogs: `rgb(25 20 7 / 0.55)` (`--color-scrim`)
+- The wall's dot grain: `rgb(255 255 255 / .06)`; paper grain & staples: `rgb(25 20 7 / .05–.35)`
 
-### Neutral
-- **Clubhouse Bone** (`#FAF8F3`, token `--color-bone`): the app background everywhere. Never pure white.
-- **Court White** (`#FFFFFF`, token `--color-surface`): cards and sheets only — the layer that sits *on* the bone.
-- **Pressed Bone** (`#F1EEE6`, token `--color-sunken`): sunken surfaces — inputs, inactive chips, secondary buttons.
-- **Evening Ink** (`#1C1B17`, token `--color-ink`): primary text, a warm near-black.
-- **Quiet Ink** (`#6E6A5E`, token `--color-ink-secondary`): secondary text, labels, timestamps.
-- **Faint Ink** (`#A8A395`, token `--color-ink-faint`): placeholders and disabled states only.
-- **Bone Hairline** (`#E7E3D8`, token `--color-line`): the 1px border that does the work shadows would do elsewhere.
-
-### Tertiary
-- **Clay Court Red** (`#A65D4E`, token `--color-danger`): destructive actions, muted terracotta — a warning in the palette's own voice, never an alarm-red.
-- **Soft Clay** (`#EFE3D7`) and **Sage Mist** (`#E4E7DC`): decorative avatar tints only, cycled with Soft Sage and Pressed Bone.
-
-### Named Rules
-**The One Accent Rule.** Court Sage appears on at most ~10% of any screen — the primary action and active states, nothing else. Its rarity is what makes it unmissable.
-
-**The Never-Pure-White Rule.** The page background is always Clubhouse Bone. Court White exists only on cards and sheets; a full-bleed white screen is a bug.
+**Named rules**
+- **The Paper Rule.** Content lives on papel. The blue wall is background — headings, kickers and section labels sit directly on it in papel; everything else gets a piece of paper.
+- **Ink, not grey.** There is no grey. Muted = tinta or papel at reduced alpha.
+- **Danger speaks naranja-d** (`#C93E0F`) on papel — dark riso orange, never alarm red.
 
 ## 3. Typography
 
-**Display Font:** Instrument Serif (with Georgia fallback) — regular weight only, sentence case
-**Body Font:** Instrument Sans (with system-ui fallback) — weights 400 / 500 / 600
+- **Bricolage Grotesque** (`--font-sans`, `--font-display`; weights 500 + 800, variable opsz/wdth) — everything.
+- **Space Mono** (`--font-mono`; 400 + 700) — the "printed label" voice: kickers, dates, venue strips, tickets, nav labels, stamps, section labels.
 
-**Character:** A classic serif voice over a clean modern sans — the engraved club sign above a well-run front desk. The serif is warm and literary; the sans is quietly efficient.
+### HARD type rules
+Contrast comes from **WEIGHT** (500 vs 800), **CASE** (caps vs sentence), and **FAMILY** (grotesque vs mono). Nothing else.
+- **NO ITALICS ANYWHERE.** Not for emphasis, not for empty states, not for timestamps.
+- **Display** (`.t-display`): Bricolage 800, UPPERCASE, `font-stretch: 90%`, line-height 0.95, letter-spacing −0.02em. Screen titles, poster headlines, hero numbers, "Team 1 won".
+- **Mono label** (`.t-mono`): Space Mono 700, UPPERCASE, letter-spacing 0.12–0.24em, 9–13px. Kickers, dates, metadata, nav labels, section labels, ticket text.
+- **Body**: Bricolage 500, sentence case, 15px, line-height 1.6. Bold runs are **800**, never 600/700.
+- The signature glyph: one "o" per big headline recoloured naranja (or lima on dark) — `<span class="o1">o</span>`. One per headline, maximum.
 
-### Hierarchy
-- **Display** (400, 22–40px, line-height 1.1, tracking tight): Instrument Serif. Screen titles, hero numbers, the Home greeting, the lowercase "padel loop" wordmark. Nowhere else.
-- **Title** (600, 15px): Instrument Sans semibold. Card titles (venue names), section labels.
-- **Body** (400, 15px, relaxed leading): Instrument Sans. All reading text. Keep lines ≤ 70ch (rarely an issue on mobile widths).
-- **Label** (500, 13px): Instrument Sans medium. Chips, metadata rows, buttons' smaller sibling. 11px only for the faintest annotations (e.g. "/ head") and nav labels (10px).
+## 4. Signature devices (reusable patterns — classes in globals.css)
 
-### Named Rules
-**The Scarce Serif Rule.** Instrument Serif appears only where the brand speaks: screen titles, hero numbers, the greeting, the wordmark. Regular weight, sentence case, never bold, never uppercase. If the serif is everywhere, it's nowhere.
-
-## 4. Elevation
-
-This system is **flat by conviction**: depth comes from layering tones (Clubhouse Bone → Court White cards → Pressed Bone sunken fields) and 1px Bone Hairline borders, never from drop shadows. The single exception is the ambient sheet shadow.
-
-### Shadow Vocabulary
-- **Sheet** (`box-shadow: 0 8px 32px rgba(28, 27, 23, 0.08)`, token `--shadow-sheet`): bottom sheets and modals only — the one surface that genuinely floats above the page.
-
-### Named Rules
-**The Hairline Rule.** If a surface needs separating, give it a 1px `#E7E3D8` border, not a shadow. One shadow exists in the whole app, and it belongs to sheets.
+| Device | Class / component | Spec |
+|---|---|---|
+| Corkboard wall | `body` | `linear-gradient(174deg, pista → pista-d)` + halftone dot grain `radial-gradient(rgb(255 255 255/.06) 1px, transparent 1.2px) 0 0/16px 16px`, fixed. |
+| Painted court lines | `<CourtPaint />` (brand.tsx) | Full-bleed fixed SVG: 3 slightly-skewed papel lines at `.16` alpha behind everything. |
+| Pinned poster | `.pl-card` | Papel fill + paper grain (`9px` dot grid at `rgb(25 20 7/.05)`) + 4px radius + poster shadow `0 14px 34px -12px rgb(8 20 50/.7)`. |
+| Tilt | `.pena-tilt-a/-b/-c` | `rotate: −1.2° / 1.1° / −0.8°`; interactive posters straighten on hover. Posters tilt; list rows and forms stay straight. |
+| Staples | `.pena-staples` | Two drawn staple bars (`::before/::after`, `rgb(25 20 7/.35)`, rotated ∓24°/18°) at the top corners. |
+| Perforated ticket | `.pena-ticket` pattern | Lima body + papel rip strip, scalloped edge via radial-gradient masks, barcode via repeating-linear-gradient. (Landing / brand moments.) |
+| Rubber-stamp crest | `<ClubStamp />` (brand.tsx) | Double circle + Space Mono textPath "PADEL LOOP · EST. 2026 · LA PEÑA · DUBLIN ·" + dashed loop scribble + ball dot; 40s spin (reduced-motion: static). |
+| Marquee tape | `.pena-cinta` | Full-bleed tinta band, rotated −0.6°, `scale(1.02)`, infinite translateX ticker, key words in lima. Decorative only (`aria-hidden`). |
+| Venue strip | pattern | Full-bleed naranja band across a poster, papel mono caps, space-between. |
+| Squad pills | `Chip` / open slot | Outlined tinta pills; the open slot is **dashed naranja** reading "+ you?". |
+| Riso offset shadow | `.pena-riso` | `box-shadow: 3px 3px 0 tinta` on lima/naranja controls with a 2px tinta border; active presses to `1px 1px 0` + 2px translate. |
+| Slap entrance | `.pl-rise` | Cards land on the board: opacity 0 + scale .94 → 1 over 260ms `cubic-bezier(.23,1,.32,1)`, staggered ≤60ms. Reduced motion: static. |
+| Spanish-club voice | copy | LA PEÑA, Paso 1/2/3, "¿Jugamos?", "Game on?", "+ you?", "Count me in". Sprinkled where natural — never at the cost of clarity. |
 
 ## 5. Components
 
-Soft and tactile: quiet at rest, responsive under the thumb. Every tappable element gives a gentle press-scale (`active: scale 0.98`, 150ms ease-out).
+- **Buttons** (48px pills, mono 700 uppercase tracked):
+  - *Primary*: lima fill, tinta text, 2px tinta border, riso shadow. The one loud thing.
+  - *Secondary*: papel fill, tinta text, 2px tinta border, flat.
+  - *Destructive*: papel fill, naranja-d text, 2px **dashed** naranja-d border. Never lima, never filled naranja.
+  - Press: shadow collapses to 1px + 2px translate (`.pena-riso`), scale .98.
+- **Chips**: papel fill, 1.5px tinta border, 13px Bricolage 600. Active = lima fill. Filter rows scroll with hidden scrollbars.
+- **Inputs** (`.pl-surface`): papel fill, **2px tinta border**, 4px radius; focus turns the border naranja; placeholders `text-tinta/45`. No borderless inputs.
+- **Cards**: `.pl-card` posters (see table). Depth = the poster shadow; no hairline-only cards on the wall.
+- **Dialog**: a papel poster on the tinta scrim — 3px tinta border, staples, slight tilt, `.t-display` title.
+- **Bottom nav**: papel bar, **3px tinta top border**; labels 9px mono caps; active = naranja, inactive = tinta; centre create FAB = **naranja** circle, 3px tinta border, riso shadow, raised.
+- **Avatars**: DiceBear on papel/lima/naranja backgrounds (`F3E9D2`, `D8E24A`, `FF5A1F`); initials fallback tinta on lima; open slots = dashed naranja circle. Stacks separate with a 2px papel ring.
+- **Skeletons** (`.pl-skeleton`): `papel/25` blocks on the wall, shimmer under motion; never spinners for content.
+- **Empty states**: a stapled, tilted mini-poster with a `.t-display` headline that invites ("¿Jugamos?" energy), body 500, one action.
 
-### Buttons
-- **Shape:** full-round pills (`border-radius: 9999px`), 48px tall, full width in forms
-- **Primary:** Court Sage background, white text, medium 15px (`.bg-accent`)
-- **Secondary:** Pressed Bone background, Evening Ink text — same shape, quieter voice
-- **Destructive:** transparent with Clay Court Red text — dangerous actions never get a filled button
-- **Press:** `active:scale-[0.98]` with a 150ms ease-out transform; no hover-dependent affordances (touch-first)
+## 6. Motion
 
-### Chips
-- **Style:** pill-shaped, 13px medium, `6px 14px` padding
-- **State:** inactive = Pressed Bone background + Quiet Ink text; active = Soft Sage background + Court Sage text. Filter rows scroll horizontally with hidden scrollbars (`.no-scrollbar`)
+- `--ease: cubic-bezier(.23, 1, .32, 1)` for everything.
+- Entrances are the **slap** (`.pl-rise`); exits are faster fades. The stamp spins slowly; the cinta scrolls.
+- **Every animation is gated behind `prefers-reduced-motion`** — slap/spin/marquee all render static when reduced. Colour feedback never disappears.
+- Tap targets ≥ 44px (`.pl-hit`); focus rings are 3px lima, offset.
 
-### Cards / Containers
-- **Corner Style:** gently curved (16px, `--radius-card`)
-- **Background:** Court White on the bone ground
-- **Border:** 1px Bone Hairline (`.pl-card` = the canonical card primitive)
-- **Shadow Strategy:** none (see Elevation)
-- **Internal Padding:** 16px; cards stack with 12px gaps
-- **Entrance:** `.pl-rise` — a 0.35s ease-out rise (opacity + 10px translate), staggered by ~animation-delay per card, disabled under reduced motion
+## 7. Do's and Don'ts
 
-### Inputs / Fields
-- **Style:** Pressed Bone fill, 12px radius (`--radius-field`), no visible border at rest (`.pl-surface` carries a transparent 1px border so focus doesn't shift layout)
-- **Focus:** border turns Court Sage (`focus:border-accent` / `focus-within:border-accent`)
-- **Placeholder:** Faint Ink
+### Do
+- **Do** put every piece of content on papel, and every heading straight on the blue wall in papel.
+- **Do** tilt and staple the posters (hero cards, empty states, dialogs) — and keep rows/forms straight.
+- **Do** write labels in Space Mono 700 caps, tracked wide; write headlines in Bricolage 800 caps, condensed.
+- **Do** use the riso offset shadow + 2px tinta border on primary controls — print register, not glow.
+- **Do** colour one "o" per big headline.
+- **Do** respect `prefers-reduced-motion` on slap, spin and marquee.
 
-### Navigation
-- **Bottom nav, four tabs + centre Create (+) button.** Icons are 22px hand-drawn-feel 2px strokes; labels 10px medium. Active tab = Court Sage; inactive = Faint Ink; 150ms colour transition. The Profile tab renders the user's own avatar.
-
-### Avatars (signature)
-- DiceBear-generated (or uploaded photo) faces in circles, tinted with the decorative bone/sage/clay range. Initials fallback in Evening Ink on cycled tints; open slots render a dashed Faint Ink "+" circle. Overlapping stacks (-10px margin) with a 2px bone ring separate the faces.
-
-## 6. Do's and Don'ts
-
-### Do:
-- **Do** keep Clubhouse Bone (`#FAF8F3`) as the page background of every screen — white belongs to cards only.
-- **Do** reserve Court Sage (`#5A6B4D`) for the primary action and active states; if two things on a screen are sage, one of them is wrong.
-- **Do** use Instrument Serif only for screen titles, hero numbers, the greeting, and the wordmark — regular weight, sentence case.
-- **Do** give every tappable element the soft press response (`active:scale-[0.98]`, 150ms ease-out) — tactile is the personality.
-- **Do** separate surfaces with 1px `#E7E3D8` hairlines, and check text contrast: Quiet Ink (`#6E6A5E`) is for secondary text only, never body copy on tinted surfaces.
-- **Do** respect `prefers-reduced-motion` on every animation, as `.pl-rise` already does.
-
-### Don't:
-- **Don't** drift back toward "corporate / bland SaaS" — the navy `#1e5cff` blue-and-white startup look was explicitly rejected and replaced by this system.
-- **Don't** add drop shadows as decoration. One shadow exists (`--shadow-sheet`, sheets/modals); everything else is flat with hairlines.
-- **Don't** add badge clutter, promo banners, streaks, or confetti — "anything that makes a calm club feel like a busy marketplace" (PRODUCT.md).
-- **Don't** use pure alarm-red for danger; destructive is always the muted Clay Court Red (`#A65D4E`), text-only buttons.
-- **Don't** bold or uppercase the serif, and don't let it leak into body text, buttons, or labels.
-- **Don't** invent new colours or radii inline — every value flows from the tokens in `src/app/globals.css` (`@theme`).
+### Don't
+- **Don't** use italics. Ever.
+- **Don't** invent hexes — every colour is a token or a token at alpha. No greys, no white (#FFF exists nowhere; paper is papel).
+- **Don't** use soft/blurred decorative shadows on controls — shadows are either the poster's deep drop or the hard riso offset.
+- **Don't** reach for FLOODLIT (optic yellow / Anton) — that direction belongs to future sibling Loop products, never Padel Loop.
+- **Don't** drift back to the wellness/Members' Club look (warm bone, sage, Instrument Serif) or the navy `#1e5cff` SaaS look — both are dead.
+- **Don't** let the Spanish voice obscure meaning — flavour, not friction.

@@ -2,23 +2,22 @@ import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
 import type { Player } from "@/lib/types";
 
-/* ── Padel Loop component kit ─────────────────────────────────────────────
+/* ── Padel Loop component kit — THE PEÑA ──────────────────────────────────
    Every interactive component here covers all seven states:
    default, hover (gated to hover-capable devices by Tailwind v4), focus
-   (focus-visible ring), active (.pl-press), disabled, loading (aria-busy +
-   spinner), error (aria-invalid). All values flow from the tokens in
-   globals.css — no raw colours, sizes or radii.                            */
+   (focus-visible ring), active (.pl-press / .pena-riso), disabled, loading
+   (aria-busy + spinner), error (aria-invalid). All values flow from the
+   tokens in globals.css — no raw colours, sizes or radii.                  */
 
-/* Shared state classes. Focus is a 2px accent ring offset from the shape;
-   disabled dims to faint and stops pointer events; error borrows the
-   danger voice. */
+/* Shared state classes. Focus is a 3px lima ring offset from the shape;
+   disabled dims and stops pointer events; error borrows the danger voice
+   (naranja-d). */
 const FOCUS =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-lima";
 const DISABLED = "disabled:opacity-45 disabled:pointer-events-none";
 
 /* ── Spinner ──
-   Lives inside buttons only — async CONTENT gets skeletons, never spinners.
-   Fast (600ms) because a quick spinner reads as a quick app. */
+   Lives inside buttons only — async CONTENT gets skeletons, never spinners. */
 export function Spinner({ className = "" }: { className?: string }) {
   return (
     <span
@@ -28,16 +27,22 @@ export function Spinner({ className = "" }: { className?: string }) {
   );
 }
 
-/* ── Button ── full-round pill, 48px tall, full width by default (forms).
-   size="sm" is the compact inline pill (card actions).                     */
+/* ── Button ── the printed pill: mono caps, 2px tinta border, 48px tall,
+   full width by default (forms). size="sm" is the compact inline pill.
+   Primary is lima with the hard riso offset — the one loud thing.          */
 type ButtonVariant = "primary" | "secondary" | "destructive";
 
 const BUTTON_VARIANT: Record<ButtonVariant, string> = {
-  primary: "bg-accent text-on-accent hover:bg-accent-strong",
-  secondary: "bg-sunken text-ink hover:bg-sunken-strong",
-  /* dangerous actions never get a filled button */
-  destructive: "bg-transparent text-danger hover:bg-clay-soft",
+  primary: "bg-lima text-tinta border-2 border-tinta pena-riso",
+  secondary: "bg-papel text-tinta border-2 border-tinta hover:bg-lima/40",
+  /* dangerous actions: papel scrap, dark riso orange, dashed border —
+     never lima, never a filled naranja */
+  destructive:
+    "bg-papel text-naranja-d border-2 border-dashed border-naranja-d hover:bg-naranja-d/10",
 };
+
+const BUTTON_TYPE =
+  "t-mono inline-flex items-center justify-center gap-2 rounded-pill whitespace-nowrap select-none tracking-[0.12em]";
 
 export function Button({
   variant = "primary",
@@ -58,9 +63,9 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`pl-press inline-flex items-center justify-center gap-2 font-medium rounded-pill whitespace-nowrap select-none ${
-        size === "md" ? "h-12 w-full px-6 text-body" : "h-9 px-4 text-label"
-      } ${BUTTON_VARIANT[variant]} ${FOCUS} ${DISABLED} aria-invalid:outline-2 aria-invalid:outline-danger ${className}`}
+      className={`pl-press ${BUTTON_TYPE} ${
+        size === "md" ? "h-12 w-full px-6 text-label" : "h-9 px-4 text-micro"
+      } ${BUTTON_VARIANT[variant]} ${FOCUS} ${DISABLED} aria-invalid:outline-2 aria-invalid:outline-naranja-d ${className}`}
       {...props}
     >
       {loading && <Spinner />}
@@ -79,7 +84,7 @@ export function GhostButton(props: ComponentProps<typeof Button>) {
 }
 
 /* ── ButtonLink ── a Link styled as a button, for navigations that read as
-   actions (e.g. "Join game" on a card). Same states minus disabled/loading
+   actions (e.g. "Count me in" on a card). Same states minus disabled/loading
    (links navigate; they don't load). */
 export function ButtonLink({
   variant = "primary",
@@ -93,8 +98,8 @@ export function ButtonLink({
 }) {
   return (
     <Link
-      className={`pl-press inline-flex items-center justify-center gap-2 font-medium rounded-pill whitespace-nowrap select-none ${
-        size === "md" ? "h-12 w-full px-6 text-body" : "h-9 px-4 text-label"
+      className={`pl-press ${BUTTON_TYPE} ${
+        size === "md" ? "h-12 w-full px-6 text-label" : "h-9 px-4 text-micro"
       } ${BUTTON_VARIANT[variant]} ${FOCUS} ${className}`}
       {...props}
     >
@@ -103,11 +108,12 @@ export function ButtonLink({
   );
 }
 
-/* ── Chips ── pill-shaped labels. Static <Chip> for display; <ChipButton>
-   when the chip is tappable (filters, toggles). Active = the sage whisper. */
+/* ── Chips ── the squad pills: papel scraps with a tinta outline. Static
+   <Chip> for display; <ChipButton> when tappable (filters, toggles).
+   Active = the lima print pass. */
 const CHIP_LOOK = (active: boolean) =>
-  `inline-flex items-center gap-1.5 text-label font-medium rounded-pill px-3.5 py-1.5 whitespace-nowrap ${
-    active ? "bg-accent-soft text-accent" : "bg-sunken text-ink-secondary"
+  `inline-flex items-center gap-1.5 text-label rounded-pill px-3.5 py-1.5 whitespace-nowrap border-[1.5px] border-tinta text-tinta ${
+    active ? "bg-lima font-extrabold" : "bg-papel font-semibold"
   }`;
 
 export function Chip({
@@ -134,7 +140,7 @@ export function ChipButton({
     <button
       type="button"
       className={`pl-press pl-hit shrink-0 ${CHIP_LOOK(active)} ${
-        active ? "hover:bg-sage-mist" : "hover:bg-sunken-strong"
+        active ? "hover:bg-lima/70" : "hover:bg-lima/40"
       } ${FOCUS} ${DISABLED} ${className}`}
       {...props}
     >
@@ -143,18 +149,20 @@ export function ChipButton({
   );
 }
 
+/* The level tag — a printed mono label on lima. */
 export function LevelChip({ children }: { children: ReactNode }) {
   return (
-    <span className="text-label font-medium text-accent bg-accent-soft rounded-pill px-3 py-1.5">
+    <span className="t-mono text-micro tracking-[0.12em] text-tinta bg-lima border-[1.5px] border-tinta rounded-pill px-3 py-1.5">
       {children}
     </span>
   );
 }
 
-/* ── Inputs ── pressed-bone fill, field radius, no border at rest; focus
-   turns the border sage; error turns it terracotta (set aria-invalid).    */
+/* ── Inputs ── printed fields: papel fill, 2px tinta border (.pl-surface),
+   4px radius; focus turns the border naranja; error goes naranja-d (set
+   aria-invalid). */
 const INPUT_LOOK =
-  "pl-surface w-full rounded-field px-4 py-3 text-body text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-45 aria-invalid:border-danger transition-colors duration-150 ease-out";
+  "pl-surface w-full rounded-field px-4 py-3 text-body font-medium text-tinta placeholder:text-tinta/45 placeholder:font-normal focus:outline-none focus:border-naranja disabled:opacity-45 aria-invalid:border-naranja-d transition-colors duration-150 ease-out";
 
 export function Input({
   className = "",
@@ -170,8 +178,9 @@ export function Textarea({
   return <textarea className={`${INPUT_LOOK} ${className}`} {...props} />;
 }
 
-/* Field = label + control + one quiet error line. Wires the label and the
-   error to the control for screen readers; the error is announced politely. */
+/* Field = label + control + one quiet error line. Labels speak mono, like
+   everything printed small. Colour is inherited (tinta on papel, papel on
+   the wall). */
 export function Field({
   label,
   htmlFor,
@@ -187,7 +196,7 @@ export function Field({
     <div>
       <label
         htmlFor={htmlFor}
-        className="block text-label font-medium text-ink-secondary mb-1.5"
+        className="t-mono block text-micro opacity-85 mb-1.5"
       >
         {label}
       </label>
@@ -195,7 +204,7 @@ export function Field({
       <p
         id={`${htmlFor}-error`}
         aria-live="polite"
-        className={`text-label text-danger mt-1.5 ${error ? "" : "hidden"}`}
+        className={`text-label font-semibold text-naranja-d mt-1.5 ${error ? "" : "hidden"}`}
       >
         {error}
       </p>
@@ -204,14 +213,13 @@ export function Field({
 }
 
 /* ── Skeleton ── a loading placeholder shaped like the content it stands in
-   for. Compose several to mirror the real layout; never show a spinner for
-   content. */
+   for — a papel ghost on the wall. Never a spinner for content. */
 export function Skeleton({ className = "" }: { className?: string }) {
   return <div aria-hidden className={`pl-skeleton ${className}`} />;
 }
 
-/* ── EmptyState ── teaches and invites; never a bare "nothing here". The
-   serif headline is the brand's voice doing the welcoming. */
+/* ── EmptyState ── a stapled mini-poster that teaches and invites; never a
+   bare "nothing here". The poster shout does the welcoming. */
 export function EmptyState({
   title,
   body,
@@ -222,16 +230,16 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="pl-card px-6 py-8 text-center">
-      <p className="font-display text-display-xs text-ink">{title}</p>
-      {body && <p className="text-label text-ink-secondary mt-1.5">{body}</p>}
+    <div className="pl-card pena-staples pena-tilt-b px-6 pt-8 pb-7 text-center">
+      <p className="t-display text-display-xs text-tinta">{title}</p>
+      {body && <p className="text-label font-medium text-tinta/70 mt-2">{body}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
   );
 }
 
 /* ── ListRow ── the tappable row: leading slot, title + support line,
-   trailing chevron. A card by default; set flat for rows inside a card.   */
+   trailing chevron. A pinned paper strip; rows stay straight (no tilt). */
 export function ListRow({
   href,
   leading,
@@ -253,16 +261,16 @@ export function ListRow({
     <Link
       href={href}
       className={`pl-press flex items-center gap-3.5 p-4 ${
-        flat ? "rounded-field hover:bg-bone" : "pl-card hover:bg-bone"
+        flat ? "rounded-field hover:bg-tinta/6" : "pl-card hover:bg-lima/20"
       } ${FOCUS} ${className}`}
     >
       {leading && <span className="shrink-0">{leading}</span>}
       <span className="flex-1 min-w-0">
-        <span className="block text-title font-semibold text-ink truncate">
+        <span className="block text-body font-extrabold text-tinta truncate">
           {title}
         </span>
         {sub && (
-          <span className="block text-label text-ink-secondary truncate mt-0.5">
+          <span className="block text-label font-medium text-tinta/70 truncate mt-0.5">
             {sub}
           </span>
         )}
@@ -274,7 +282,7 @@ export function ListRow({
           viewBox="0 0 24 24"
           fill="none"
           aria-hidden
-          className="shrink-0 text-ink-faint"
+          className="shrink-0 text-tinta/45"
         >
           <path
             d="m9 6 6 6-6 6"
@@ -289,9 +297,8 @@ export function ListRow({
   );
 }
 
-/* ── Dialog ── the one floating surface. Centred card on a scrim, the single
-   ambient shadow, 200ms rise. Confirmations stay centred; bottom sheets are
-   for pickers. */
+/* ── Dialog ── a notice slapped over the board: papel poster on the tinta
+   scrim, 3px tinta border, staples, a slight tilt, the poster-shout title. */
 export function Dialog({
   open,
   onClose,
@@ -317,25 +324,27 @@ export function Dialog({
         onClick={onClose}
         className="absolute inset-0 bg-scrim cursor-default"
       />
-      <div className="relative w-full max-w-sm p-5 bg-bone border border-line rounded-card shadow-sheet pl-rise">
-        <p className="font-display text-display-xs text-ink">{title}</p>
+      <div className="relative w-full max-w-sm p-5 pt-6 pl-card pena-staples pena-tilt-c border-[3px] border-tinta shadow-poster pl-rise">
+        <p className="t-display text-display-xs text-tinta">{title}</p>
         {children}
       </div>
     </div>
   );
 }
 
+/* Section labels sit straight on the wall — printed mono in papel. */
 export function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="text-title font-semibold text-ink mt-8 mb-3 px-0.5">
+    <div className="t-mono text-micro text-papel/90 mt-8 mb-3 px-0.5">
       {children}
     </div>
   );
 }
 
-/* ── Avatars ── palette-harmonious tints for the decorative initials
-   avatars — bone / sage / clay, warm ink initials on top. */
-const AV_TINTS = ["bg-accent-soft", "bg-sunken", "bg-clay-soft", "bg-sage-mist"];
+/* ── Avatars ── riso print passes for the decorative initials avatars —
+   papel / lima / naranja, tinta initials, a tinta outline. Open slots are
+   the dashed-naranja "+ you?" pill in circle form. */
+const AV_TINTS = ["bg-lima", "bg-papel", "bg-naranja"];
 
 export function Avatar({
   player,
@@ -350,7 +359,7 @@ export function Avatar({
   if (!player) {
     return (
       <span
-        className={`${dims} rounded-pill inline-flex items-center justify-center border border-dashed border-ink-faint text-ink-faint font-normal bg-bone`}
+        className={`${dims} rounded-pill inline-flex items-center justify-center border-[1.5px] border-dashed border-naranja text-naranja-d font-extrabold bg-papel`}
       >
         +
       </span>
@@ -358,7 +367,7 @@ export function Avatar({
   }
   return (
     <span
-      className={`${dims} rounded-pill inline-flex items-center justify-center font-semibold text-ink border-2 border-bone ${AV_TINTS[index % AV_TINTS.length]}`}
+      className={`${dims} rounded-pill inline-flex items-center justify-center font-extrabold text-tinta border-[1.5px] border-tinta ${AV_TINTS[index % AV_TINTS.length]} ${index % AV_TINTS.length === 2 ? "text-papel" : ""}`}
     >
       {player.initials}
     </span>

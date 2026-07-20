@@ -1,8 +1,8 @@
 # Padel Loop
 
 ## Design context (read before any UI work)
-- **PRODUCT.md** (project root) — who this is for, brand personality ("calm, premium, welcoming — The Members' Club"), anti-references, and the 5 design principles.
-- **DESIGN.md** (project root) — the visual system: colours (warm bone / deep sage), typography (Instrument Serif/Sans), components, and hard Do's & Don'ts. The tokens themselves live in `src/app/globals.css` (`@theme`) — that file is normative; DESIGN.md explains how to use it.
+- **PRODUCT.md** (project root) — who this is for, brand personality ("THE PEÑA — warm, loud, physical, social; the club corkboard"), anti-references, and the 5 design principles.
+- **DESIGN.md** (project root) — the visual system: THE PEÑA (pista court-blue wall, papel posters, tinta ink, naranja/lima riso accents; Bricolage Grotesque 800 caps + Space Mono labels), signature devices (staples, tilt, ticket, stamp, marquee, riso shadows) and hard Do's & Don'ts. Source of truth for the identity: `design-lab/landing-pena.html` + `design-lab/wildcard-en.html`. The tokens themselves live in `src/app/globals.css` (`@theme`) — that file is normative; DESIGN.md explains how to use it. The earlier bone/sage "Members' Club" system is superseded — peña is final.
 
 ## What this project is
 Padel Loop is a mobile/web app that helps padel players **find and join a padel game near them, at their level**.
@@ -59,7 +59,24 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
-- Full visual redesign (re-skin only — zero logic/data/routing changes). The
+- THE PEÑA re-skin (style/markup only — zero logic/data/routing changes), on
+  the `pena-reskin` branch. The bone/sage "Members' Club" system was replaced
+  app-wide by the peña system extracted from `design-lab/landing-pena.html` +
+  `wildcard-en.html`: court-blue corkboard wall (pista #1C5BBF/#14459A gradient
+  + dot grain + painted court lines via `<CourtPaint/>`), papel (#F3E9D2)
+  poster cards with paper grain/staples/tilt (`.pl-card`, `.pena-staples`,
+  `.pena-tilt-*`), tinta (#191407) ink text/borders, naranja (#FF5A1F, dark cut
+  #C93E0F for small text/danger) actives + FAB, lima (#D8E24A) primary CTAs
+  with hard riso offset shadows (`.pena-riso`). Fonts: Bricolage Grotesque
+  (variable, opsz+wdth; `.t-display` = 800 caps condensed) + Space Mono
+  (`.t-mono` = 700 caps tracked); Instrument Serif/Sans removed. NO ITALICS.
+  DESIGN.md rewritten as the peña law (incl. brand architecture: Loop = parent
+  brand; FLOODLIT reserved for future sibling products); PRODUCT.md brand
+  sections updated. Every screen swept (home, discover, my-games, game detail,
+  create/edit, match results, chat list/thread/full-screen, profiles,
+  connections, search, notifications, auth, landing, bottom nav). Verified with
+  a clean `next build`. NOTE: `/public/landing/*.png` screenshots still show
+  the old bone/sage UI — recapture after the reskin deploys.
   old navy/#1e5cff "startup tech" look was replaced with a premium
   wellness-lifestyle system: warm bone background (#FAF8F3), white cards with
   1px hairline borders (no drop shadows except the one ambient sheet/modal

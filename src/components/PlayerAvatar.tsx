@@ -37,14 +37,14 @@ export default function PlayerAvatar({
   className?: string;
 }) {
   // Generate the DiceBear fallback picture once per user id. The background
-  // colours are the design system's bone/sage/clay tints (DiceBear needs raw
-  // hex — these mirror --color-sunken / --color-accent-soft / --color-clay-soft
-  // / --color-sage-mist in globals.css), so generated avatars sit in-palette.
+  // colours are the peña riso passes (DiceBear needs raw hex — these mirror
+  // --color-papel / --color-lima / --color-naranja in globals.css), so
+  // generated avatars sit in-palette.
   const generated = useMemo(
     () =>
       createAvatar(thumbs, {
         seed: userId,
-        backgroundColor: ["F1EEE6", "E8ECE2", "EFE3D7", "E4E7DC"],
+        backgroundColor: ["F3E9D2", "D8E24A", "FF5A1F"],
       }).toDataUri(),
     [userId],
   );

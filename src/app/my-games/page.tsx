@@ -30,22 +30,24 @@ const isCancelled = (g: Game) =>
 // chip is the quiet sunken bone — sage stays out of list decoration.
 function MyGameCard({ game, delay = 0 }: { game: Game; delay?: number }) {
   const cancelled = isCancelled(game);
+  // Alternate the pin angle with the card's position in its list.
+  const tilt = Math.round(delay / 50) % 2 === 0 ? "pena-tilt-a" : "pena-tilt-b";
   return (
     <Link
       href={`/games/${game.id}`}
-      className="pl-card pl-press pl-rise block p-4 mb-3 hover:bg-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      className={`pl-card pena-staples ${tilt} pl-press pl-rise block p-4 pt-5 mb-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima`}
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex justify-between items-start gap-3">
-        <div>
-          <div className="text-title font-semibold text-ink">{game.venue}</div>
-          <div className="text-label text-ink-secondary mt-1">
+        <div className="min-w-0">
+          <div className="t-display text-title text-tinta">{game.venue}</div>
+          <div className="t-mono text-micro tracking-[0.14em] text-tinta/70 mt-1.5">
             {formatGameTime(game.game_time)}
             {game.location ? <> · {game.location}</> : null}
           </div>
         </div>
         {cancelled ? (
-          <span className="text-label font-medium text-danger bg-sunken px-2.5 py-1 rounded-pill whitespace-nowrap">
+          <span className="t-mono text-micro tracking-[0.12em] text-papel bg-naranja-d px-2.5 py-1 rounded-pill whitespace-nowrap">
             Cancelled
           </span>
         ) : (
@@ -97,8 +99,10 @@ export default function MyGamesPage() {
     // of cards — with the shared shimmer, never a spinner.
     return (
       <main className="px-5 pt-6 relative">
-        <h1 className="font-display text-display-md text-ink mt-2">My games</h1>
-        <p className="text-label text-ink-secondary mt-1">
+        <h1 className="t-display text-display-md text-papel mt-2">
+          My games
+        </h1>
+        <p className="text-label font-medium text-papel/85 mt-1.5">
           The games you&rsquo;re running and the ones you&rsquo;ve joined.
         </p>
         <div className="mt-11 space-y-3">
@@ -115,8 +119,10 @@ export default function MyGamesPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-display-md text-ink mt-2">My games</h1>
-      <p className="text-label text-ink-secondary mt-1">
+      <h1 className="t-display text-display-md text-papel mt-2">
+        My games
+      </h1>
+      <p className="text-label font-medium text-papel/85 mt-1.5">
         The games you&rsquo;re running and the ones you&rsquo;ve joined.
       </p>
 

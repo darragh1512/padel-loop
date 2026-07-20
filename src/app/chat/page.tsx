@@ -56,8 +56,9 @@ export default function ChatPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-display-md text-ink mt-2">Chat</h1>
-      <p className="text-label text-ink-secondary mt-1 mb-4">
+      <p className="t-mono text-micro text-papel/80 mt-2">Club noticeboard</p>
+      <h1 className="t-display text-display-md text-papel mt-1.5">Chat</h1>
+      <p className="text-label font-medium text-papel/85 mt-1.5 mb-4">
         Your game conversations.
       </p>
 
@@ -100,11 +101,11 @@ export default function ChatPage() {
             <Link
               key={c.game.id}
               href={`/games/${c.game.id}/chat`}
-              className="pl-card pl-press pl-rise p-4 mb-3 flex items-center gap-3.5 hover:bg-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="pl-card pl-press pl-rise p-4 mb-3 flex items-center gap-3.5 hover:bg-lima/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
               style={{ animationDelay: `${Math.min(i, 6) * 50}ms` }}
             >
-              {/* Little chat-bubble badge — quiet bone, not the accent. */}
-              <span className="shrink-0 size-11 rounded-pill bg-sunken text-ink-secondary flex items-center justify-center">
+              {/* Little chat-bubble badge — an outlined paper circle. */}
+              <span className="shrink-0 size-11 rounded-pill border-[1.5px] border-tinta text-tinta flex items-center justify-center">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden className="size-5">
                   <path
                     d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z"
@@ -117,22 +118,22 @@ export default function ChatPage() {
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <div className="text-title font-semibold text-ink truncate">
+                  <div className="text-body font-extrabold text-tinta truncate">
                     {c.game.venue}
                   </div>
-                  <span className="text-micro text-ink-faint shrink-0">
+                  <span className="t-mono text-[9px] tracking-[0.08em] text-tinta/45 shrink-0">
                     {shortStamp(c.lastMessageAt)}
                   </span>
                 </div>
-                <div className="text-label text-ink-secondary truncate">
+                <div className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 truncate mt-0.5">
                   {c.game.location}
                 </div>
                 <div
-                  className={`text-label truncate mt-0.5 ${
-                    c.lastMessageBody ? "text-ink-secondary" : "text-ink-faint italic"
+                  className={`text-label font-medium truncate mt-1 ${
+                    c.lastMessageBody ? "text-tinta/70" : "text-tinta/45"
                   }`}
                 >
-                  {c.lastMessageBody ?? "No messages yet"}
+                  {c.lastMessageBody ?? "No messages yet — say hello"}
                 </div>
               </div>
             </Link>

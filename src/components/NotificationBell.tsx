@@ -31,7 +31,7 @@ export default function NotificationBell() {
     <Link
       href="/notifications"
       aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
-      className="pl-hit relative inline-flex text-ink-secondary hover:text-ink rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      className="pl-hit relative inline-flex text-papel/85 hover:text-papel rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path
@@ -50,7 +50,7 @@ export default function NotificationBell() {
         />
       </svg>
       {count > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-pill bg-accent text-on-accent text-nav font-semibold flex items-center justify-center leading-none">
+        <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-pill bg-naranja text-papel border border-tinta font-mono text-nav font-bold flex items-center justify-center leading-none">
           {count > 9 ? "9+" : count}
         </span>
       )}

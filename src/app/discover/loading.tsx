@@ -7,9 +7,12 @@ import { Skeleton } from "@/components/ui";
 export default function DiscoverLoading() {
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-display-md text-ink mt-2">Discover</h1>
-      <p className="text-label text-ink-secondary mt-1">
-        Open games near you — find one and jump in.
+      <p className="t-mono text-micro text-papel/80 mt-2">The board · Dublin</p>
+      <h1 className="t-display text-display-md text-papel mt-1.5">
+        Disc<span className="text-lima">o</span>ver
+      </h1>
+      <p className="text-label font-medium text-papel/85 mt-1.5">
+        Open games near you — pick a poster and jump in.
       </p>
 
       <Skeleton className="rounded-pill h-11 mt-4" />

@@ -36,13 +36,13 @@ function ConnectionRow({
         className="size-11"
       />
       <div className="min-w-0 flex-1">
-        <div className="font-semibold text-body text-ink truncate">{name}</div>
-        <div className="text-label text-ink-secondary truncate mt-0.5">
+        <div className="font-extrabold text-body text-tinta truncate">{name}</div>
+        <div className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 truncate mt-1">
           {person.home_club || "No home club"}
           {person.skill_level ? <> · {person.skill_level}</> : null}
         </div>
       </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-ink-faint">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-tinta/45">
         <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </Link>
@@ -78,10 +78,10 @@ export default function ConnectionsPage() {
     // Skeleton rows in the shape of the list — sunken, subtle pulse.
     return (
       <main className="px-5 pt-6 relative">
-        <div className="bg-sunken rounded-field h-9 w-52 mt-2 pl-skeleton" />
+        <div className="rounded-field h-9 w-52 mt-2 pl-skeleton" />
         <div className="mt-8 space-y-3">
-          <div className="bg-sunken rounded-card h-18 pl-skeleton" />
-          <div className="bg-sunken rounded-card h-18 pl-skeleton" />
+          <div className="rounded-card h-18 pl-skeleton" />
+          <div className="rounded-card h-18 pl-skeleton" />
         </div>
         <BottomNav />
       </main>
@@ -90,17 +90,18 @@ export default function ConnectionsPage() {
 
   return (
     <main className="px-5 pt-6 relative">
-      <h1 className="font-display text-display-md text-ink mt-2 relative">
-        Connections
+      <p className="t-mono text-micro text-papel/80 mt-2">La peña</p>
+      <h1 className="t-display text-display-md text-papel mt-1.5 relative">
+        C<span className="text-lima">o</span>nnections
       </h1>
-      <p className="text-label text-ink-secondary mt-1 mb-4">
+      <p className="text-label font-medium text-papel/85 mt-1.5 mb-4">
         The players you’ve connected with.
       </p>
 
       {/* Entry point to player search. */}
       <Link
         href="/search"
-        className="flex items-center gap-2.5 pl-surface rounded-full px-4 py-2.5 mb-4 text-body text-ink-faint active:scale-[0.99] transition-transform duration-150 ease-out"
+        className="flex items-center gap-2.5 pl-surface rounded-full px-4 py-2.5 mb-4 text-body font-medium text-tinta/45 active:scale-[0.99] transition-transform duration-150 ease-out"
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="shrink-0">
           <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
@@ -114,9 +115,9 @@ export default function ConnectionsPage() {
           <ConnectionRow key={person.id} person={person} delay={i * 40} />
         ))
       ) : (
-        <div className="pl-card px-4 py-6 text-center">
-          <div className="font-display text-display-xs text-ink">No connections yet.</div>
-          <div className="text-label text-ink-secondary mt-1.5">
+        <div className="pl-card pena-staples pena-tilt-b px-4 pt-7 pb-6 text-center">
+          <div className="t-display text-display-xs text-tinta">No connections yet.</div>
+          <div className="text-label font-medium text-tinta/70 mt-2">
             Open a player’s profile and tap Connect.
           </div>
         </div>

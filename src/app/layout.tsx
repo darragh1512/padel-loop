@@ -1,21 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, Instrument_Sans } from "next/font/google";
+import { Bricolage_Grotesque, Space_Mono } from "next/font/google";
+import { CourtPaint } from "@/components/brand";
 import "./globals.css";
 
-// The two brand fonts, loaded via next/font and exposed as CSS variables that
-// globals.css references (--font-instrument-serif → font-display,
-// --font-instrument-sans → font-sans). The serif ships in regular weight only —
-// exactly the design intent (titles are never bold or all-caps).
-const instrumentSerif = Instrument_Serif({
+// The two peña fonts, loaded via next/font and exposed as CSS variables that
+// globals.css references (--font-bricolage → font-sans/font-display,
+// --font-space-mono → font-mono). Bricolage loads as a variable font with the
+// opsz + wdth axes so .t-display can condense it (font-stretch: 90%).
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-instrument-serif",
+  axes: ["opsz", "wdth"],
+  variable: "--font-bricolage",
 });
 
-const instrumentSans = Instrument_Sans({
+const spaceMono = Space_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-instrument-sans",
+  weight: ["400", "700"],
+  variable: "--font-space-mono",
 });
 
 export const metadata: Metadata = {
@@ -24,15 +25,17 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FAF8F3",
+  themeColor: "#14459A",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${instrumentSerif.variable} ${instrumentSans.variable}`}>
-      <body className="min-h-dvh bg-bone text-ink antialiased">
+    <html lang="en" className={`${bricolage.variable} ${spaceMono.variable}`}>
+      <body className="min-h-dvh antialiased">
+        {/* The painted court lines across the whole wall, behind everything. */}
+        <CourtPaint />
         {/* The phone-width app shell. Bottom padding leaves room for the fixed
             bottom navigation that the design's screens render. */}
         <div className="mx-auto max-w-md min-h-dvh relative pb-24">
