@@ -24,6 +24,10 @@ export type Game = {
   players: Player[];
   createdBy?: string;        // user id of the game's creator (from games.created_by)
   status?: string;           // "active" (default) or "cancelled" (from games.status)
+  createdAt?: string;        // ISO timestamp, from games.created_at — when this game
+                              // was created (not when it's happening). Used to place a
+                              // group's proposed games in the group thread by when they
+                              // were proposed, not by game_time.
 };
 
 // A game counts as cancelled only when its status is explicitly "cancelled".

@@ -171,6 +171,7 @@ function rowToGame(row: any, players: Player[] = []): Game {
     players, // real joined players (from game_players); empty list = open slots
     createdBy: row.created_by ?? undefined, // who created the game (for owner-only actions)
     status: row.status ?? undefined, // "active" / "cancelled" (drives browse filtering + label)
+    createdAt: row.created_at ?? undefined, // when the row was made (group-thread ordering)
   };
 }
 
@@ -201,6 +202,8 @@ export async function getGames(): Promise<Game[]> {
     .from("games")
     .select("*")
     .gte("game_time", new Date().toISOString()) // skip games that already happened
+    .is("group_id", null) // group games are proposed inside a group's own thread
+    // only — never on the public Discover list.
     .order("game_time", { ascending: true }) // soonest first
     .limit(20);
   // If the query failed or returned nothing, fall back to the mock games.
@@ -235,6 +238,27 @@ export async function getGame(id: string): Promise<Game | null> {
     return rowToGame(data, players);
   }
   return MOCK_GAMES.find((g) => g.id === id) ?? MOCK_GAMES[0];
+}
+
+// Every game proposed inside ONE group — same UI Game shape as getGames(),
+// same batched player-loading, just filtered by group_id instead of
+// "upcoming and off Discover". Ordered oldest-proposed first so the group
+// thread page can interleave them into the message stream by createdAt.
+// No mock fallback (unlike getGames/getGame): an empty group simply has no
+// proposals yet, which is a normal, real state, not a failure to paper over.
+export async function getGamesForGroup(groupId: string): Promise<Game[]> {
+  const { data, error } = await supabase
+    .from("games")
+    .select("*")
+    .eq("group_id", groupId)
+    .order("created_at", { ascending: true });
+
+  if (error || !data || data.length === 0) return [];
+
+  const playersByGame = await getPlayersForGames(data);
+  return data.map((row) =>
+    rowToGame(row, playersByGame.get(String(row.id)) ?? []),
+  );
 }
 
 /* ── Mock data (used only if the games query fails or is empty) ───────

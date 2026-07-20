@@ -6,6 +6,7 @@
 // each row links one user to one game.
 
 import { supabase } from "@/lib/supabaseClient";
+import { getGroupConversationsFor, type Group } from "./groups";
 
 // The shape of one game — these names match the columns in your Supabase
 // "games" table.
@@ -350,6 +351,7 @@ export type NewGame = {
   game_time: string; // an ISO timestamp, e.g. "2026-06-10T17:30:00+00:00"
   skill_level: string;
   max_players: number;
+  group_id?: string; // set when this game is a group proposal (phase 2 of group chats)
 };
 
 // Saves a brand-new game, recording who created it (created_by), then adds
@@ -369,6 +371,7 @@ export async function createGame(
       skill_level: game.skill_level,
       max_players: game.max_players,
       created_by: userId,
+      group_id: game.group_id ?? null,
     })
     .select("id") // ask the database to hand back the new row's id
     .single();
@@ -574,18 +577,30 @@ export async function canUserChat(
   return row != null;
 }
 
-// One row in the Chat tab: a game the person is part of, plus a preview of the
-// most recent message in that game's thread (if there is one yet).
-export type Conversation = {
-  game: Game; // the game this conversation belongs to
-  lastMessageBody: string | null; // preview text, or null if no messages yet
-  lastMessageAt: string | null; // when that last message was sent (ISO), or null
-};
+// One row in the Chat tab: either a game conversation or a group conversation,
+// each paired with a preview of its most recent message. `kind` tells you
+// which — check it before reading `.game` or `.group`/`.memberCount`.
+export type Conversation =
+  | {
+      kind: "game";
+      game: Game; // the game this conversation belongs to
+      lastMessageBody: string | null; // preview text, or null if no messages yet
+      lastMessageAt: string | null; // when that last message was sent (ISO), or null
+    }
+  | {
+      kind: "group";
+      group: Group; // the group this conversation belongs to
+      memberCount: number;
+      lastMessageBody: string | null;
+      lastMessageAt: string | null;
+    };
 
-// Build the Chat tab list for ONE person: every game they've JOINED or CREATED,
-// each paired with a preview of its most recent message. Sorted so games with
-// the newest message activity come first; games with no messages yet fall to
-// the bottom. Returns an empty list if they're in no games.
+// Build the Chat tab list for ONE person: every game they've JOINED or
+// CREATED, plus every group they're a member of, each paired with a preview
+// of its most recent message. Sorted so conversations with the newest message
+// activity come first; conversations with no messages yet fall to the bottom
+// (soonest game first among those, then groups by when they were created).
+// Returns an empty list if they're in no games and no groups.
 export async function getConversationsFor(
   userId: string,
 ): Promise<Conversation[]> {
@@ -622,43 +637,61 @@ export async function getConversationsFor(
   }
 
   const games = Array.from(byId.values());
-  if (games.length === 0) {
+
+  // 4. Find the most recent message in each of these games (skip the query
+  //    entirely if they're in no games — no point asking for nothing).
+  let gameConversations: Conversation[] = [];
+  if (games.length > 0) {
+    const gameIds = games.map((game) => String(game.id));
+    const { data: msgs } = await supabase
+      .from("messages")
+      .select("game_id, body, created_at")
+      .in("game_id", gameIds)
+      .order("created_at", { ascending: false });
+
+    const latestByGame = new Map<string, { body: string; created_at: string }>();
+    for (const m of msgs ?? []) {
+      const key = String(m.game_id);
+      if (!latestByGame.has(key)) {
+        latestByGame.set(key, {
+          body: m.body as string,
+          created_at: m.created_at as string,
+        });
+      }
+    }
+
+    // 5. Pair each game with its latest message (if any).
+    gameConversations = games.map((game) => {
+      const last = latestByGame.get(String(game.id));
+      return {
+        kind: "game" as const,
+        game,
+        lastMessageBody: last?.body ?? null,
+        lastMessageAt: last?.created_at ?? null,
+      };
+    });
+  }
+
+  // 6. The group side — same idea, encapsulated in groups.ts since it's a
+  //    self-contained set of bounded queries (groups, member counts, latest
+  //    messages), not a per-row loop.
+  const groupData = await getGroupConversationsFor(userId);
+  const groupConversations: Conversation[] = groupData.map((d) => ({
+    kind: "group" as const,
+    group: d.group,
+    memberCount: d.memberCount,
+    lastMessageBody: d.lastMessageBody,
+    lastMessageAt: d.lastMessageAt,
+  }));
+
+  const conversations = [...gameConversations, ...groupConversations];
+  if (conversations.length === 0) {
     return [];
   }
 
-  // 4. Find the most recent message in each of these games. We pull every
-  //    message for them newest-first, then keep the first (latest) one we see
-  //    per game.
-  const gameIds = games.map((game) => String(game.id));
-  const { data: msgs } = await supabase
-    .from("messages")
-    .select("game_id, body, created_at")
-    .in("game_id", gameIds)
-    .order("created_at", { ascending: false });
-
-  const latestByGame = new Map<string, { body: string; created_at: string }>();
-  for (const m of msgs ?? []) {
-    const key = String(m.game_id);
-    if (!latestByGame.has(key)) {
-      latestByGame.set(key, {
-        body: m.body as string,
-        created_at: m.created_at as string,
-      });
-    }
-  }
-
-  // 5. Pair each game with its latest message (if any).
-  const conversations: Conversation[] = games.map((game) => {
-    const last = latestByGame.get(String(game.id));
-    return {
-      game,
-      lastMessageBody: last?.body ?? null,
-      lastMessageAt: last?.created_at ?? null,
-    };
-  });
-
-  // 6. Sort: games with messages first (newest activity at the top); games with
-  //    no messages yet go below them (soonest game first among those).
+  // 7. Sort: conversations with messages first (newest activity at the top);
+  //    conversations with no messages yet go below them (soonest game first
+  //    among those; a group with no messages sorts by when it was created).
   conversations.sort((a, b) => {
     if (a.lastMessageAt && b.lastMessageAt) {
       return (
@@ -668,11 +701,17 @@ export async function getConversationsFor(
     }
     if (a.lastMessageAt) return -1; // a has messages, b doesn't → a first
     if (b.lastMessageAt) return 1; // b has messages, a doesn't → b first
-    // Neither has messages → soonest game first.
-    return (
-      new Date(a.game.game_time).getTime() -
-      new Date(b.game.game_time).getTime()
-    );
+    // Neither has messages → earliest "anchor" time first (a game's
+    // game_time, or a group's created_at).
+    const aTime =
+      a.kind === "game"
+        ? new Date(a.game.game_time).getTime()
+        : new Date(a.group.created_at).getTime();
+    const bTime =
+      b.kind === "game"
+        ? new Date(b.game.game_time).getTime()
+        : new Date(b.group.created_at).getTime();
+    return aTime - bTime;
   });
 
   return conversations;

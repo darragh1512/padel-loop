@@ -1,34 +1,71 @@
 "use client";
-// The per-game chat thread. Used in two places, same logic both times:
-//  • embedded on the game detail page (default) — a card under the game info
-//  • full-screen on /games/[id]/chat (fullScreen) — WhatsApp-style, fills the
-//    screen with the composer pinned to the bottom
+// The chat thread — shared by GAME chats and GROUP chats. Pass exactly one of
+// gameId / groupId; everything else about it is identical either way. Used in
+// three places, same logic every time:
+//  • embedded on the game detail page (default, gameId only) — a card under
+//    the game info
+//  • full-screen on /games/[id]/chat (gameId, fullScreen) — WhatsApp-style
+//  • full-screen on /groups/[id]/chat (groupId, fullScreen) — same layout
 //
-// It only works for people who have JOINED or CREATED the game. Embedded, a
-// non-member sees a short note; full-screen, they're sent to `redirectTo`.
+// It only works for people who have JOINED/CREATED the game, or are a member
+// of the group. Embedded, a non-member sees a short note; full-screen, they're
+// sent to `redirectTo`.
 //
 // What it does:
-//  • loads this game's messages (oldest at top, newest at the bottom)
-//  • shows YOUR messages on the right in the sage accent, others' on the left
-//    on a sunken bone surface
+//  • loads this thread's messages (oldest at top, newest at the bottom)
+//  • shows YOUR messages on the right in the lima accent, others' on the left
+//    on papel
 //  • lets you type and send a message; empty messages are ignored and the box
 //    is cleared after sending
 //  • listens for new messages live (Supabase Realtime) so they appear without a
 //    refresh, and stops listening when you leave the page
 //  • keeps the view scrolled to the newest message
 
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Fragment,
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { SectionLabel } from "@/components/ui";
+import { canUserChat, getMessages, sendMessage } from "../../games";
 import {
-  canUserChat,
-  getMessages,
-  sendMessage,
-  type ChatMessage,
-} from "../../games";
+  canUserChatInGroup,
+  getGroupMessages,
+  sendGroupMessage,
+} from "../../groups";
+
+// The fields ChatThread actually renders — both ChatMessage (games.ts) and
+// GroupChatMessage (groups.ts) satisfy this, so either can be loaded straight
+// into the same state without converting one into the other.
+type ThreadMessage = {
+  id: number;
+  user_id: string;
+  body: string;
+  created_at: string;
+  senderName: string;
+  senderAvatarUrl: string | null;
+};
+
+// A non-message item the caller wants merged into the thread by timestamp —
+// e.g. a group's proposed-game cards. `createdAt` decides where it lands
+// among the messages; `content` is rendered as-is (it owns its own layout —
+// unlike a message bubble, it isn't wrapped or constrained to 80% width).
+// This is the ONLY way anything other than a real message enters the render
+// list — the message model itself (loading, access check, Realtime) never
+// changes because of it.
+export type InlineThreadItem = {
+  id: string;
+  createdAt: string;
+  content: ReactNode;
+};
 
 // Turn a stored timestamp into a short clock time like "14:32". Uses the
 // phone's local time, which is what people expect for chat ("when did they
@@ -45,24 +82,36 @@ function shortTime(iso: string): string {
 
 export default function ChatThread({
   gameId,
+  groupId,
   fullScreen = false,
   redirectTo,
+  inlineItems = [],
 }: {
-  gameId: string;
+  // Exactly one of these is passed by any given caller — whichever one
+  // decides everywhere below whether this is a game thread or a group one.
+  gameId?: string;
+  groupId?: string;
   // When true, render edge-to-edge to fill a full-screen page: no section
   // label, no card chrome — the messages area grows to fill its parent and the
   // composer sits at the very bottom. Default (false) is the embedded card used
   // on the game detail page.
   fullScreen?: boolean;
   // When set, anyone who isn't allowed to chat is sent here instead of seeing
-  // the inline "join to chat" note. Used by the full-screen page.
+  // the inline "join to chat" note. Used by the full-screen pages.
   redirectTo?: string;
+  // Extra non-message items merged into the render by timestamp (e.g. a
+  // group's proposed games). Empty by default — inert for game threads,
+  // which never pass this.
+  inlineItems?: InlineThreadItem[];
 }) {
+  const isGroup = groupId != null;
+  const threadId = (isGroup ? groupId : gameId)!;
+
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [canChat, setCanChat] = useState(false);
   const [ready, setReady] = useState(false); // finished the access check
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,9 +126,11 @@ export default function ChatThread({
 
   // Pull the latest messages from the database into the screen.
   const reload = useCallback(async () => {
-    const msgs = await getMessages(gameId);
+    const msgs = isGroup
+      ? await getGroupMessages(threadId)
+      : await getMessages(threadId);
     setMessages(msgs);
-  }, [gameId]);
+  }, [isGroup, threadId]);
 
   // On first load: find who's logged in, check whether they're allowed to chat,
   // and if so load the messages and start listening for new ones.
@@ -93,7 +144,11 @@ export default function ChatThread({
       if (!active) return;
       setUserId(uid);
 
-      const allowed = uid != null && (await canUserChat(gameId, uid));
+      const allowed =
+        uid != null &&
+        (await (isGroup
+          ? canUserChatInGroup(threadId, uid)
+          : canUserChat(threadId, uid)));
       if (!active) return;
       setCanChat(allowed);
       setReady(true);
@@ -101,17 +156,18 @@ export default function ChatThread({
 
       await reload();
 
-      // Live updates: listen for new rows in "messages" for THIS game only.
+      // Live updates: listen for new rows in "messages" for THIS thread only.
       // Whenever one arrives (from anyone), refresh the thread.
+      const idColumn = isGroup ? "group_id" : "game_id";
       channel = supabase
-        .channel(`messages:game:${gameId}`)
+        .channel(`messages:${isGroup ? "group" : "game"}:${threadId}`)
         .on(
           "postgres_changes",
           {
             event: "INSERT",
             schema: "public",
             table: "messages",
-            filter: `game_id=eq.${gameId}`,
+            filter: `${idColumn}=eq.${threadId}`,
           },
           () => {
             reload();
@@ -125,7 +181,7 @@ export default function ChatThread({
       active = false;
       if (channel) supabase.removeChannel(channel);
     };
-  }, [gameId, reload]);
+  }, [isGroup, threadId, reload]);
 
   // Whenever the messages change (first load or a new one arrives), keep the
   // newest message in view.
@@ -148,7 +204,9 @@ export default function ChatThread({
 
     setSending(true);
     setError(null);
-    const result = await sendMessage(gameId, userId, body);
+    const result = isGroup
+      ? await sendGroupMessage(threadId, userId, body)
+      : await sendMessage(threadId, userId, body);
     if ("error" in result) {
       setError("Couldn't send that message. Please try again.");
       setSending(false);
@@ -181,57 +239,80 @@ export default function ChatThread({
 
   // ── Shared pieces, rendered the same in both layouts ──────────────────────
 
+  // Every message becomes a { key, createdAt, node } entry alongside any
+  // inlineItems the caller passed, then the combined list is sorted by
+  // timestamp once. This is purely a render-time merge — the messages state,
+  // loading, access check, and Realtime subscription above are all untouched
+  // by inlineItems existing or not.
+  const messageEntries = messages.map((m) => {
+    const mine = m.user_id === userId;
+    return {
+      key: `msg-${m.id}`,
+      createdAt: m.created_at,
+      node: (
+        <div
+          className={`flex flex-col max-w-[80%] ${
+            mine ? "items-end self-end" : "items-start self-start"
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1 px-1">
+            <Link
+              href={`/players/${m.user_id}`}
+              aria-label={m.senderName}
+              className="shrink-0 active:opacity-70 transition-opacity"
+            >
+              <PlayerAvatar
+                userId={m.user_id}
+                avatarUrl={m.senderAvatarUrl}
+                name={m.senderName}
+                className="size-5"
+              />
+            </Link>
+            <Link
+              href={`/players/${m.user_id}`}
+              className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+            >
+              {mine ? "You" : m.senderName}
+            </Link>
+            <span className="t-mono text-[9px] tracking-[0.06em] text-tinta/45">
+              {shortTime(m.created_at)}
+            </span>
+          </div>
+          {/* Paper scraps on the board: yours get the lima print pass. */}
+          <div
+            className={
+              mine
+                ? "bg-lima text-tinta border-[1.5px] border-tinta rounded-card rounded-br-none px-3.5 py-2 text-body font-medium leading-snug break-words"
+                : "bg-papel text-tinta border-[1.5px] border-tinta rounded-card rounded-bl-none px-3.5 py-2 text-body font-medium leading-snug break-words"
+            }
+          >
+            {m.body}
+          </div>
+        </div>
+      ),
+    };
+  });
+
+  const combinedEntries = [
+    ...messageEntries,
+    ...inlineItems.map((item) => ({
+      key: `inline-${item.id}`,
+      createdAt: item.createdAt,
+      node: item.content,
+    })),
+  ].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+
   const messageList =
-    messages.length === 0 ? (
+    combinedEntries.length === 0 ? (
       <p className="text-label font-medium text-tinta/70 text-center my-6">
         No messages yet — say hello to your group. ¿Jugamos?
       </p>
     ) : (
-      messages.map((m) => {
-        const mine = m.user_id === userId;
-        return (
-          <div
-            key={m.id}
-            className={`flex flex-col max-w-[80%] ${
-              mine ? "items-end self-end" : "items-start self-start"
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1 px-1">
-              <Link
-                href={`/players/${m.user_id}`}
-                aria-label={m.senderName}
-                className="shrink-0 active:opacity-70 transition-opacity"
-              >
-                <PlayerAvatar
-                  userId={m.user_id}
-                  avatarUrl={m.senderAvatarUrl}
-                  name={m.senderName}
-                  className="size-5"
-                />
-              </Link>
-              <Link
-                href={`/players/${m.user_id}`}
-                className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
-              >
-                {mine ? "You" : m.senderName}
-              </Link>
-              <span className="t-mono text-[9px] tracking-[0.06em] text-tinta/45">
-                {shortTime(m.created_at)}
-              </span>
-            </div>
-            {/* Paper scraps on the board: yours get the lima print pass. */}
-            <div
-              className={
-                mine
-                  ? "bg-lima text-tinta border-[1.5px] border-tinta rounded-card rounded-br-none px-3.5 py-2 text-body font-medium leading-snug break-words"
-                  : "bg-papel text-tinta border-[1.5px] border-tinta rounded-card rounded-bl-none px-3.5 py-2 text-body font-medium leading-snug break-words"
-              }
-            >
-              {m.body}
-            </div>
-          </div>
-        );
-      })
+      combinedEntries.map((entry) => (
+        <Fragment key={entry.key}>{entry.node}</Fragment>
+      ))
     );
 
   // The input + send button. Identical for both layouts; full-screen just adds
