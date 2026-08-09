@@ -59,6 +59,17 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Leaderboard (COMPLETE, no migration needed). New /leaderboard route
+  (src/app/leaderboard/page.tsx + data helper src/app/leaderboard.ts):
+  ranks every player by earned rating or by wins (ChipButton toggle), with
+  rank · avatar · name · played/won · rating per row, filterable by home
+  club (chips built from the distinct clubs present). Confirmed matches
+  only, aggregated client-side from three bounded queries (profiles +
+  confirmed match_results + participants — repo manual-join style, no
+  N+1). Players under 3 confirmed matches aren't hidden — they sit in a
+  "Needs more matches" list showing "X of 3". Reached from a new
+  Leaderboard row on the home dashboard (bottom nav keeps its 4-tab +
+  create shape).
 - Player ratings (CODE COMPLETE — migration NOT yet run). Elo-style rating
   per player, moved ONLY by confirmed match results (K=32, expected score vs
   the OPPOSING pair's average — the standard doubles adaptation). Starting

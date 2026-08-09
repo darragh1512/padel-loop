@@ -38,6 +38,17 @@ function SearchIcon() {
   );
 }
 
+function TrophyIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M8 5H4.5v1.5A3.5 3.5 0 0 0 8 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 5h3.5v1.5A3.5 3.5 0 0 1 16 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 13v4M8.5 20h7M12 17v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function PeopleIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -200,6 +211,25 @@ export default function HomeDashboard() {
               {connCount === 0
                 ? "Build your circle of padel friends"
                 : `${connCount} ${connCount === 1 ? "friend" : "friends"} in your loop`}
+            </span>
+          </span>
+          <ChevronRight className="text-tinta/45" />
+        </Link>
+
+        {/* Leaderboard — the peña standings. Another quiet paper strip; the
+            bottom nav keeps its 4-tab + create shape, so this lives here. */}
+        <Link
+          href="/leaderboard"
+          className="pl-press pl-rise flex items-center gap-3.5 pl-card p-4 hover:bg-lima/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+          style={{ animationDelay: "150ms" }}
+        >
+          <span className="size-11 rounded-pill border-[1.5px] border-tinta text-tinta flex items-center justify-center shrink-0">
+            <TrophyIcon />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-body font-extrabold text-tinta">Leaderboard</span>
+            <span className="block text-label font-medium text-tinta/70 mt-0.5">
+              Who runs the board this season?
             </span>
           </span>
           <ChevronRight className="text-tinta/45" />
