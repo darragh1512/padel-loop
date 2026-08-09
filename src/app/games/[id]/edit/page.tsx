@@ -10,32 +10,20 @@ import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import { GhostButton, PrimaryButton, SectionLabel } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
+import { dublinToUtc, utcToDublinInput } from "@/lib/time";
 import { getGame, updateGame } from "../../../games";
 
 const SKILL_LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
 
-// The app stores and displays game times in UTC (see formatGameTime), so the
-// edit control works in UTC too: we pre-fill it from the stored time's UTC
-// parts, and on save we treat what the creator typed as UTC. That keeps the
-// time shown on the detail page identical to what they edited.
+// Game times are stored as true UTC instants but shown and typed as
+// Europe/Dublin wall-clock times everywhere (see src/lib/time.ts). The edit
+// control follows suit: pre-fill it with the stored instant's Dublin reading,
+// and on save treat what the creator typed as Dublin time.
 
-// ISO timestamp → "YYYY-MM-DDTHH:mm" for a <input type="datetime-local">,
-// using the UTC parts of the date.
-function isoToLocalInput(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}` +
-    `T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
-  );
-}
-
-// "YYYY-MM-DDTHH:mm" (read as UTC) → a full ISO timestamp.
-function localInputToIso(value: string): string {
-  // Appending "Z" makes the browser parse the entered time as UTC.
-  const d = new Date(`${value}:00Z`);
-  return d.toISOString();
+// "YYYY-MM-DDTHH:mm" (typed as Dublin wall clock) → a true-UTC ISO timestamp.
+function dublinInputToIso(value: string): string {
+  const [date, time] = value.split("T");
+  return dublinToUtc(date, time);
 }
 
 export default function EditGamePage() {
@@ -75,7 +63,7 @@ export default function EditGamePage() {
 
       setVenue(game.venue);
       setLocation(game.location);
-      setGameTime(isoToLocalInput(game.game_time));
+      setGameTime(utcToDublinInput(game.game_time));
       if (SKILL_LEVELS.includes(game.skill_level as (typeof SKILL_LEVELS)[number])) {
         setSkillLevel(game.skill_level as (typeof SKILL_LEVELS)[number]);
       }
@@ -96,7 +84,7 @@ export default function EditGamePage() {
     const result = await updateGame(gameId, {
       venue: venue.trim(),
       location: location.trim(),
-      game_time: localInputToIso(gameTime),
+      game_time: dublinInputToIso(gameTime),
       skill_level: skillLevel,
       max_players: maxPlayers,
     });

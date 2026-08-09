@@ -11,22 +11,29 @@ import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import { ButtonLink, EmptyState, Skeleton } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
+import { APP_TIME_ZONE, dublinDateKey } from "@/lib/time";
 import { getConversationsFor, formatGameTime, type Conversation } from "../games";
 
 // A short timestamp for the last message: the clock time if it was today
 // (e.g. "14:32"), otherwise the date (e.g. "10 Jun"). Empty if there's none.
+// Dublin clock and Dublin calendar day, like every other time in the app.
 function shortStamp(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
-  const sameDay = d.toDateString() === new Date().toDateString();
+  const sameDay = dublinDateKey(d) === dublinDateKey(new Date());
   return sameDay
     ? d.toLocaleTimeString("en-GB", {
+        timeZone: APP_TIME_ZONE,
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
       })
-    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    : d.toLocaleDateString("en-GB", {
+        timeZone: APP_TIME_ZONE,
+        day: "numeric",
+        month: "short",
+      });
 }
 
 // The id + link target for a conversation, whichever kind it is.
@@ -129,15 +136,17 @@ export default function ChatPage() {
   }, []);
 
   // Active/past split, derived purely from game_time — no schema change, no
-  // second query. Boundary is local midnight (not "now"), so a game later
-  // today stays active all day; only games before today move to Past. Groups
-  // have no game_time and must always stay active — the `c.kind === "game"`
-  // guard short-circuits isPast to false for them.
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const isPast = (c: Conversation) =>
-    c.kind === "game" &&
-    new Date(c.game.game_time).getTime() < startOfToday.getTime();
+  // second query. Boundary is DUBLIN midnight (not "now"), so a game later
+  // today stays active all day; only games before today (on a Dublin
+  // calendar) move to Past. Groups have no game_time and must always stay
+  // active — the `c.kind === "game"` guard short-circuits isPast to false
+  // for them.
+  const todayKey = dublinDateKey(new Date());
+  const isPast = (c: Conversation) => {
+    if (c.kind !== "game") return false;
+    const key = dublinDateKey(c.game.game_time);
+    return key !== "" && key < todayKey; // unreadable time → keep it active
+  };
   const activeConversations = conversations.filter((c) => !isPast(c));
   const pastConversations = conversations.filter((c) => isPast(c));
 

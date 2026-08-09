@@ -33,6 +33,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { APP_TIME_ZONE } from "@/lib/time";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { SectionLabel } from "@/components/ui";
 import { canUserChat, getMessages, sendMessage } from "../../games";
@@ -67,13 +68,15 @@ export type InlineThreadItem = {
   content: ReactNode;
 };
 
-// Turn a stored timestamp into a short clock time like "14:32". Uses the
-// phone's local time, which is what people expect for chat ("when did they
-// send this?"). Falls back to empty text if the value isn't a real date.
+// Turn a stored timestamp into a short clock time like "14:32", on a Dublin
+// clock — the same fixed timezone every other time in the app renders in
+// (see src/lib/time.ts). Falls back to empty text if the value isn't a real
+// date.
 function shortTime(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
   return d.toLocaleTimeString("en-GB", {
+    timeZone: APP_TIME_ZONE,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { dublinDateKey, dublinToUtc } from "@/lib/time";
 import { isCancelled, type Game, type Player } from "./types";
 
 /* ── Games data for the redesigned UI ───────────────────────────
@@ -172,6 +173,8 @@ function rowToGame(row: any, players: Player[] = []): Game {
     createdBy: row.created_by ?? undefined, // who created the game (for owner-only actions)
     status: row.status ?? undefined, // "active" / "cancelled" (drives browse filtering + label)
     createdAt: row.created_at ?? undefined, // when the row was made (group-thread ordering)
+    recursWeekly: row.recurs_weekly ?? false, // repeats weekly (rolls forward after it's played)
+    seriesId: row.series_id != null ? String(row.series_id) : undefined, // weekly-chain root id
   };
 }
 
@@ -189,12 +192,12 @@ export function isUpcoming(game: Game): boolean {
   return start >= Date.now();
 }
 
-// True if this game is happening today. We use the computer's local date so
-// this matches the "Today" label the GameCard shows (see formatDay in types.ts).
+// True if this game is happening today ON A DUBLIN CALENDAR — matching the
+// "Today" label the GameCard shows (see formatDay in types.ts). Comparing
+// device-local dates would move the day boundary with the viewer's timezone.
 export function isToday(game: Game): boolean {
-  const start = new Date(game.startsAt);
-  if (isNaN(start.getTime())) return false;
-  return start.toDateString() === new Date().toDateString();
+  const key = dublinDateKey(game.startsAt);
+  return key !== "" && key === dublinDateKey(new Date());
 }
 
 export async function getGames(): Promise<Game[]> {
@@ -266,14 +269,13 @@ export async function getGamesForGroup(groupId: string): Promise<Game[]> {
    same as the real database. Levels and per-head prices come from the skill
    tier (see levelRange / courtFeeFor above), exactly as the real rows do.   */
 
-// Build an ISO timestamp `days` from now at the given UTC time-of-day. We use
-// UTC because the app shows game times in UTC (see formatGameTime), so 19:30
-// here appears as 7:30 pm on screen.
+// Build an ISO timestamp `days` from now at the given DUBLIN time-of-day —
+// the app shows game times pinned to Europe/Dublin (see src/lib/time.ts), so
+// 19:30 here appears as 19:30 on screen year-round.
 const inDays = (days: number, h: number, m = 0) => {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + days);
-  d.setUTCHours(h, m, 0, 0);
-  return d.toISOString();
+  const d = new Date(Date.now() + days * 86_400_000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return dublinToUtc(dublinDateKey(d), `${pad(h)}:${pad(m)}`);
 };
 
 export const MOCK_GAMES: Game[] = [

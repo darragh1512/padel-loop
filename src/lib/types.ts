@@ -1,3 +1,5 @@
+import { APP_TIME_ZONE, dublinDateKey } from "@/lib/time";
+
 export type Player = {
   id: string;
   name: string;
@@ -28,6 +30,8 @@ export type Game = {
                               // was created (not when it's happening). Used to place a
                               // group's proposed games in the group thread by when they
                               // were proposed, not by game_time.
+  recursWeekly?: boolean;    // this game repeats weekly (rolls forward after it's played)
+  seriesId?: string;         // root game id of its weekly chain (the root points at itself)
 };
 
 // A game counts as cancelled only when its status is explicitly "cancelled".
@@ -49,20 +53,34 @@ export const skillTierOf = (g: Game): "Beginner" | "Intermediate" | "Advanced" =
   return "Intermediate";
 };
 
+// Times render pinned to Europe/Dublin (see src/lib/time.ts) — stored values
+// are true UTC instants, and every screen shows the same Dublin clock
+// whatever device the viewer is on.
 export const formatTimeRange = (g: Game) => {
   const start = new Date(g.startsAt);
   const end = new Date(start.getTime() + g.durationMins * 60_000);
   const fmt = (d: Date) =>
-    d.toLocaleTimeString("en-IE", { hour: "2-digit", minute: "2-digit", hour12: false });
+    d.toLocaleTimeString("en-IE", {
+      timeZone: APP_TIME_ZONE,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
   return `${fmt(start)} – ${fmt(end)}`;
 };
 
 export const formatDay = (g: Game) => {
   const d = new Date(g.startsAt);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  if (d.toDateString() === today.toDateString()) return "Today";
-  if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow";
-  return d.toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" });
+  // "Today"/"Tomorrow" are DUBLIN calendar days — the +24h instant is only
+  // used to find tomorrow's date key, so a DST-day being 23/25h wide can't
+  // put the label a day out.
+  const key = dublinDateKey(d);
+  if (key === dublinDateKey(new Date())) return "Today";
+  if (key === dublinDateKey(new Date(Date.now() + 86_400_000))) return "Tomorrow";
+  return d.toLocaleDateString("en-IE", {
+    timeZone: APP_TIME_ZONE,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
 };

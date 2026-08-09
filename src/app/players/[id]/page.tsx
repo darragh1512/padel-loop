@@ -14,9 +14,13 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import PlayerQRCode from "@/components/PlayerQRCode";
+import QRScanner from "@/components/QRScanner";
+import SkillLevelPicker from "@/components/SkillLevelPicker";
 import {
   Button,
   Chip,
+  ChipButton,
   Input,
   SectionLabel,
   Skeleton,
@@ -63,6 +67,19 @@ function UpcomingGameCard({ game, delay = 0 }: { game: Game; delay?: number }) {
   );
 }
 
+// Pull a player id out of a scanned code. Only accepts our own profile URL
+// shape (any origin — we never navigate to the scanned URL itself, just lift
+// the id and route to it inside this app).
+function extractPlayerId(scanned: string): string | null {
+  try {
+    const parsed = new URL(scanned);
+    const match = parsed.pathname.match(/^\/players\/([^/]+)\/?$/);
+    return match ? decodeURIComponent(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function PlayerProfilePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -99,6 +116,17 @@ export default function PlayerProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // "My code" panel — owner only. QR encodes the full profile URL, so it
+  // needs the browser's origin (not available during server rendering).
+  const [origin, setOrigin] = useState("");
+  const [qrPanel, setQrPanel] = useState<"code" | "scan">("code");
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanKey, setScanKey] = useState(0); // bumped to restart the camera after a bad scan
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -166,6 +194,20 @@ export default function PlayerProfilePage() {
     }
 
     setConnBusy(false);
+  }
+
+  function handleScan(text: string) {
+    const id = extractPlayerId(text);
+    if (id) {
+      router.push(`/players/${id}`);
+      return;
+    }
+    setScanError("That doesn't look like a Padel Loop player code.");
+  }
+
+  function retryScan() {
+    setScanError(null);
+    setScanKey((k) => k + 1); // remounts QRScanner, which restarts the camera
   }
 
   function startEdit() {
@@ -343,6 +385,47 @@ export default function PlayerProfilePage() {
         </Button>
       )}
 
+      {/* My code — owner only. Show your own profile as a scannable QR, or
+          switch to the camera to scan someone else's. */}
+      {isOwner && !editing && (
+        <>
+          <SectionLabel>My code</SectionLabel>
+          <div className="flex gap-2 mb-3">
+            <ChipButton
+              active={qrPanel === "code"}
+              onClick={() => {
+                setQrPanel("code");
+                setScanError(null);
+              }}
+            >
+              Show my code
+            </ChipButton>
+            <ChipButton active={qrPanel === "scan"} onClick={() => setQrPanel("scan")}>
+              Scan a player
+            </ChipButton>
+          </div>
+          {qrPanel === "code" ? (
+            origin && <PlayerQRCode url={`${origin}/players/${playerId}`} />
+          ) : (
+            <>
+              <QRScanner key={scanKey} onScan={handleScan} />
+              {scanError && (
+                <div className="pl-surface rounded-card px-4 py-3.5 mt-3 text-center">
+                  <p className="text-label font-semibold text-naranja-d">{scanError}</p>
+                  <button
+                    type="button"
+                    onClick={retryScan}
+                    className="t-mono text-micro tracking-[0.1em] text-tinta/70 underline mt-1.5"
+                  >
+                    Scan again
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
       {/* Edit form — owner only, shown while editing. */}
       {editing && (
         <div className="pl-card p-4 mt-4">
@@ -386,20 +469,12 @@ export default function PlayerProfilePage() {
             />
           </label>
 
-          <label className="block mt-3">
+          <div className="mt-3">
             <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Skill level</span>
-            <select
-              value={fSkill}
-              onChange={(e) => setFSkill(e.target.value)}
-              className="pl-surface w-full mt-1.5 rounded-field px-4 py-3 text-body font-medium text-tinta outline-none focus:border-naranja transition-colors duration-150 ease-out"
-            >
-              {SKILL_LEVELS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div className="mt-1.5">
+              <SkillLevelPicker value={fSkill} onChange={setFSkill} />
+            </div>
+          </div>
 
           <label className="block mt-3">
             <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Home club</span>

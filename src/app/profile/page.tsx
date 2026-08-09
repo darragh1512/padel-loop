@@ -11,8 +11,9 @@ import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import { ClubStamp, LoopRing, MiniLoop } from "@/components/brand";
 import { LevelChip, SectionLabel } from "@/components/ui";
+import SkillLevelPicker from "@/components/SkillLevelPicker";
 import { supabase } from "@/lib/supabaseClient";
-import { getProfile, updateProfile } from "../profiles";
+import { getProfile, updateProfile, SKILL_LEVELS } from "../profiles";
 
 // Static match history — design as-is (no data source yet).
 const RECENT = [
@@ -21,8 +22,6 @@ const RECENT = [
   { res: "L", venue: "Clontarf Padel Centre", meta: "Thu · with Sarah M.", score: "4–6 · 5–7" },
   { res: "W", venue: "Malahide Padel Club", meta: "Tue · with Jonny K.", score: "6–2 · 6–3" },
 ] as const;
-
-const SKILLS = ["Beginner", "Intermediate", "Advanced"] as const;
 
 // Text skill → a single numeric level for the "LVL x.x" chip.
 function levelNum(skill: string): number | null {
@@ -60,7 +59,7 @@ export default function ProfilePage() {
   // Edit form state.
   const [editing, setEditing] = useState(false);
   const [fName, setFName] = useState("");
-  const [fSkill, setFSkill] = useState("Beginner");
+  const [fSkill, setFSkill] = useState<string>(SKILL_LEVELS[0]);
   const [fHome, setFHome] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
@@ -88,7 +87,7 @@ export default function ProfilePage() {
 
   function startEdit() {
     setFName(name);
-    setFSkill(skill || "Beginner");
+    setFSkill(skill || SKILL_LEVELS[0]);
     setFHome(home);
     setError(false);
     setEditing(true);
@@ -170,20 +169,12 @@ export default function ProfilePage() {
               className="w-full mt-1.5 pl-surface rounded-field px-3.5 py-2.5 text-body font-medium text-tinta placeholder:text-tinta/45 outline-none focus:border-naranja"
             />
           </label>
-          <label className="block mt-3">
+          <div className="mt-3">
             <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Skill level</span>
-            <select
-              value={fSkill}
-              onChange={(e) => setFSkill(e.target.value)}
-              className="w-full mt-1.5 pl-surface rounded-field px-3.5 py-2.5 text-body font-medium text-tinta outline-none focus:border-naranja"
-            >
-              {SKILLS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div className="mt-1.5">
+              <SkillLevelPicker value={fSkill} onChange={setFSkill} />
+            </div>
+          </div>
           <label className="block mt-3">
             <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Home area</span>
             <input

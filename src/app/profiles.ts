@@ -100,8 +100,9 @@ export async function updateProfile(
 // Player profile page — the fuller profile edited on /players/[id].
 // ---------------------------------------------------------------------------
 
-// The five skill levels a player can choose, in order. Used by the edit form's
-// dropdown and kept here so there's one source of truth.
+// The five skill levels a player can choose, in order. Used by the skill
+// picker (onboarding + profile edit) and kept here so there's one source of
+// truth.
 export const SKILL_LEVELS = [
   "Beginner",
   "Improver",
@@ -109,6 +110,25 @@ export const SKILL_LEVELS = [
   "Advanced",
   "Pro",
 ] as const;
+
+// A plain-English line for each level — what it actually plays like, not a
+// number or a rating. Shown next to the name wherever a player picks their
+// own level (self-rating is a guess, not a test; these help them guess well).
+export const SKILL_LEVEL_DESCRIPTIONS: Record<
+  (typeof SKILL_LEVELS)[number],
+  string
+> = {
+  Beginner:
+    "New to padel, or only played a handful of times. Still learning the rules and the walls.",
+  Improver:
+    "You can keep a rally going, but positioning and shot choice are still coming together.",
+  Intermediate:
+    "Solid, consistent rallies. Comfortable at the net and starting to use lobs and smashes with control.",
+  Advanced:
+    "Tactical and consistent — you read the point, control the net, and rarely hand over an easy error.",
+  Pro:
+    "Competitive or tournament level. Fast reflexes, sharp shot selection, plays to win the point.",
+};
 
 // The fields editable on the player profile page. avatar_url is set by the
 // upload step (uploadAvatar) before saving, so it's optional here.

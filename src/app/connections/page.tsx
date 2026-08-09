@@ -7,47 +7,13 @@
 // rest of the app, and sends logged-out visitors to the login page.
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
-import PlayerAvatar from "@/components/PlayerAvatar";
+import PlayerResultRow from "@/components/PlayerResultRow";
+import PlayerSearch from "@/components/PlayerSearch";
+import { SectionLabel } from "@/components/ui";
 import { getConnections, type ConnectionProfile } from "../connections";
 import { supabase } from "@/lib/supabaseClient";
-
-// One person in the list. The whole row links to their player profile.
-function ConnectionRow({
-  person,
-  delay = 0,
-}: {
-  person: ConnectionProfile;
-  delay?: number;
-}) {
-  const name = person.name || "Player";
-  return (
-    <Link
-      href={`/players/${person.id}`}
-      className="flex items-center gap-3.5 pl-card p-4 mb-3 pl-rise active:scale-[0.99] transition-transform duration-150 ease-out"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <PlayerAvatar
-        userId={person.id}
-        avatarUrl={person.avatar_url}
-        name={name}
-        className="size-11"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="font-extrabold text-body text-tinta truncate">{name}</div>
-        <div className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 truncate mt-1">
-          {person.home_club || "No home club"}
-          {person.skill_level ? <> · {person.skill_level}</> : null}
-        </div>
-      </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-tinta/45">
-        <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    </Link>
-  );
-}
 
 export default function ConnectionsPage() {
   const router = useRouter();
@@ -98,21 +64,12 @@ export default function ConnectionsPage() {
         The players you’ve connected with.
       </p>
 
-      {/* Entry point to player search. */}
-      <Link
-        href="/search"
-        className="flex items-center gap-2.5 pl-surface rounded-full px-4 py-2.5 mb-4 text-body font-medium text-tinta/45 active:scale-[0.99] transition-transform duration-150 ease-out"
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="shrink-0">
-          <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-          <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        Find players by name
-      </Link>
+      <PlayerSearch placeholder="Find a player by name" />
 
+      <SectionLabel>Your connections</SectionLabel>
       {people.length > 0 ? (
         people.map((person, i) => (
-          <ConnectionRow key={person.id} person={person} delay={i * 40} />
+          <PlayerResultRow key={person.id} person={person} delay={i * 40} />
         ))
       ) : (
         <div className="pl-card pena-staples pena-tilt-b px-4 pt-7 pb-6 text-center">

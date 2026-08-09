@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GhostButton, PrimaryButton, SectionLabel } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
+import { dublinToUtc } from "@/lib/time";
 import { createGame } from "@/app/games";
 
 const FORMATS = ["Doubles", "Singles", "Open"] as const;
@@ -34,6 +35,7 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
 
   const [format, setFormat] = useState<(typeof FORMATS)[number]>("Doubles");
   const [openToLoop, setOpenToLoop] = useState(true);
+  const [repeatsWeekly, setRepeatsWeekly] = useState(false);
   const [levelMin] = useState(3.0);
   const [levelMax] = useState(4.0);
 
@@ -74,13 +76,9 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
     setSaving(true);
     setError(false);
 
-    // Combine the chosen date + time into a UTC timestamp, matching how the app
-    // stores and displays game_time (UTC).
-    const [yy, mm, dd] = date.split("-").map(Number);
-    const [hh, min] = time.split(":").map(Number);
-    const game_time = new Date(
-      Date.UTC(yy, mm - 1, dd, hh, min, 0, 0),
-    ).toISOString();
+    // The typed date + time are Dublin wall-clock values; store the true UTC
+    // instant they correspond to (18:30 in summer = 17:30Z, in winter 18:30Z).
+    const game_time = dublinToUtc(date, time);
 
     // Map the level range to our text skill_level column.
     const skill_level =
@@ -94,6 +92,7 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
         skill_level,
         max_players: players,
         group_id: groupId,
+        recurs_weekly: repeatsWeekly,
       },
       userId,
     );
@@ -233,6 +232,33 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
           </span>
         </button>
       )}
+
+      {/* Repeats weekly — same toggle voice as Open to the Loop. Applies to
+          both normal and group games: the database rolls a recurring game
+          into next week's instance after it's played, carrying the roster. */}
+      <button
+        type="button"
+        onClick={() => setRepeatsWeekly(!repeatsWeekly)}
+        className="pl-surface w-full rounded-field px-4 py-3.5 mb-2.5 flex justify-between items-center text-left"
+      >
+        <div>
+          <div className="text-body font-extrabold text-tinta">Repeats weekly</div>
+          <div className="text-label font-medium text-tinta/70 mt-0.5">
+            Same day and time every week — this week&rsquo;s players carry over
+          </div>
+        </div>
+        <span
+          className={`w-11.5 h-6.75 rounded-full relative shrink-0 border-2 border-tinta transition-colors duration-150 ease-out ${
+            repeatsWeekly ? "bg-naranja" : "bg-tinta/15"
+          }`}
+        >
+          <span
+            className={`absolute top-[2px] w-5 h-5 rounded-full bg-papel border border-tinta transition-all duration-150 ease-out ${
+              repeatsWeekly ? "right-[2px]" : "left-[2px]"
+            }`}
+          />
+        </span>
+      </button>
 
       {/* The cost strip — the poster's naranja venue-strip voice. */}
       <div className="rounded-card p-4 my-3.5 bg-naranja text-papel">

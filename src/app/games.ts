@@ -6,6 +6,7 @@
 // each row links one user to one game.
 
 import { supabase } from "@/lib/supabaseClient";
+import { APP_TIME_ZONE } from "@/lib/time";
 import { getGroupConversationsFor, type Group } from "./groups";
 
 // The shape of one game — these names match the columns in your Supabase
@@ -24,15 +25,17 @@ export type Game = {
 // Turns a stored timestamp (e.g. "2026-06-10T17:30:00+00:00") into friendly
 // text like "Wed 10 Jun, 18:30". If the value isn't a date we understand,
 // we just show it unchanged so nothing breaks.
-// Local time, 24h — the SAME policy as formatTimeRange/formatDay in
-// src/lib/types.ts. One game must never show two different clocks: the old
-// UTC display here put the home hero an hour off the detail page.
+// Europe/Dublin, 24h — the SAME policy as formatTimeRange/formatDay in
+// src/lib/types.ts. Times are stored as true UTC instants and always
+// PRESENTED on a Dublin clock (see src/lib/time.ts), whatever device the
+// viewer is on. One game must never show two different clocks.
 export function formatGameTime(value: string): string {
   const date = new Date(value);
   if (isNaN(date.getTime())) {
     return value;
   }
   return new Intl.DateTimeFormat("en-IE", {
+    timeZone: APP_TIME_ZONE,
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -352,6 +355,7 @@ export type NewGame = {
   skill_level: string;
   max_players: number;
   group_id?: string; // set when this game is a group proposal (phase 2 of group chats)
+  recurs_weekly?: boolean; // repeat this game weekly (the database rolls it forward)
 };
 
 // Saves a brand-new game, recording who created it (created_by), then adds
@@ -362,17 +366,25 @@ export async function createGame(
   userId: string,
 ): Promise<{ id: string } | { error: string }> {
   // 1. Create the game itself, stamped with the creator's user id.
+  // recurs_weekly is only included when the box was actually ticked, so
+  // ordinary creates keep working even before the recurring-games migration
+  // has been run (an unknown column would make the whole insert fail).
+  const row: Record<string, unknown> = {
+    venue: game.venue,
+    location: game.location,
+    game_time: game.game_time,
+    skill_level: game.skill_level,
+    max_players: game.max_players,
+    created_by: userId,
+    group_id: game.group_id ?? null,
+  };
+  if (game.recurs_weekly) {
+    row.recurs_weekly = true;
+  }
+
   const { data, error } = await supabase
     .from("games")
-    .insert({
-      venue: game.venue,
-      location: game.location,
-      game_time: game.game_time,
-      skill_level: game.skill_level,
-      max_players: game.max_players,
-      created_by: userId,
-      group_id: game.group_id ?? null,
-    })
+    .insert(row)
     .select("id") // ask the database to hand back the new row's id
     .single();
 
@@ -456,6 +468,28 @@ export async function cancelGame(
 
   if (error) {
     console.error("Could not cancel game:", error.message);
+    return { error: error.message };
+  }
+
+  return { ok: true };
+}
+
+// Stop a weekly repeat. Flips recurs_weekly off for EVERY game in the chain
+// (they all share the same series_id — the root game's id — so one update
+// covers root and successors alike). The current game itself stays exactly as
+// it is; it just won't roll into next week any more. Only the creator should
+// reach this (the button checks that); the database's row-level security is
+// the real safeguard, since every game in a chain has the same created_by.
+export async function stopRecurring(
+  seriesId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("games")
+    .update({ recurs_weekly: false })
+    .eq("series_id", Number(seriesId));
+
+  if (error) {
+    console.error("Could not stop the weekly repeat:", error.message);
     return { error: error.message };
   }
 

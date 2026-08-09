@@ -47,10 +47,20 @@ export default async function GameDetailPage({
         {game.courtLabel && <>{game.courtLabel} · </>}
         {formatDay(game)} · {formatTimeRange(game)}
       </p>
+      {game.recursWeekly && (
+        <div className="mt-2.5">
+          <Chip>Repeats weekly</Chip>
+        </div>
+      )}
 
       {/* Owner-only actions: only the game's creator sees these (checked
           client-side against the logged-in user). */}
-      <CreatorActions gameId={game.id} createdBy={game.createdBy} />
+      <CreatorActions
+        gameId={game.id}
+        createdBy={game.createdBy}
+        recursWeekly={game.recursWeekly}
+        seriesId={game.seriesId}
+      />
 
       <div className="grid grid-cols-3 gap-2 mt-5">
         {[
@@ -138,10 +148,17 @@ export default async function GameDetailPage({
         )}
       </div>
 
-      {/* Log result — shown only to players in this game (the component checks
-          membership client-side). Captures a pending result; doesn't decide a
-          winner yet. */}
-      <LogResult gameId={game.id} players={game.players} />
+      {/* Match result — the owner starts the match once the game is full, then
+          every player enters the score independently; the server confirms the
+          result when all the scoresheets match. Confirmed results show to any
+          viewer; the in-progress board is participants-only (checked
+          client-side). */}
+      <LogResult
+        gameId={game.id}
+        players={game.players}
+        createdBy={game.createdBy}
+        maxPlayers={game.maxPlayers}
+      />
 
       {/* Per-game chat, beneath everything else. Renders the message box only
           for players/creators; others see a short "join to chat" note. The

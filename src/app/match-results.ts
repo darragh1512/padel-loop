@@ -1,21 +1,22 @@
-// This file reads and writes MATCH RESULTS — the score a player logs after a
-// game — using your Supabase tables:
-//   • match_results              — one row per game (game_id is UNIQUE, so a
-//                                  game can only ever have one result). Holds
-//                                  who submitted it and the status.
-//   • match_result_participants  — one row per player: which team they were on
-//                                  and whether they've confirmed the result.
-//   • match_result_sets          — one row per set: the games each team won.
+// This file reads and writes MATCH RESULTS — consensus-verified scores — using
+// the Supabase tables:
+//   • match_results              — one row per game (game_id is UNIQUE). Holds
+//                                  the status: 'pending' (waiting for
+//                                  scoresheets), 'disputed' (they disagree) or
+//                                  'confirmed' (everyone agreed — final).
+//   • match_result_participants  — one row per player: which team they were on.
+//   • match_result_entries       — each player's OWN scoresheet, one row per
+//                                  set. Private to the match's participants.
+//   • match_result_sets          — the agreed, canonical sets. Only written by
+//                                  the server once every scoresheet matches.
 //
-// For now this only CAPTURES a submission: the result is stored as "pending",
-// the submitter's own confirmation is "confirmed" and everyone else's is
-// "pending". Working out the winner and flipping the result to confirmed is a
-// later step — nothing here decides a winner.
+// The flow: the game owner STARTS the match (fixing the 2v2 teams), then every
+// participant independently submits set scores. Both writes go through
+// security-definer RPCs — the server validates, compares the scoresheets when
+// the last one lands, and either finalises the result or marks it disputed.
+// Nothing client-side ever decides a winner.
 
 import { supabase } from "@/lib/supabaseClient";
-
-// One player's team assignment in a submitted result (team is 1 or 2).
-export type ResultParticipant = { userId: string; team: number };
 
 // One set's score: how many games each team won (0–7).
 export type ResultSet = {
@@ -24,185 +25,114 @@ export type ResultSet = {
   team2Games: number;
 };
 
-// The existing result for a game, if any. game_id is unique on match_results,
-// so there's at most one. Returns null if none has been logged yet.
-export async function getExistingResult(
-  gameId: string,
-): Promise<{ id: string; submitted_by: string; status: string } | null> {
-  const { data, error } = await supabase
-    .from("match_results")
-    .select("id, submitted_by, status")
-    .eq("game_id", gameId)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Could not load match result:", error.message);
-    return null;
-  }
-  return data ?? null;
-}
-
-// Best-effort cleanup if a later insert fails partway through, so we don't leave
-// a half-written result behind. (Works whether or not the FKs cascade.)
-async function deleteResult(resultId: string | number) {
-  await supabase.from("match_result_sets").delete().eq("result_id", resultId);
-  await supabase
-    .from("match_result_participants")
-    .delete()
-    .eq("result_id", resultId);
-  await supabase.from("match_results").delete().eq("id", resultId);
-}
-
-// Submit a new match result for a game. Inserts:
-//   1. one match_results row (submitted_by = current user, status 'pending'),
-//   2. one match_result_participants row per player — the submitter's own row
-//      is 'confirmed', everyone else's is 'pending',
-//   3. one match_result_sets row per set.
-// Only one result per game: if one already exists, the UNIQUE constraint on
-// game_id trips and we report that gracefully (duplicate: true). No winner is
-// computed and the status stays 'pending'.
-export async function submitMatchResult(params: {
+// Start the match for a game: the owner fixes the teams (two user ids per
+// side) and the server creates the 'pending' result plus one participant row
+// per player. Owner-only and full-game-only — the RPC enforces both. If a
+// result already exists the UNIQUE on game_id trips (23505) and we report it
+// gracefully so the UI can just load the existing one.
+export async function startMatch(params: {
   gameId: string;
-  submittedBy: string;
-  participants: ResultParticipant[];
-  sets: ResultSet[];
+  team1Ids: string[];
+  team2Ids: string[];
 }): Promise<{ ok: true } | { error: string; duplicate?: boolean }> {
-  const { gameId, submittedBy, participants, sets } = params;
-
-  // 1. The result row. status is 'pending'; winning_team is left unset — the
-  //    winner is worked out in a later step, not here.
-  const { data: result, error: resultError } = await supabase
-    .from("match_results")
-    .insert({ game_id: gameId, submitted_by: submittedBy, status: "pending" })
-    .select("id")
-    .single();
-
-  if (resultError || !result) {
-    // 23505 = unique_violation → a result already exists for this game.
-    const duplicate = resultError?.code === "23505";
-    if (!duplicate) {
-      console.error("Could not create match result:", resultError?.message);
-    }
-    return {
-      error: duplicate
-        ? "A result has already been logged for this game."
-        : resultError?.message ?? "Could not log the result.",
-      duplicate,
-    };
-  }
-
-  const resultId = result.id as string | number;
-
-  // 2. Participants — the submitter is auto-confirmed, everyone else pending.
-  const participantRows = participants.map((p) => ({
-    result_id: resultId,
-    user_id: p.userId,
-    team: p.team,
-    confirmation: p.userId === submittedBy ? "confirmed" : "pending",
-  }));
-
-  const { error: partError } = await supabase
-    .from("match_result_participants")
-    .insert(participantRows);
-
-  if (partError) {
-    console.error("Could not save participants:", partError.message);
-    await deleteResult(resultId);
-    return { error: "Could not save the teams. Please try again." };
-  }
-
-  // 3. Set scores.
-  const setRows = sets.map((s) => ({
-    result_id: resultId,
-    set_number: s.setNumber,
-    team1_games: s.team1Games,
-    team2_games: s.team2Games,
-  }));
-
-  const { error: setsError } = await supabase
-    .from("match_result_sets")
-    .insert(setRows);
-
-  if (setsError) {
-    console.error("Could not save set scores:", setsError.message);
-    await deleteResult(resultId);
-    return { error: "Could not save the set scores. Please try again." };
-  }
-
-  return { ok: true };
-}
-
-// The summary the confirm RPC returns: the result's status after this
-// confirmation, how many players still haven't confirmed, and the winning team
-// once it's finalised (null while still pending).
-export type ConfirmResult = {
-  status: string;
-  confirmationsRemaining: number;
-  winningTeam: number | null;
-};
-
-// Record the current user's confirmation of a logged result. All the real work
-// happens server-side in the confirm_match_result RPC: it flips this caller's
-// confirmation and, once everyone has confirmed, works out the winner from the
-// set scores and finalises the result. We just call it and parse the jsonb it
-// returns. On failure we surface the Postgres message as a thrown Error so the
-// caller can show it inline.
-export async function confirmResult(gameId: string): Promise<ConfirmResult> {
-  const { data, error } = await supabase.rpc("confirm_match_result", {
-    p_game_id: Number(gameId),
+  const { error } = await supabase.rpc("start_match_result", {
+    p_game_id: Number(params.gameId),
+    p_team1: params.team1Ids,
+    p_team2: params.team2Ids,
   });
 
   if (error) {
-    console.error("Could not confirm result:", error.message);
-    throw new Error(error.message || "Could not confirm the result.");
+    const duplicate = error.code === "23505";
+    if (!duplicate) {
+      console.error("Could not start the match:", error.message);
+    }
+    return {
+      error: duplicate
+        ? "A match has already been started for this game."
+        : error.message || "Could not start the match.",
+      duplicate,
+    };
+  }
+  return { ok: true };
+}
+
+// What submit_result_entry reports back: the result's status after this
+// scoresheet landed, and how many of the participants have submitted.
+export type EntryOutcome = {
+  status: string;
+  submitted: number;
+  total: number;
+  winningTeam: number | null;
+};
+
+// Submit (or resubmit) the current user's scoresheet. The RPC validates the
+// sets, stores them, and — once the last participant is in — compares all the
+// scoresheets: identical finalises the result, any difference marks it
+// disputed. Failures surface as a thrown Error so the form can show them.
+export async function submitEntry(
+  gameId: string,
+  sets: ResultSet[],
+): Promise<EntryOutcome> {
+  const { data, error } = await supabase.rpc("submit_result_entry", {
+    p_game_id: Number(gameId),
+    p_sets: sets.map((s) => ({
+      team1_games: s.team1Games,
+      team2_games: s.team2Games,
+    })),
+  });
+
+  if (error) {
+    console.error("Could not submit the scoresheet:", error.message);
+    throw new Error(error.message || "Could not submit your scores.");
   }
 
   const row = (data ?? {}) as {
     status?: string;
-    confirmations_remaining?: number;
+    submitted?: number;
+    total?: number;
     winning_team?: number | null;
   };
 
   return {
     status: row.status ?? "pending",
-    confirmationsRemaining: row.confirmations_remaining ?? 0,
+    submitted: row.submitted ?? 0,
+    total: row.total ?? 0,
     winningTeam: row.winning_team ?? null,
   };
 }
 
-// One participant in a logged result, paired with their profile name + avatar
-// (the same fields the game roster and chat use). team is 1 or 2; confirmation
-// is 'confirmed' or 'pending'.
+// One participant in a result, paired with their profile name + avatar (the
+// same fields the game roster and chat use). team is 1 or 2; hasSubmitted says
+// whether their scoresheet is in (derived from match_result_entries).
 export type ResultDetailParticipant = {
   userId: string;
   team: number;
-  confirmation: string;
+  hasSubmitted: boolean;
   name: string;
   avatarUrl: string | null;
 };
 
-// One set's score in a logged result.
-export type ResultDetailSet = {
-  setNumber: number;
-  team1Games: number;
-  team2Games: number;
+// One player's submitted scoresheet, in set order.
+export type ResultEntry = {
+  userId: string;
+  sets: ResultSet[];
 };
 
-// The full logged result for a game: the result row, every participant (with
-// their team + confirmation + profile), and every set in order.
+// The full result for a game: the row, every participant (team + submission
+// state + profile), the canonical sets once confirmed, and — for participants
+// only (RLS hides them from everyone else) — each player's own scoresheet.
 export type ResultDetail = {
   id: string;
   status: string;
   winningTeam: number | null;
-  submittedBy: string;
   confirmedAt: string | null;
   participants: ResultDetailParticipant[];
-  sets: ResultDetailSet[];
+  sets: ResultSet[];
+  entries: ResultEntry[];
 };
 
-// Read the complete logged result for a game so any player can see the score,
-// the teams and who has confirmed. Returns null if no result has been logged
-// (game_id is unique on match_results, so there's at most one).
+// Read the complete result for a game. Returns null if the match hasn't been
+// started (game_id is unique on match_results, so there's at most one).
 //
 // Profiles are joined the same way as the game roster: read the participant
 // rows, then look their ids up in `profiles` in one more query and pair the
@@ -213,7 +143,7 @@ export async function getResultDetail(
   // 1. The result row (at most one for this game).
   const { data: result, error } = await supabase
     .from("match_results")
-    .select("id, status, winning_team, submitted_by, confirmed_at")
+    .select("id, status, winning_team, confirmed_at")
     .eq("game_id", gameId)
     .maybeSingle();
 
@@ -228,10 +158,33 @@ export async function getResultDetail(
   // 2. Participants for this result.
   const { data: partRows, error: partError } = await supabase
     .from("match_result_participants")
-    .select("user_id, team, confirmation")
+    .select("user_id, team")
     .eq("result_id", resultId);
   if (partError) {
     console.error("Could not load result participants:", partError.message);
+  }
+
+  // 3. Every scoresheet row. RLS returns these only to the match's own
+  //    participants — for anyone else this is just an empty list.
+  const { data: entryRows, error: entryError } = await supabase
+    .from("match_result_entries")
+    .select("user_id, set_number, team1_games, team2_games")
+    .eq("result_id", resultId)
+    .order("set_number");
+  if (entryError) {
+    console.error("Could not load scoresheets:", entryError.message);
+  }
+
+  const setsByUser = new Map<string, ResultSet[]>();
+  for (const r of entryRows ?? []) {
+    const uid = r.user_id as string;
+    const list = setsByUser.get(uid) ?? [];
+    list.push({
+      setNumber: r.set_number as number,
+      team1Games: r.team1_games as number,
+      team2Games: r.team2_games as number,
+    });
+    setsByUser.set(uid, list);
   }
 
   // Look the participants' names + avatars up in `profiles` (same manual join
@@ -249,17 +202,22 @@ export async function getResultDetail(
   for (const p of profiles ?? []) byId.set(p.id as string, p);
 
   const participants: ResultDetailParticipant[] = (partRows ?? []).map((r) => {
-    const p = byId.get(r.user_id as string);
+    const uid = r.user_id as string;
+    const p = byId.get(uid);
     return {
-      userId: r.user_id as string,
+      userId: uid,
       team: r.team as number,
-      confirmation: r.confirmation as string,
+      hasSubmitted: setsByUser.has(uid),
       name: p?.name ?? "Player",
       avatarUrl: p?.avatar_url ?? null,
     };
   });
 
-  // 3. Sets, in playing order.
+  const entries: ResultEntry[] = participants
+    .filter((p) => p.hasSubmitted)
+    .map((p) => ({ userId: p.userId, sets: setsByUser.get(p.userId)! }));
+
+  // 4. The canonical sets, in playing order (empty until confirmed).
   const { data: setRows, error: setsError } = await supabase
     .from("match_result_sets")
     .select("set_number, team1_games, team2_games")
@@ -269,7 +227,7 @@ export async function getResultDetail(
     console.error("Could not load result sets:", setsError.message);
   }
 
-  const sets: ResultDetailSet[] = (setRows ?? []).map((s) => ({
+  const sets: ResultSet[] = (setRows ?? []).map((s) => ({
     setNumber: s.set_number as number,
     team1Games: s.team1_games as number,
     team2Games: s.team2_games as number,
@@ -279,10 +237,10 @@ export async function getResultDetail(
     id: String(result.id),
     status: result.status as string,
     winningTeam: (result.winning_team as number | null) ?? null,
-    submittedBy: result.submitted_by as string,
     confirmedAt: (result.confirmed_at as string | null) ?? null,
     participants,
     sets,
+    entries,
   };
 }
 
@@ -293,7 +251,7 @@ export type PlayerMatchStats = { played: number; won: number; lost: number };
 //   • played = confirmed results this user took part in,
 //   • won    = those where their team was the winning team,
 //   • lost   = played − won.
-// Only status='confirmed' results count — pending/unconfirmed ones never show
+// Only status='confirmed' results count — pending/disputed ones never show
 // up in the stat. Done as a manual two-step join (the same style the rest of
 // the app uses instead of relying on a DB relationship), so it's two small
 // queries, never N+1.

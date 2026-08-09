@@ -59,6 +59,84 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Dublin time fix (CODE COMPLETE — migration NOT yet run). Game times are now
+  stored as TRUE UTC instants and presented — displayed AND typed — pinned to
+  Europe/Dublin everywhere, fixing both the recurring-games DST shift and a
+  live bug where summer games displayed an hour late (constructors wrote
+  wall-clock-as-UTC while display had already gone device-local).
+  - `src/lib/time.ts` (new) — the one timezone abstraction: APP_TIME_ZONE,
+    dublinToUtc (offset-probing via Intl, no library), utcToDublinInput,
+    dublinDateKey (Dublin calendar-day comparisons). Verified against both
+    DST transitions and the spring-forward gap.
+  - Constructors fixed: CreateGameForm combine, edit page helpers (renamed),
+    data.ts mock inDays, seed.sql (`at time zone 'Europe/Dublin'`).
+  - Formatters/day-boundaries pinned to Dublin: formatGameTime,
+    formatTimeRange, formatDay, chat shortStamp/shortTime, chat active/past
+    split, GameFilters "Today", isToday.
+  - Migration: `supabase/migrations/20260811000000_dublin_wall_clock.sql` —
+    (a) roll_recurring_games() recomputes the next weekly occurrence in
+    Dublin wall-clock space (create-or-replace supersedes the 20260810
+    version, which is kept as the historical record); (b) ONE-SHOT backfill
+    of all existing wall-clock-as-UTC rows, guarded by a marker row in the
+    new `app_meta` table (RLS on, no policies) so re-running the file can
+    never double-shift. RUN ORDER: 20260810 first if not yet run, then this,
+    then deploy the client in the same sitting.
+- Recurring weekly games (CODE COMPLETE — migration NOT yet run). A game
+  created with the new "Repeats weekly" toggle rolls forward automatically:
+  once its game_time passes, next week's instance is created with the same
+  venue/time/roster (players are auto-joined and each gets a
+  'recurring_game_created' notification; they can Leave as normal). Chains
+  end when the game is cancelled, when the owner taps "Stop repeating"
+  (new button + confirm dialog in creator-actions.tsx), or when the roster
+  empties. Automation = pg_cron inside Supabase calling the SECURITY DEFINER
+  function `roll_recurring_games()` hourly — no new server infrastructure.
+  - Migration: `supabase/migrations/20260810000000_recurring_games.sql` —
+    adds games.recurs_weekly + games.series_id (root game's id tags the whole
+    chain; a BEFORE INSERT trigger self-tags the root), a partial unique index
+    on (series_id, game_time) for idempotency, the roll function (grants to
+    authenticated as an on-app-open fallback), an early-return added to
+    notify_group_game_proposed so rolled group successors don't double-notify,
+    and the cron.schedule. PRE-FLIGHT: enable the pg_cron extension in
+    Dashboard → Database → Extensions BEFORE running it in the SQL editor.
+  - Code: NewGame/createGame (+ stopRecurring) in src/app/games.ts (the
+    insert only sends recurs_weekly when ticked, so creates keep working
+    until the migration runs), Game type + rowToGame mappings, the toggle in
+    CreateGameForm.tsx, "Repeats weekly" chip + Stop repeating flow on the
+    game detail page.
+  - NOTE: the roll function in this migration adds flat 168h weeks (UTC) —
+    superseded by 20260811000000_dublin_wall_clock.sql, which rolls in
+    Dublin wall-clock space. Run both, in order.
+- Match results v2 — CONSENSUS SCORESHEETS (supersedes the submit→confirm flow
+  in the older "Match results (COMPLETE keystone)" entry below). New flow: the
+  game OWNER taps "Start match" on a full 4-player game and fixes the 2v2
+  teams; then EVERY participant independently enters 1–3 set scores (their
+  "scoresheet", stored per-player in the new `match_result_entries` table).
+  When the last scoresheet lands the server compares them all: identical →
+  status 'confirmed', canonical sets written to `match_result_sets`,
+  `winning_team` set; any difference → status 'disputed' (new status) — the UI
+  shows what each player entered (differing sheets marked "differs") and
+  anyone can edit + resubmit, which re-runs the compare.
+  - Migration: `supabase/migrations/20260809000000_consensus_entries.sql` —
+    CHECK constraints (`team in (1,2)`, status incl. 'disputed'), the entries
+    table (participant-only SELECT via RLS, NO direct-write policies), two
+    security-definer RPCs `start_match_result(game_id, team1[], team2[])`
+    (owner-only, full-game-only, validates 2v2 = roster) and
+    `submit_result_entry(game_id, sets jsonb)` (validates the same score rules
+    as the form, locks the result row FOR UPDATE against races, does the
+    compare/finalise), DROPS the old `confirm_match_result` RPC + the old
+    submitter direct-write policies, and adds `match_results` +
+    `match_result_entries` to the `supabase_realtime` publication. Needs to be
+    RUN in the Supabase SQL editor (repo convention).
+  - Code: `src/app/match-results.ts` rewritten (`startMatch`, `submitEntry`,
+    `getResultDetail` now returns per-player entries + `hasSubmitted`;
+    `getPlayerMatchStats` unchanged — confirmed-only). `log-result.tsx`
+    rewritten around the new states; it subscribes to Supabase Realtime
+    (`match_results` by game_id + `match_result_entries` by result_id, same
+    pattern as chat) so submissions/disputes/confirmation land live. The
+    finalised winner view now shows to ANY viewer of the game page; the
+    in-progress board is participants + owner only. RLS stance: scoresheets
+    are participant-private; the result row/teams/canonical sets stay readable
+    by any signed-in user because profile stats and the game page need them.
 - THE PEÑA re-skin (style/markup only — zero logic/data/routing changes), on
   the `pena-reskin` branch. The bone/sage "Members' Club" system was replaced
   app-wide by the peña system extracted from `design-lab/landing-pena.html` +
@@ -229,9 +307,11 @@ To stay focused, we are deliberately leaving these for later:
 - Day 2: Connected the app to the Supabase `games` table. List + detail screens
   now read REAL data from the database (verified working locally). Env vars are
   in `.env.local` (local only — still need to be added in Vercel for the live site).
-  - `game_time` is now shown in friendly form (e.g. "Wed 10 Jun, 5:30 pm") via
-    `formatGameTime()` in `src/app/games.ts`. Displayed in UTC (same timezone
-    it's stored in) so the time typed in Supabase matches what's on screen.
+  - `game_time` is now shown in friendly form (e.g. "Wed 10 Jun, 18:30") via
+    `formatGameTime()` in `src/app/games.ts`. SINCE the Dublin-time fix (see
+    progress log): stored as a true UTC instant, displayed and typed pinned
+    to Europe/Dublin via `src/lib/time.ts` — a time typed straight into
+    Supabase must now be the real UTC instant, NOT the wall-clock time.
 - Day 1: Built the clickable core loop as placeholder screens (no database/login/payments):
   - `src/app/games.ts` — hand-made list of example games (the fake data).
   - `src/app/page.tsx` — the "nearby games" LIST screen (home, "/").

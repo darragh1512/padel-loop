@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import GameCard from "@/components/GameCard";
 import { ButtonLink, ChipButton, EmptyState, SectionLabel, Skeleton } from "@/components/ui";
 import { skillTierOf, type Game } from "@/lib/types";
+import { dublinDateKey } from "@/lib/time";
 import { supabase } from "@/lib/supabaseClient";
 import { getConnections } from "@/app/connections";
 import { getJoinedOrCreatedGameIds } from "@/app/games";
@@ -17,14 +18,15 @@ const TIMES = ["Today", "This week"] as const;
 
 type OpenKey = "level" | "area" | "time" | null;
 
-// Does this game pass the Time chip? "Today" = same calendar day (matching the
-// "Today" label on the card); "This week" = starting within the next 7 days.
+// Does this game pass the Time chip? "Today" = same DUBLIN calendar day
+// (matching the "Today" label on the card, which uses the same date key);
+// "This week" = starting within the next 7 days.
 function matchesTime(game: Game, time: string | null): boolean {
   if (!time) return true;
   const start = new Date(game.startsAt);
   if (isNaN(start.getTime())) return true;
   const now = new Date();
-  if (time === "Today") return start.toDateString() === now.toDateString();
+  if (time === "Today") return dublinDateKey(start) === dublinDateKey(now);
   const weekFromNow = new Date(now);
   weekFromNow.setDate(now.getDate() + 7);
   return start <= weekFromNow;

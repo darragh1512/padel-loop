@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Wordmark } from "@/components/brand";
 import { Button, Field, Input } from "@/components/ui";
+import SkillLevelPicker from "@/components/SkillLevelPicker";
 import { supabase } from "@/lib/supabaseClient";
 import { createProfile } from "../profiles";
 
@@ -81,18 +82,10 @@ export default function SignupPage() {
           />
         </Field>
 
-        <Field label="Skill level" htmlFor="signup-skill" error={null}>
-          <select
-            id="signup-skill"
-            value={skillLevel}
-            onChange={(e) => setSkillLevel(e.target.value)}
-            className="pl-surface w-full rounded-field px-4 py-3 text-body font-medium text-tinta outline-none focus:border-naranja transition-colors duration-150 ease-out"
-          >
-            <option value="Beginner">Beginner</option>
-            <option value="Intermediate">Intermediate</option>
-            <option value="Advanced">Advanced</option>
-          </select>
-        </Field>
+        <div>
+          <span className="t-mono block text-micro opacity-85 mb-1.5">Skill level</span>
+          <SkillLevelPicker value={skillLevel} onChange={setSkillLevel} />
+        </div>
 
         <Field label="Email" htmlFor="signup-email" error={null}>
           <Input
