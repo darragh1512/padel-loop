@@ -59,6 +59,20 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Player ratings (CODE COMPLETE — migration NOT yet run). Elo-style rating
+  per player, moved ONLY by confirmed match results (K=32, expected score vs
+  the OPPOSING pair's average — the standard doubles adaptation). Starting
+  rating comes from the self-declared skill level (Beginner 800 … Pro 1200)
+  via a profiles trigger, so new players differ from day one. A status-
+  transition trigger on match_results applies each result exactly once
+  (rating_applied one-shot flag, creator_notified idiom);
+  rebuild_all_ratings() resets and replays everything chronologically — the
+  migration (supabase/migrations/20260812000000_ratings.sql) ends by calling
+  it, so it is retroactive AND safe to re-run. Profile page: the stats row's
+  first cell is now RATING (earned); the self-declared level moved to a
+  labelled "SELF-RATED · X" line under the player's name so the two can't be
+  confused. Known accepted limitation: RLS is row-level, so a player could
+  hand-edit their own rating via the API; a rebuild corrects it.
 - Dublin time fix (CODE COMPLETE — migration NOT yet run). Game times are now
   stored as TRUE UTC instants and presented — displayed AND typed — pinned to
   Europe/Dublin everywhere, fixing both the recurring-games DST shift and a

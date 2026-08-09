@@ -17,6 +17,9 @@ export type Profile = {
   home_club: string | null; // their home padel club
   bio: string | null; // a short "about me" they can write
   avatar_url: string | null; // public URL of their uploaded photo, if any
+  rating?: number | null; // Elo-style rating, moved ONLY by confirmed match
+  // results (the database owns it — see 20260812000000_ratings.sql). Distinct
+  // from skill_level, which is what the player SAYS they play like.
   created_at?: string; // when the profile was first created
 };
 

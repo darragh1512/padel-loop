@@ -308,11 +308,14 @@ export default function PlayerProfilePage() {
   // While editing, preview the avatar the owner has chosen so far.
   const shownAvatar = editing ? fAvatarUrl : profile.avatar_url;
 
-  // The identity header's stats row, kept as a list of cells. "Played" and
-  // "Won" come from confirmed match results (getPlayerMatchStats); a player
-  // with no finalised matches simply shows 0 in both, which reads cleanly.
+  // The identity header's stats row, kept as a list of cells. "Rating" is the
+  // EARNED number (Elo-style, moved only by confirmed results — the database
+  // owns it); the SELF-RATED level gets its own labelled line under the name
+  // so the two are never confused. "Played" and "Won" come from confirmed
+  // match results (getPlayerMatchStats); a player with no finalised matches
+  // simply shows 0 in both, which reads cleanly.
   const stats: { label: string; value: string; href?: string }[] = [
-    { label: "Skill", value: profile.skill_level || "Unrated" },
+    { label: "Rating", value: profile.rating != null ? String(profile.rating) : "—" },
     {
       label: connCount === 1 ? "Connection" : "Connections",
       value: String(connCount),
@@ -337,6 +340,11 @@ export default function PlayerProfilePage() {
         <h1 className="t-display text-display-md text-papel mt-4 max-w-full truncate">
           {displayName}
         </h1>
+        {/* The self-declared level, clearly labelled so it never reads as the
+            earned Rating in the stats row below. */}
+        <p className="t-mono text-[9px] tracking-[0.12em] text-papel/80 mt-2">
+          SELF-RATED · {(profile.skill_level || "Unrated").toUpperCase()}
+        </p>
 
         {/* Stats row — one stapled poster, divided into equal cells. Hero
             numbers get the poster shout; labels are printed mono. The
