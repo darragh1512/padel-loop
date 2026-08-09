@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import BadgeShelf from "@/components/BadgeShelf";
 import PlayerQRCode from "@/components/PlayerQRCode";
 import QRScanner from "@/components/QRScanner";
 import SkillLevelPicker from "@/components/SkillLevelPicker";
@@ -42,6 +43,7 @@ import {
   getConnectionCount,
 } from "../../connections";
 import { getPlayerMatchStats, type PlayerMatchStats } from "../../match-results";
+import { computeBadges, getBestWinStreak } from "../../badges";
 
 // One upcoming-game card. The whole card links to that game's detail page —
 // styled to match the cards on "My games" so the app feels consistent.
@@ -105,6 +107,11 @@ export default function PlayerProfilePage() {
     lost: 0,
   });
 
+  // Their best run of consecutive confirmed wins — the one badge input the
+  // page doesn't already have (connections and games played come from the
+  // stats above).
+  const [bestStreak, setBestStreak] = useState(0);
+
   // Edit-mode state.
   const [editing, setEditing] = useState(false);
   const [fName, setFName] = useState("");
@@ -131,13 +138,14 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [{ data: auth }, loadedProfile, upcoming, count, mStats] =
+      const [{ data: auth }, loadedProfile, upcoming, count, mStats, streak] =
         await Promise.all([
           supabase.auth.getUser(),
           getProfile(playerId),
           getUpcomingGamesFor(playerId),
           getConnectionCount(playerId),
           getPlayerMatchStats(playerId),
+          getBestWinStreak(playerId),
         ]);
       if (!active) return;
 
@@ -148,6 +156,7 @@ export default function PlayerProfilePage() {
       setGames(upcoming);
       setConnCount(count);
       setMatchStats(mStats);
+      setBestStreak(streak);
 
       // Only the non-owner view needs to know if they're already connected.
       if (viewerId && viewerId !== playerId) {
@@ -324,6 +333,14 @@ export default function PlayerProfilePage() {
     { label: "Played", value: String(matchStats.played) },
     { label: "Won", value: String(matchStats.won) },
   ];
+
+  // Badges are derived from what this player has already done — the same
+  // three numbers shown above, plus their best winning run.
+  const badges = computeBadges({
+    connections: connCount,
+    gamesPlayed: matchStats.played,
+    bestStreak,
+  });
 
   return (
     <main className="px-5 pt-6 relative">
@@ -548,6 +565,13 @@ export default function PlayerProfilePage() {
                 : `${displayName} has no games coming up.`}
             </div>
           )}
+
+          {/* Badges — earned stamps, then the next rung in each family. */}
+          <BadgeShelf
+            badges={badges}
+            isOwner={isOwner}
+            displayName={displayName}
+          />
 
           {/* About — home club, then bio (when set). */}
           <SectionLabel>About</SectionLabel>

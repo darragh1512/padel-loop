@@ -303,3 +303,43 @@ export async function getPlayerMatchStats(
 
   return { played, won, lost: played - won };
 }
+
+// One confirmed result in a player's history: when it was finalised and
+// whether they won. Ordered oldest-first so streaks can be walked in playing
+// order. Same two-query manual join as getPlayerMatchStats above.
+export type PlayerResultOutcome = { confirmedAt: string | null; won: boolean };
+
+export async function getPlayerResultHistory(
+  userId: string,
+): Promise<PlayerResultOutcome[]> {
+  const { data: partRows, error: partError } = await supabase
+    .from("match_result_participants")
+    .select("result_id, team")
+    .eq("user_id", userId);
+  if (partError) {
+    console.error("Could not load match participation:", partError.message);
+    return [];
+  }
+  if (!partRows || partRows.length === 0) return [];
+
+  const teamByResult = new Map<string, number>();
+  for (const r of partRows) {
+    teamByResult.set(String(r.result_id), r.team as number);
+  }
+
+  const { data: results, error: resultError } = await supabase
+    .from("match_results")
+    .select("id, winning_team, confirmed_at")
+    .in("id", Array.from(teamByResult.keys()))
+    .eq("status", "confirmed")
+    .order("confirmed_at", { ascending: true });
+  if (resultError) {
+    console.error("Could not load confirmed results:", resultError.message);
+    return [];
+  }
+
+  return (results ?? []).map((res) => ({
+    confirmedAt: (res.confirmed_at as string | null) ?? null,
+    won: teamByResult.get(String(res.id)) === (res.winning_team as number | null),
+  }));
+}

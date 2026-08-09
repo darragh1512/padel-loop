@@ -59,6 +59,19 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Badges (COMPLETE, NO migration needed — deliberately). Three families on
+  the player profile: connections (10/25/50/100), games played
+  (5/10/25/50/100 confirmed matches), and win streaks (3/5/10 confirmed
+  wins in a row, best-ever — a later loss never takes an earned badge
+  away). Badges are DERIVED, not stored: every tier is a pure function of
+  data the app already holds, so there is no table to drift, no award job,
+  and "retroactive" is automatic (an existing player's history IS the
+  input). src/app/badges.ts holds the thresholds + pure computeBadges()
+  and longestWinStreak(); getBestWinStreak() is the one extra query (via
+  the new getPlayerResultHistory in match-results.ts). BadgeShelf.tsx
+  renders earned tiers as lima riso stamps and each family's next rung as
+  a progress strip. Verified the logic (empty history, maxed families,
+  streak survives a later loss) and both UI states in-browser.
 - Leaderboard (COMPLETE, no migration needed). New /leaderboard route
   (src/app/leaderboard/page.tsx + data helper src/app/leaderboard.ts):
   ranks every player by earned rating or by wins (ChipButton toggle), with
