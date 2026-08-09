@@ -209,11 +209,18 @@ export async function getGames(): Promise<Game[]> {
     // only — never on the public Discover list.
     .order("game_time", { ascending: true }) // soonest first
     .limit(20);
-  // If the query failed or returned nothing, fall back to the mock games.
+  // DEVELOPMENT ONLY: if the query failed or returned nothing, fall back to
+  // the mock games so screens render while building. NEVER in production —
+  // mock games look joinable but their ids don't exist in the database, so
+  // every join fails on the game_players foreign key ("Couldn't take that
+  // spot"). A genuinely empty board must show the real EmptyState instead.
   if (error || !data || data.length === 0) {
-    return MOCK_GAMES
-      .filter(isUpcoming)
-      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+    if (process.env.NODE_ENV !== "production") {
+      return MOCK_GAMES
+        .filter(isUpcoming)
+        .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+    }
+    return [];
   }
 
   // Load the real joined players for ALL these games in one batch, then build
@@ -240,7 +247,13 @@ export async function getGame(id: string): Promise<Game | null> {
     const players = await getPlayersForGame(String(data.id), data.created_by);
     return rowToGame(data, players);
   }
-  return MOCK_GAMES.find((g) => g.id === id) ?? MOCK_GAMES[0];
+  // DEVELOPMENT ONLY: let the mock discover cards open their mock detail
+  // pages. In production an unknown game is simply not found (the page shows
+  // its 404), never a fake game a visitor could try to join.
+  if (process.env.NODE_ENV !== "production") {
+    return MOCK_GAMES.find((g) => g.id === id) ?? null;
+  }
+  return null;
 }
 
 // Every game proposed inside ONE group — same UI Game shape as getGames(),
@@ -264,10 +277,11 @@ export async function getGamesForGroup(groupId: string): Promise<Game[]> {
   );
 }
 
-/* ── Mock data (used only if the games query fails or is empty) ───────
-   These mirror the seed rows in supabase/seed.sql so the fallback looks the
-   same as the real database. Levels and per-head prices come from the skill
-   tier (see levelRange / courtFeeFor above), exactly as the real rows do.   */
+/* ── Mock data (DEVELOPMENT ONLY — never served in production) ───────
+   Used by the dev-gated fallbacks above when the games query fails or is
+   empty, so screens render while building. These mirror the seed rows in
+   supabase/seed.sql. Levels and per-head prices come from the skill tier
+   (see levelRange / courtFeeFor above), exactly as the real rows do.       */
 
 // Build an ISO timestamp `days` from now at the given DUBLIN time-of-day —
 // the app shows game times pinned to Europe/Dublin (see src/lib/time.ts), so
