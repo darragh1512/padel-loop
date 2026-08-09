@@ -25,14 +25,34 @@ export type LeaderboardRow = {
 
 export async function getLeaderboard(): Promise<LeaderboardRow[]> {
   // 1. Every profile — the board lists the whole peña, ranked or not.
-  const { data: profiles, error: profileError } = await supabase
+  // profiles.rating only exists once the ratings migration has been run, and
+  // migrations here are applied by hand. Asking for a column that doesn't
+  // exist fails the WHOLE query (an empty leaderboard, not just a missing
+  // number), so fall back to the columns that have always been there and
+  // treat rating as unset. The board then ranks on wins until the migration
+  // lands, and picks up ratings automatically afterwards.
+  const BASE_COLUMNS = "id, name, avatar_url, home_club";
+  let profiles: Record<string, unknown>[] | null = null;
+
+  const withRating = await supabase
     .from("profiles")
-    .select("id, name, avatar_url, home_club, rating")
+    .select(`${BASE_COLUMNS}, rating`)
     .limit(500);
-  if (profileError) {
-    console.error("Could not load profiles:", profileError.message);
-    return [];
+
+  if (withRating.error) {
+    const fallback = await supabase
+      .from("profiles")
+      .select(BASE_COLUMNS)
+      .limit(500);
+    if (fallback.error) {
+      console.error("Could not load profiles:", fallback.error.message);
+      return [];
+    }
+    profiles = fallback.data;
+  } else {
+    profiles = withRating.data;
   }
+
   if (!profiles || profiles.length === 0) return [];
 
   // 2. Every confirmed result's winner, and 3. who played on which team.
