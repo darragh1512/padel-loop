@@ -31,28 +31,30 @@ export default function NotificationBell() {
     <Link
       href="/notifications"
       aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
-      className="pl-hit relative inline-flex text-papel/85 hover:text-papel rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+      /* The prototype's outlined disc on the wall — a plain naranja dot marks
+         unread rather than a counted badge. */
+      className="relative size-10.5 rounded-pill border-2 border-papel/35 bg-white/8 hover:bg-white/18 grid place-items-center text-papel transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
     >
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path
-          d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+          d="M18 8a6 6 0 1 0-12 0c0 6-2 8-2 8h16s-2-2-2-8"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
         <path
-          d="M13.7 21a2 2 0 0 1-3.4 0"
+          d="M10 20h4"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
-          strokeLinejoin="round"
         />
       </svg>
       {count > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-pill bg-naranja text-papel border border-tinta font-mono text-nav font-bold flex items-center justify-center leading-none">
-          {count > 9 ? "9+" : count}
-        </span>
+        <span
+          aria-hidden
+          className="absolute top-1.5 right-1.5 size-2.25 rounded-pill bg-naranja border-2 border-pista"
+        />
       )}
     </Link>
   );

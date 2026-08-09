@@ -44,7 +44,7 @@ export default function PlayerAvatar({
     () =>
       createAvatar(thumbs, {
         seed: userId,
-        backgroundColor: ["F3E9D2", "D8E24A", "FF5A1F"],
+        backgroundColor: ["F4EEE0", "C6E63F", "FF5A1F"],
       }).toDataUri(),
     [userId],
   );

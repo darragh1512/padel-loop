@@ -41,8 +41,10 @@ const BUTTON_VARIANT: Record<ButtonVariant, string> = {
     "bg-papel text-naranja-d border-2 border-dashed border-naranja-d hover:bg-naranja-d/10",
 };
 
+/* Buttons are cut squares in the prototype, not pills — 4px radius, the same
+   as the posters they sit on. Only avatars and chips stay round. */
 const BUTTON_TYPE =
-  "t-mono inline-flex items-center justify-center gap-2 rounded-pill whitespace-nowrap select-none tracking-[0.12em]";
+  "t-mono inline-flex items-center justify-center gap-2 rounded-card whitespace-nowrap select-none";
 
 export function Button({
   variant = "primary",
@@ -112,8 +114,8 @@ export function ButtonLink({
    <Chip> for display; <ChipButton> when tappable (filters, toggles).
    Active = the lima print pass. */
 const CHIP_LOOK = (active: boolean) =>
-  `inline-flex items-center gap-1.5 text-label rounded-pill px-3.5 py-1.5 whitespace-nowrap border-[1.5px] border-tinta text-tinta ${
-    active ? "bg-lima font-extrabold" : "bg-papel font-semibold"
+  `t-mono inline-flex items-center gap-1.5 text-micro rounded-pill px-3 py-1.5 whitespace-nowrap border-2 border-tinta text-tinta ${
+    active ? "bg-lima" : "bg-papel"
   }`;
 
 export function Chip({
@@ -152,7 +154,7 @@ export function ChipButton({
 /* The level tag — a printed mono label on lima. */
 export function LevelChip({ children }: { children: ReactNode }) {
   return (
-    <span className="t-mono text-micro tracking-[0.12em] text-tinta bg-lima border-[1.5px] border-tinta rounded-pill px-3 py-1.5">
+    <span className="t-mono text-micro text-tinta bg-lima border-2 border-tinta rounded-pill px-3 py-1.5">
       {children}
     </span>
   );
@@ -230,9 +232,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="pl-card pena-staples pena-tilt-b px-6 pt-8 pb-7 text-center">
+    <div className="pl-card px-6 pt-7 pb-6 text-center">
       <p className="t-display text-display-xs text-tinta">{title}</p>
-      {body && <p className="text-label font-medium text-tinta/70 mt-2">{body}</p>}
+      {body && <p className="text-body font-medium text-tinta/70 mt-2">{body}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
   );
@@ -324,7 +326,7 @@ export function Dialog({
         onClick={onClose}
         className="absolute inset-0 bg-scrim cursor-default"
       />
-      <div className="relative w-full max-w-sm p-5 pt-6 pl-card pena-staples pena-tilt-c border-[3px] border-tinta shadow-poster pl-rise">
+      <div className="relative w-full max-w-sm p-5 pl-card border-[3px] border-tinta shadow-poster pl-rise">
         <p className="t-display text-display-xs text-tinta">{title}</p>
         {children}
       </div>

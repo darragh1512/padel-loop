@@ -13,7 +13,8 @@ export default function ProposeGroupGamePage() {
   const params = useParams<{ id: string }>();
 
   return (
-    <main className="px-5 pt-6 relative">
+    /* Extra bottom padding clears the pinned create bar as well as the nav. */
+    <main className="px-5 pt-4 pb-32 relative">
       <CreateGameForm groupId={params.id} />
       <BottomNav />
     </main>

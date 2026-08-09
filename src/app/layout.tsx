@@ -1,16 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Space_Mono } from "next/font/google";
-import { CourtPaint } from "@/components/brand";
+import { Archivo, Archivo_Black, Space_Mono } from "next/font/google";
 import "./globals.css";
 
-// The two peña fonts, loaded via next/font and exposed as CSS variables that
-// globals.css references (--font-bricolage → font-sans/font-display,
-// --font-space-mono → font-mono). Bricolage loads as a variable font with the
-// opsz + wdth axes so .t-display can condense it (font-stretch: 90%).
-const bricolage = Bricolage_Grotesque({
+// The three peña fonts, loaded via next/font and exposed as CSS variables
+// that globals.css references (--font-archivo → font-sans,
+// --font-archivo-black → font-display, --font-space-mono → font-mono).
+const archivo = Archivo({
   subsets: ["latin"],
-  axes: ["opsz", "wdth"],
-  variable: "--font-bricolage",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-archivo",
+});
+
+// Archivo Black is a single-weight family — it IS the poster shout.
+const archivoBlack = Archivo_Black({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-archivo-black",
 });
 
 const spaceMono = Space_Mono({
@@ -25,20 +30,23 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#14459A",
+  themeColor: "#0F1C3F",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${spaceMono.variable}`}>
+    <html
+      lang="en"
+      className={`${archivo.variable} ${archivoBlack.variable} ${spaceMono.variable}`}
+    >
       <body className="min-h-dvh antialiased">
-        {/* The painted court lines across the whole wall, behind everything. */}
-        <CourtPaint />
-        {/* The phone-width app shell. Bottom padding leaves room for the fixed
-            bottom navigation that the design's screens render. */}
-        <div className="mx-auto max-w-md min-h-dvh relative pb-24">
+        {/* The app shell. Fluid to the viewport on phones (the prototype's
+            402px frame is a canvas, not a constraint) and capped on wider
+            screens so the design keeps its one-column reading measure.
+            Bottom padding clears the fixed bottom navigation. */}
+        <div className="mx-auto w-full max-w-md min-h-dvh relative pb-28">
           {children}
         </div>
       </body>

@@ -1,32 +1,27 @@
 "use client";
 // A player's public profile, at /players/[id]. Anyone can view it: avatar,
-// name, skill level, home club, bio, and the games this player has coming up.
+// name, skill level, home club, form, badges and the games they have coming up.
 //
 // If the person viewing IS the player (their logged-in id matches the id in
 // the address), they also get an Edit mode to change their name, skill level,
 // home club and bio, and to upload an avatar photo.
 //
+// Layout follows the prototype: an identity band on the wall (avatar, name,
+// chips, quick actions), one stats poster, and a three-way segmented control
+// — Overview · Badges · Code — over a scrolling body.
+//
 // Like the rest of the app this reads the player client-side using the shared
 // Supabase client, so the same auth/env setup applies everywhere.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import PlayerAvatar from "@/components/PlayerAvatar";
-import BadgeShelf from "@/components/BadgeShelf";
 import PlayerQRCode from "@/components/PlayerQRCode";
 import QRScanner from "@/components/QRScanner";
 import SkillLevelPicker from "@/components/SkillLevelPicker";
-import {
-  Button,
-  Chip,
-  ChipButton,
-  Input,
-  SectionLabel,
-  Skeleton,
-  Textarea,
-} from "@/components/ui";
+import { Button, Input, Skeleton, Textarea } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import {
   getProfile,
@@ -42,29 +37,74 @@ import {
   disconnect,
   getConnectionCount,
 } from "../../connections";
-import { getPlayerMatchStats, type PlayerMatchStats } from "../../match-results";
-import { computeBadges, getBestWinStreak } from "../../badges";
+import {
+  getPlayerMatchStats,
+  getPlayerResultHistory,
+  type PlayerMatchStats,
+  type PlayerResultOutcome,
+} from "../../match-results";
+import { computeBadges, longestWinStreak, type BadgeProgress } from "../../badges";
 
-// One upcoming-game card. The whole card links to that game's detail page —
-// styled to match the cards on "My games" so the app feels consistent.
-function UpcomingGameCard({ game, delay = 0 }: { game: Game; delay?: number }) {
-  const tilt = Math.round(delay / 50) % 2 === 0 ? "pena-tilt-a" : "pena-tilt-b";
+/* ── Small printed parts, straight from the prototype ─────────────────────*/
+
+// The section rule: a tracked-out mono label with an ink hairline running to
+// the edge of the board.
+function Rule({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5 mx-0.5 mb-2.5 mt-4">
+      <span className="t-mono text-tiny tracking-[0.2em] text-papel/72 whitespace-nowrap">
+        {children}
+      </span>
+      <span className="flex-1 h-0.5 bg-papel/18" />
+    </div>
+  );
+}
+
+// A progress bar: ink-outlined pill, lima fill.
+function Bar({ pct, className = "" }: { pct: number; className?: string }) {
+  return (
+    <span
+      className={`block border-2 border-tinta rounded-pill overflow-hidden bg-tinta/10 ${className}`}
+    >
+      <span
+        className="block h-full bg-lima"
+        style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
+      />
+    </span>
+  );
+}
+
+// One upcoming game, in the prototype's result-row shape: a coloured rail, a
+// round stamp, the venue in poster caps, and the when/where in printed mono.
+function UpcomingGameRow({ game }: { game: Game }) {
   return (
     <Link
       href={`/games/${game.id}`}
-      className={`pl-card pena-staples ${tilt} pl-press pl-rise block p-4 pt-5 mb-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima`}
-      style={{ animationDelay: `${delay}ms` }}
+      className="pl-card pl-press relative flex items-center gap-3 py-2.5 pr-3.5 pl-4 overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
     >
-      <div className="flex justify-between items-start gap-3">
-        <div className="min-w-0">
-          <div className="t-display text-title text-tinta">{game.venue}</div>
-          <div className="t-mono text-micro tracking-[0.14em] text-tinta/70 mt-1.5">
-            {formatGameTime(game.game_time)}
-            {game.location ? <> · {game.location}</> : null}
-          </div>
-        </div>
-        <Chip>{game.skill_level}</Chip>
-      </div>
+      <span className="absolute left-0 inset-y-0 w-1.5 bg-lima" aria-hidden />
+      <span className="flex-none size-7.5 rounded-pill grid place-items-center border-2 border-tinta bg-lima">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden>
+          <path
+            d="M4.5 6.5h15v13h-15zM8 4v4M16 4v4M4.5 11h15"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="t-display block text-[0.875rem] text-tinta truncate">
+          {game.venue}
+        </span>
+        <span className="t-eyebrow block text-tiny tracking-[0.06em] text-tinta/55 mt-0.5 truncate">
+          {formatGameTime(game.game_time)}
+          {game.location ? ` · ${game.location}` : ""}
+        </span>
+      </span>
+      <span className="t-mono flex-none text-tiny text-tinta bg-lima border-2 border-tinta rounded-stamp px-1.5 py-1">
+        {game.skill_level}
+      </span>
     </Link>
   );
 }
@@ -82,6 +122,8 @@ function extractPlayerId(scanned: string): string | null {
   }
 }
 
+type Tab = "Overview" | "Badges" | "Code";
+
 export default function PlayerProfilePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -91,6 +133,7 @@ export default function PlayerProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [games, setGames] = useState<Game[]>([]);
+  const [tab, setTab] = useState<Tab>("Overview");
 
   // Connection state. currentUserId is whoever is logged in (null if nobody);
   // connected is whether they're connected to the viewed player; connCount is
@@ -107,10 +150,9 @@ export default function PlayerProfilePage() {
     lost: 0,
   });
 
-  // Their best run of consecutive confirmed wins — the one badge input the
-  // page doesn't already have (connections and games played come from the
-  // stats above).
-  const [bestStreak, setBestStreak] = useState(0);
+  // Their confirmed result history, oldest first. One query feeds both the
+  // form strip and the best-streak badge input.
+  const [history, setHistory] = useState<PlayerResultOutcome[]>([]);
 
   // Edit-mode state.
   const [editing, setEditing] = useState(false);
@@ -138,14 +180,14 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [{ data: auth }, loadedProfile, upcoming, count, mStats, streak] =
+      const [{ data: auth }, loadedProfile, upcoming, count, mStats, hist] =
         await Promise.all([
           supabase.auth.getUser(),
           getProfile(playerId),
           getUpcomingGamesFor(playerId),
           getConnectionCount(playerId),
           getPlayerMatchStats(playerId),
-          getBestWinStreak(playerId),
+          getPlayerResultHistory(playerId),
         ]);
       if (!active) return;
 
@@ -156,7 +198,7 @@ export default function PlayerProfilePage() {
       setGames(upcoming);
       setConnCount(count);
       setMatchStats(mStats);
-      setBestStreak(streak);
+      setHistory(hist);
 
       // Only the non-owner view needs to know if they're already connected.
       if (viewerId && viewerId !== playerId) {
@@ -278,16 +320,40 @@ export default function PlayerProfilePage() {
     setSaving(false);
   }
 
+  // The last eight confirmed results, newest last — the form strip. The run of
+  // wins at the end of that history is the CURRENT streak (distinct from the
+  // best-ever streak the badges use).
+  const form = useMemo(() => history.slice(-8), [history]);
+  const currentStreak = useMemo(() => {
+    let run = 0;
+    for (let i = history.length - 1; i >= 0 && history[i].won; i--) run++;
+    return run;
+  }, [history]);
+  const bestStreak = useMemo(() => longestWinStreak(history), [history]);
+
+  const badges: BadgeProgress[] = useMemo(
+    () =>
+      computeBadges({
+        connections: connCount,
+        gamesPlayed: matchStats.played,
+        bestStreak,
+      }),
+    [connCount, matchStats.played, bestStreak],
+  );
+
   if (loading) {
-    // Skeletons in the shape of the identity header — avatar, name, stats
-    // card — with the shared shimmer.
+    // Skeletons in the shape of the identity band — avatar, name, stats card.
     return (
-      <main className="px-5 pt-6 relative">
-        <div className="flex flex-col items-center mt-2">
-          <Skeleton className="rounded-pill size-24" />
-          <Skeleton className="rounded-field h-8 w-44 mt-4" />
-          <Skeleton className="rounded-card h-18 w-full mt-5" />
+      <main className="px-5 pt-4 relative">
+        <div className="flex items-center gap-3.5">
+          <Skeleton className="rounded-pill size-16 flex-none" />
+          <div className="flex-1">
+            <Skeleton className="rounded-field h-7 w-40" />
+            <Skeleton className="rounded-pill h-5 w-28 mt-2" />
+          </div>
         </div>
+        <Skeleton className="rounded-card h-16 w-full mt-3.5" />
+        <Skeleton className="rounded-card h-9 w-full mt-3" />
         <BottomNav />
       </main>
     );
@@ -299,12 +365,12 @@ export default function PlayerProfilePage() {
         <h1 className="t-display text-display-md text-papel mt-2">
           Player not found
         </h1>
-        <p className="text-label font-medium text-papel/85 mt-1.5">
+        <p className="text-body font-medium text-papel/85 mt-1.5">
           This player doesn&rsquo;t have a profile yet.
         </p>
         <Link
           href="/"
-          className="t-mono inline-block text-lima text-label mt-4 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+          className="t-mono inline-block text-lima text-body mt-4 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
         >
           ← Back home
         </Link>
@@ -317,92 +383,135 @@ export default function PlayerProfilePage() {
   // While editing, preview the avatar the owner has chosen so far.
   const shownAvatar = editing ? fAvatarUrl : profile.avatar_url;
 
-  // The identity header's stats row, kept as a list of cells. "Rating" is the
-  // EARNED number (Elo-style, moved only by confirmed results — the database
-  // owns it); the SELF-RATED level gets its own labelled line under the name
-  // so the two are never confused. "Played" and "Won" come from confirmed
-  // match results (getPlayerMatchStats); a player with no finalised matches
-  // simply shows 0 in both, which reads cleanly.
-  const stats: { label: string; value: string; href?: string }[] = [
-    { label: "Rating", value: profile.rating != null ? String(profile.rating) : "—" },
+  // The stats poster. "Rating" is the EARNED number (Elo-style, moved only by
+  // confirmed results — the database owns it) and takes the accent. "Played"
+  // and "Won" come from confirmed match results; "Mates" is the connection
+  // count, which links to /connections for the owner.
+  const stats: {
+    label: string;
+    value: string;
+    href?: string;
+    accent?: boolean;
+  }[] = [
     {
-      label: connCount === 1 ? "Connection" : "Connections",
-      value: String(connCount),
-      href: isOwner ? "/connections" : undefined,
+      label: "Rating",
+      value: profile.rating != null ? String(profile.rating) : "—",
+      accent: true,
     },
     { label: "Played", value: String(matchStats.played) },
     { label: "Won", value: String(matchStats.won) },
+    {
+      label: "Mates",
+      value: String(connCount),
+      href: isOwner ? "/connections" : undefined,
+    },
   ];
 
-  // Badges are derived from what this player has already done — the same
-  // three numbers shown above, plus their best winning run.
-  const badges = computeBadges({
-    connections: connCount,
-    gamesPlayed: matchStats.played,
-    bestStreak,
-  });
-
   return (
-    <main className="px-5 pt-6 relative">
-      {/* Identity header — the page anchor. Large avatar, the name at the top
-          of the type scale, and a single stats row (skill · connections ·
-          played). Centred and given the most size/weight so it reads first. */}
-      <header className="flex flex-col items-center text-center mt-2 relative">
+    <main className="px-5 pt-4 relative">
+      {/* ── Identity band ────────────────────────────────────────────────── */}
+      <header className="flex items-center gap-3.5">
         <PlayerAvatar
           userId={playerId}
           avatarUrl={shownAvatar}
           name={displayName}
-          className="size-24 ring-2 ring-tinta"
+          className="size-16 flex-none border-2 border-tinta shadow-[4px_4px_0_rgb(6_20_58/0.4)]"
         />
-        <h1 className="t-display text-display-md text-papel mt-4 max-w-full truncate">
-          {displayName}
-        </h1>
-        {/* The self-declared level, clearly labelled so it never reads as the
-            earned Rating in the stats row below. */}
-        <p className="t-mono text-[9px] tracking-[0.12em] text-papel/80 mt-2">
-          SELF-RATED · {(profile.skill_level || "Unrated").toUpperCase()}
-        </p>
-
-        {/* Stats row — one stapled poster, divided into equal cells. Hero
-            numbers get the poster shout; labels are printed mono. The
-            connections cell links to /connections for the owner. */}
-        <div className="w-full pl-card pena-staples pena-tilt-c mt-5 flex divide-x-2 divide-tinta/15 pt-2">
-          {stats.map((s) => {
-            const inner = (
-              <>
-                <div className="t-display text-display-xs text-tinta truncate">
-                  {s.value}
-                </div>
-                <div className="t-mono text-[9px] tracking-[0.1em] text-naranja-d mt-1.5">
-                  {s.label}
-                </div>
-              </>
-            );
-            return s.href ? (
-              <Link
-                key={s.label}
-                href={s.href}
-                className="flex-1 min-w-0 px-2 py-3.5 rounded-field active:opacity-70 transition-opacity duration-150 ease-out hover:bg-lima/20 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja"
-              >
-                {inner}
-              </Link>
-            ) : (
-              <div key={s.label} className="flex-1 min-w-0 px-2 py-3.5">
-                {inner}
-              </div>
-            );
-          })}
+        <div className="flex-1 min-w-0">
+          <h1 className="t-display text-[clamp(1.5rem,7vw,1.875rem)] leading-[0.95] text-white truncate">
+            {displayName}
+            <span className="text-naranja">.</span>
+          </h1>
+          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+            <span className="t-mono text-[0.5625rem] tracking-[0.14em] bg-tinta text-lima rounded-pill px-2 py-1 whitespace-nowrap">
+              {profile.skill_level || "Unrated"}
+            </span>
+            {profile.home_club && (
+              <span className="t-mono text-[0.5625rem] tracking-[0.14em] border-2 border-papel/40 text-papel/80 rounded-pill px-2 py-0.75 whitespace-nowrap max-w-full truncate">
+                {profile.home_club}
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* Quick actions — owner only: edit the profile, or open settings. */}
+        {isOwner && !editing && (
+          <div className="flex flex-col gap-1.75 flex-none">
+            <button
+              type="button"
+              onClick={startEdit}
+              aria-label="Edit profile"
+              className="size-8.5 rounded-pill border-2 border-papel/35 bg-white/8 hover:bg-white/18 grid place-items-center transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden>
+                <path
+                  d="M15.5 5.5l3 3L9 18H6v-3z"
+                  stroke="var(--color-papel)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            <Link
+              href="/profile"
+              aria-label="Settings"
+              className="size-8.5 rounded-pill border-2 border-papel/35 bg-white/8 hover:bg-white/18 grid place-items-center transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden>
+                <circle cx="12" cy="12" r="3.2" stroke="var(--color-papel)" strokeWidth="2" />
+                <path
+                  d="M12 3v2.4M12 18.6V21M21 12h-2.4M5.4 12H3M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7M18.4 18.4l-1.7-1.7M7.3 7.3L5.6 5.6"
+                  stroke="var(--color-papel)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </Link>
+          </div>
+        )}
       </header>
 
-      {/* Connect / Connected — only on someone else's profile. Tapping toggles
-          the mutual connection (logged-out visitors are sent to log in first).
-          Connect is the visitor view's one primary action; Connected settles
-          into the quiet secondary voice. */}
+      {/* ── Stats poster ─────────────────────────────────────────────────── */}
+      <div className="pl-card flex mt-3.5 overflow-hidden">
+        {stats.map((s, i) => {
+          const inner = (
+            <>
+              <div
+                className={`t-display text-[1.1875rem] leading-none truncate ${
+                  s.accent ? "text-naranja" : "text-tinta"
+                }`}
+              >
+                {s.value}
+              </div>
+              <div className="t-mono text-[0.5625rem] tracking-[0.14em] text-tinta/55 mt-1 whitespace-nowrap">
+                {s.label}
+              </div>
+            </>
+          );
+          const cell = `flex-1 min-w-0 text-center px-1 py-2.75 ${
+            i ? "border-l-2 border-tinta/15" : ""
+          }`;
+          return s.href ? (
+            <Link
+              key={s.label}
+              href={s.href}
+              className={`${cell} hover:bg-lima/25 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja`}
+            >
+              {inner}
+            </Link>
+          ) : (
+            <div key={s.label} className={cell}>
+              {inner}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Connect / Connected — only on someone else's profile. */}
       {!isOwner && (
         <Button
           variant={connected ? "secondary" : "primary"}
-          className="mt-5"
+          className="mt-3"
           onClick={handleToggleConnect}
           loading={connBusy}
         >
@@ -410,56 +519,42 @@ export default function PlayerProfilePage() {
         </Button>
       )}
 
-      {/* My code — owner only. Show your own profile as a scannable QR, or
-          switch to the camera to scan someone else's. */}
-      {isOwner && !editing && (
-        <>
-          <SectionLabel>My code</SectionLabel>
-          <div className="flex gap-2 mb-3">
-            <ChipButton
-              active={qrPanel === "code"}
-              onClick={() => {
-                setQrPanel("code");
-                setScanError(null);
-              }}
-            >
-              Show my code
-            </ChipButton>
-            <ChipButton active={qrPanel === "scan"} onClick={() => setQrPanel("scan")}>
-              Scan a player
-            </ChipButton>
-          </div>
-          {qrPanel === "code" ? (
-            origin && <PlayerQRCode url={`${origin}/players/${playerId}`} />
-          ) : (
-            <>
-              <QRScanner key={scanKey} onScan={handleScan} />
-              {scanError && (
-                <div className="pl-surface rounded-card px-4 py-3.5 mt-3 text-center">
-                  <p className="text-label font-semibold text-naranja-d">{scanError}</p>
-                  <button
-                    type="button"
-                    onClick={retryScan}
-                    className="t-mono text-micro tracking-[0.1em] text-tinta/70 underline mt-1.5"
-                  >
-                    Scan again
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </>
+      {/* ── Segmented control ────────────────────────────────────────────── */}
+      {!editing && (
+        <div
+          role="tablist"
+          aria-label="Profile sections"
+          className="flex gap-1.5 mt-3 bg-[rgb(6_20_58/0.35)] border-2 border-papel/22 rounded-[3px] p-1"
+        >
+          {(["Overview", "Badges", "Code"] as Tab[])
+            // The code panel is the owner's own sharing tool.
+            .filter((t) => t !== "Code" || isOwner)
+            .map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={tab === t}
+                onClick={() => setTab(t)}
+                className={`t-mono flex-1 py-2 px-1 rounded-stamp text-micro transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-lima ${
+                  tab === t ? "bg-papel text-tinta" : "text-papel/65 hover:text-papel"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+        </div>
       )}
 
-      {/* Edit form — owner only, shown while editing. */}
+      {/* ── Edit form — owner only, replaces the panels while open ───────── */}
       {editing && (
-        <div className="pl-card p-4 mt-4">
+        <div className="pl-card p-4 mt-3.5">
           <div className="flex items-center gap-4">
             <PlayerAvatar
               userId={playerId}
               avatarUrl={fAvatarUrl}
               name={fName || displayName}
-              className="size-14"
+              className="size-14 border-2 border-tinta"
             />
             <div>
               <Button
@@ -484,7 +579,7 @@ export default function PlayerProfilePage() {
           </div>
 
           <label className="block mt-4">
-            <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Display name</span>
+            <span className="t-mono text-micro text-tinta/70">Display name</span>
             <Input
               type="text"
               value={fName}
@@ -495,14 +590,14 @@ export default function PlayerProfilePage() {
           </label>
 
           <div className="mt-3">
-            <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Skill level</span>
+            <span className="t-mono text-micro text-tinta/70">Skill level</span>
             <div className="mt-1.5">
               <SkillLevelPicker value={fSkill} onChange={setFSkill} />
             </div>
           </div>
 
           <label className="block mt-3">
-            <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Home club</span>
+            <span className="t-mono text-micro text-tinta/70">Home club</span>
             <Input
               type="text"
               value={fClub}
@@ -513,7 +608,7 @@ export default function PlayerProfilePage() {
           </label>
 
           <label className="block mt-3">
-            <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">Bio</span>
+            <span className="t-mono text-micro text-tinta/70">Bio</span>
             <Textarea
               value={fBio}
               onChange={(e) => setFBio(e.target.value)}
@@ -549,36 +644,86 @@ export default function PlayerProfilePage() {
         </div>
       )}
 
-      {/* View sections — hidden while the owner is editing so the form is the
-          sole focus. Upcoming games first, then About. */}
-      {!editing && (
+      {/* ── Overview ─────────────────────────────────────────────────────── */}
+      {!editing && tab === "Overview" && (
         <>
-          <SectionLabel>Upcoming games</SectionLabel>
+          {/* Form — the last eight confirmed results as stamped cells, with
+              the current run called out in riso orange. */}
+          <div className="pl-card px-3.5 py-3.25 mt-3">
+            <div className="flex items-baseline justify-between gap-2.5">
+              <span className="t-mono text-tiny tracking-[0.18em] text-tinta/55 whitespace-nowrap">
+                Form · last {form.length || 8}
+              </span>
+              <span className="t-mono text-micro text-naranja whitespace-nowrap">
+                {currentStreak > 0 ? `W${currentStreak} streak` : "No streak"}
+              </span>
+            </div>
+
+            {form.length > 0 ? (
+              <div className="flex gap-1.25 mt-2.5">
+                {form.map((r, i) => (
+                  <span
+                    key={i}
+                    className={`t-mono flex-1 text-center py-1.5 rounded-stamp text-micro border-2 border-tinta ${
+                      r.won ? "bg-lima text-tinta" : "bg-transparent text-tinta/45"
+                    }`}
+                  >
+                    {r.won ? "W" : "L"}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-label font-medium text-tinta/55 mt-2.5">
+                No confirmed results yet — play a game and log the score.
+              </p>
+            )}
+
+            {/* Where this player's earned rating sits inside its 100-point
+                band, with the next hundred as the target. */}
+            {profile.rating != null && (
+              <div className="flex items-center gap-2.5 mt-3 pt-2.75 border-t-2 border-dashed border-tinta/22">
+                <span className="t-mono text-micro text-tinta/60 whitespace-nowrap">
+                  {profile.rating}
+                </span>
+                <Bar pct={profile.rating % 100} className="flex-1 h-2" />
+                <span className="t-mono text-micro text-tinta/60 whitespace-nowrap">
+                  {Math.floor(profile.rating / 100) * 100 + 100}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <Rule>Upcoming games</Rule>
           {games.length > 0 ? (
-            games.map((game, i) => (
-              <UpcomingGameCard key={game.id} game={game} delay={Math.min(i, 6) * 50} />
-            ))
+            <div className="flex flex-col gap-2.25">
+              {games.map((game) => (
+                <UpcomingGameRow key={game.id} game={game} />
+              ))}
+            </div>
           ) : (
-            <div className="pl-surface rounded-card px-4 py-5 text-center text-label font-medium text-tinta/70">
+            <div className="pl-surface rounded-card px-4 py-5 text-center text-body font-medium text-tinta/70">
               {isOwner
                 ? "Nothing coming up — your next game is waiting on Discover."
                 : `${displayName} has no games coming up.`}
             </div>
           )}
 
-          {/* Badges — earned stamps, then the next rung in each family. */}
-          <BadgeShelf
-            badges={badges}
-            isOwner={isOwner}
-            displayName={displayName}
-          />
-
-          {/* About — home club, then bio (when set). */}
-          <SectionLabel>About</SectionLabel>
-          <div className="pl-card p-4">
-            <div className="flex items-center gap-2 text-label font-medium text-tinta/70">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0 text-naranja-d">
-                <path d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11Z" stroke="currentColor" strokeWidth="2" />
+          <Rule>About</Rule>
+          <div className="pl-card p-3.5">
+            <div className="flex items-center gap-2 text-body font-medium text-tinta/70">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden
+                className="shrink-0 text-naranja-d"
+              >
+                <path
+                  d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11Z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
                 <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" />
               </svg>
               <span>{profile.home_club || "No home club set"}</span>
@@ -592,43 +737,139 @@ export default function PlayerProfilePage() {
         </>
       )}
 
-      {/* Owner-only account actions: edit, the connections hub + settings gear
-          (the older /profile page, still home to win-rate etc.), and log out.
-          Connections lives here now that it's no longer a bottom-nav tab. */}
-      {isOwner && !editing && (
+      {/* ── Badges ───────────────────────────────────────────────────────── */}
+      {!editing && tab === "Badges" && (
         <>
-          <Button variant="secondary" className="mt-8" onClick={startEdit}>
-            Edit profile
-          </Button>
-          <div className="flex gap-2 mt-2">
-            <Link
-              href="/connections"
-              className="pl-press t-mono flex-1 h-12 flex items-center justify-center gap-2 bg-papel hover:bg-lima/40 text-tinta border-2 border-tinta text-label tracking-[0.12em] rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+          <div className="grid grid-cols-3 gap-2.25 mt-3">
+            {badges.flatMap((fam) =>
+              // Every rung of every family: the ones cleared are printed
+              // posters, the rest are dashed outlines waiting to be earned.
+              [...fam.earned, ...(fam.next ? [fam.next] : [])].map((b) => {
+                const earned = fam.value >= b.threshold;
+                return (
+                  <div
+                    key={b.id}
+                    title={b.blurb}
+                    className={`flex flex-col items-center gap-1.75 px-1.5 py-3 rounded-card border-2 ${
+                      earned
+                        ? "border-solid border-tinta bg-papel shadow-[4px_4px_0_rgb(6_20_58/0.4)]"
+                        : "border-dashed border-papel/35 bg-white/6"
+                    }`}
+                  >
+                    <span
+                      className={`size-9.5 rounded-pill grid place-items-center text-[1.125rem] border-2 ${
+                        earned
+                          ? "border-tinta bg-naranja text-white"
+                          : "border-papel/35 text-papel/45"
+                      }`}
+                      aria-hidden
+                    >
+                      {b.family === "games" ? "⬢" : b.family === "streak" ? "⚡" : "★"}
+                    </span>
+                    <span
+                      className={`t-mono text-[0.5625rem] tracking-[0.08em] text-center leading-tight ${
+                        earned ? "text-tinta" : "text-papel/55"
+                      }`}
+                    >
+                      {b.title}
+                    </span>
+                  </div>
+                );
+              }),
+            )}
+          </div>
+
+          <Rule>Next up</Rule>
+          <div className="flex flex-col gap-2.25">
+            {badges
+              .filter((fam) => fam.next)
+              .map((fam) => (
+                <div key={fam.family} className="pl-card px-3.5 py-2.75">
+                  <div className="flex items-baseline justify-between gap-2.5">
+                    <span className="t-display text-[0.875rem] text-tinta truncate">
+                      {fam.next!.title}
+                    </span>
+                    <span className="t-mono text-micro text-tinta/60 whitespace-nowrap">
+                      {fam.value} / {fam.next!.threshold}
+                    </span>
+                  </div>
+                  <Bar
+                    pct={(fam.value / fam.next!.threshold) * 100}
+                    className="h-2.25 mt-2.25"
+                  />
+                </div>
+              ))}
+            {badges.every((fam) => !fam.next) && (
+              <div className="pl-surface rounded-card px-4 py-5 text-center text-body font-medium text-tinta/70">
+                Every badge earned. Nothing left to chase.
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── Code — owner only ────────────────────────────────────────────── */}
+      {!editing && tab === "Code" && isOwner && (
+        <>
+          <div className="pl-card shadow-poster p-4.5 text-center mt-3">
+            {qrPanel === "code" ? (
+              <>
+                {origin && <PlayerQRCode url={`${origin}/players/${playerId}`} />}
+                <div className="t-mono text-tiny tracking-[0.18em] text-tinta/55 mt-3.5">
+                  Scan to add {displayName}
+                </div>
+              </>
+            ) : (
+              <>
+                <QRScanner key={scanKey} onScan={handleScan} />
+                {scanError && (
+                  <div className="mt-3">
+                    <p className="text-label font-semibold text-naranja-d">
+                      {scanError}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={retryScan}
+                      className="t-mono text-micro text-tinta/70 underline mt-1.5"
+                    >
+                      Scan again
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                setQrPanel(qrPanel === "code" ? "scan" : "code");
+                setScanError(null);
+              }}
+              className="t-mono pena-riso flex items-center justify-center gap-2 bg-lima text-tinta border-2 border-tinta rounded-card py-3.25 px-2.5 text-micro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-papel"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
-                <circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="2" />
-                <path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <path d="M16 5.2a3.2 3.2 0 0 1 0 5.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <path d="M17.5 14.4c2 .6 3.5 2.4 3.5 4.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              Connections
-              <span className="text-tinta/70">· {connCount}</span>
-            </Link>
+              {qrPanel === "code" ? "Scan" : "My code"}
+            </button>
             <Link
-              href="/profile"
-              aria-label="Settings"
-              className="pl-press size-12 shrink-0 flex items-center justify-center bg-papel hover:bg-lima/40 text-tinta border-2 border-tinta rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+              href="/search"
+              className="t-mono flex items-center justify-center gap-2 bg-transparent text-papel border-2 border-papel/45 hover:border-lima hover:text-lima rounded-card py-3.25 px-2.5 text-micro transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-              </svg>
+              Find by name
             </Link>
           </div>
-          <Button variant="destructive" className="mt-2" onClick={handleLogout}>
-            Log out
-          </Button>
         </>
+      )}
+
+      {/* Log out — the one destructive action, kept quiet and dashed. */}
+      {isOwner && !editing && (
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="t-mono w-full mt-4 bg-transparent hover:bg-naranja/12 border-2 border-dashed border-naranja/70 text-naranja rounded-card py-3 text-micro tracking-[0.16em] transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+        >
+          Log out
+        </button>
       )}
 
       <div className="h-4" />

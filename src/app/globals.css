@@ -10,44 +10,47 @@
    ticket stubs, stamped notices. Derived tones are ALWAYS a token at alpha
    (bg-tinta/6, text-papel/80…) — never a new hex.                          */
 @theme {
-  /* ── Colour — the peña palette, extracted 1:1 from
-        design-lab/landing-pena.html + wildcard-en.html ── */
-  --color-pista:     #1C5BBF; /* court paint — the wall (gradient start) */
-  --color-pista-d:   #14459A; /* court paint, evening — gradient end, html bg */
-  --color-papel:     #F3E9D2; /* poster paper — every card, sheet, nav, input */
-  --color-tinta:     #191407; /* print ink — text on papel, borders, riso shadows */
+  /* ── Colour — the peña palette, extracted 1:1 from the
+        Pena-prototype (claude.ai/design) ── */
+  --color-pista:     #1A4FC4; /* court paint — the wall (gradient start) */
+  --color-pista-d:   #0F1C3F; /* court paint, night — gradient end, html bg */
+  --color-papel:     #F4EEE0; /* poster paper — every card, sheet, nav, input */
+  --color-tinta:     #10214A; /* print ink — text on papel, borders, riso shadows */
   --color-naranja:   #FF5A1F; /* riso orange — active nav, FAB, venue strips, the "o" */
   --color-naranja-d: #C93E0F; /* dark cut — small orange text on papel; danger */
-  --color-lima:      #D8E24A; /* faded lime — primary CTAs, active chips, highlights */
-  --color-scrim:     rgb(25 20 7 / 0.55); /* behind dialogs */
+  --color-lima:      #C6E63F; /* faded lime — primary CTAs, active chips, highlights */
+  --color-scrim:     rgb(16 33 74 / 0.55); /* behind dialogs */
 
   /* ── Type ──
-     Bricolage Grotesque (500/800) = everything; Space Mono (400/700) = the
-     printed-label voice. Contrast = WEIGHT + CASE + FAMILY. NO ITALICS.    */
-  --font-display: var(--font-bricolage), "Arial Black", system-ui, sans-serif;
-  --font-sans:    var(--font-bricolage), system-ui, sans-serif;
+     Archivo (400/500/600/700) = everything; Archivo Black = the poster
+     shout; Space Mono (400/700) = the printed-label voice.
+     Contrast = WEIGHT + CASE + FAMILY. NO ITALICS.                        */
+  --font-display: var(--font-archivo-black), "Arial Black", system-ui, sans-serif;
+  --font-sans:    var(--font-archivo), Helvetica, system-ui, sans-serif;
   --font-mono:    var(--font-space-mono), "Courier New", monospace;
 
   /* One scale, fixed rem. Body/label sizes carry over; display sizes are the
      poster-headline range (used with .t-display for weight/case/stretch).  */
-  --text-nav: 0.5625rem;             /* 9px — bottom-nav mono labels only */
+  --text-nav: 0.625rem;              /* 10px — bottom-nav mono labels only */
   --text-nav--line-height: 1.4;
+  --text-tiny: 0.625rem;             /* 10px — stamped tags inside cards */
+  --text-tiny--line-height: 1.4;
   --text-micro: 0.6875rem;           /* 11px — faintest mono annotations */
   --text-micro--line-height: 1.4;
-  --text-label: 0.8125rem;           /* 13px — chips, metadata, small buttons */
+  --text-label: 0.75rem;             /* 12px — dense metadata under titles */
   --text-label--line-height: 1.4;
-  --text-body: 0.9375rem;            /* 15px — all reading text */
-  --text-body--line-height: 1.6;
-  --text-title: 1.0625rem;           /* 17px — poster card titles (800 caps) */
-  --text-title--line-height: 1.1;
-  --text-display-xs: 1.125rem;       /* 18px — small poster moments in cards */
-  --text-display-xs--line-height: 1;
-  --text-display-sm: 1.375rem;       /* 22px — card-level display, hero numbers */
-  --text-display-sm--line-height: 1;
+  --text-body: 0.8125rem;            /* 13px — all reading text */
+  --text-body--line-height: 1.5;
+  --text-title: 0.9375rem;           /* 15px — mono button/CTA text */
+  --text-title--line-height: 1.2;
+  --text-display-xs: 1.0625rem;      /* 17px — quiet display in tiles */
+  --text-display-xs--line-height: 1.05;
+  --text-display-sm: 1.375rem;       /* 22px — card display, hero numbers */
+  --text-display-sm--line-height: 1.05;
   --text-display-md: 1.75rem;        /* 28px — screen titles */
   --text-display-md--line-height: 0.95;
-  --text-display-lg: 2.25rem;        /* 36px — the wordmark */
-  --text-display-lg--line-height: 0.95;
+  --text-display-lg: 2.5rem;         /* 40px — the greeting / wordmark */
+  --text-display-lg--line-height: 0.92;
   --text-display-xl: 3rem;           /* 48px — the biggest poster shout */
   --text-display-xl--line-height: 0.9;
 
@@ -55,29 +58,37 @@
   --spacing: 0.25rem;
 
   /* ── Shape ── posters are barely rounded; pills stay pills. */
+  --radius-stamp: 2px;   /* stamped tags inside cards */
   --radius-field: 4px;   /* inputs and menus */
   --radius-card:  4px;   /* posters, sheets */
-  --radius-pill:  9999px; /* buttons and chips */
+  --radius-pill:  9999px; /* avatars and round controls */
 
-  /* ── Depth ── two shadows only: the poster's deep drop, and the hard riso
-     offset on controls (see .pena-riso). Nothing soft or decorative.       */
-  --shadow-sheet:  0 14px 34px -12px rgb(8 20 50 / 0.7);  /* pinned poster */
-  --shadow-poster: 0 22px 50px -16px rgb(8 20 50 / 0.7);  /* hero poster */
+  /* ── Depth ── the prototype has NO soft shadows. Every shadow is a hard
+     print-register offset: either the card's blue-black drop, or the tinta
+     offset on controls (see .pena-riso).                                   */
+  --shadow-sheet:  4px 4px 0 rgb(6 20 58 / 0.45);  /* pinned poster */
+  --shadow-poster: 6px 6px 0 rgb(6 20 58 / 0.45);  /* hero poster */
 
   /* ── Motion ── one ease for everything; exits simply run faster. */
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-sheet:      cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* The wall: court-blue gradient + halftone dot grain, fixed so posters
-   scroll over the paint. Court lines are painted by <CourtPaint /> (SVG). */
+/* The wall: flat court blue, painted court lines, and a fine halftone dot
+   grain — all three fixed so posters scroll over the paint. The court lines
+   are CSS gradients (as in the prototype), not an SVG overlay. */
 html {
   background: var(--color-pista-d);
 }
 body {
   background:
-    radial-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1.2px) 0 0 / 16px 16px,
-    linear-gradient(174deg, var(--color-pista) 0%, var(--color-pista-d) 100%);
+    /* halftone grain */
+    radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px) 0 0 / 6px 6px,
+    /* the painted service line, running down the court */
+    linear-gradient(90deg, rgb(255 255 255 / 0.1) 2px, transparent 2px) 50% 0 / 100% 100%,
+    /* the painted cross-court lines */
+    linear-gradient(0deg, rgb(255 255 255 / 0.1) 2px, transparent 2px) 0 96px / 100% 340px,
+    var(--color-pista);
   background-attachment: fixed;
   color: var(--color-papel);
   font-family: var(--font-sans);
@@ -94,8 +105,7 @@ body {
    Pair with a size utility (text-display-md, text-label, …).              */
 .t-display {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-stretch: 90%;
+  font-weight: 400; /* Archivo Black IS the weight */
   text-transform: uppercase;
   letter-spacing: -0.02em;
 }
@@ -103,7 +113,15 @@ body {
   font-family: var(--font-mono);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
+}
+/* .t-eyebrow — the widest printed voice: the small tracked-out line that
+   sits above a title ("NEXT UP · TUE 21:00", "OPEN NEAR YOU"). */
+.t-eyebrow {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
 }
 
 /* ── Shared primitives ────────────────────────────────────────────────────
@@ -120,10 +138,11 @@ body {
    .pl-skeleton  — loading placeholder (papel ghost on the wall).
    All motion respects prefers-reduced-motion.                              */
 
+/* A poster: flat papel, a hard 2px ink edge, and the print-register drop.
+   No grain, no blur — the prototype's cards are cut paper, not textured. */
 .pl-card {
   background-color: var(--color-papel);
-  background-image: radial-gradient(rgb(25 20 7 / 0.05) 1px, transparent 1.2px);
-  background-size: 9px 9px;
+  border: 2px solid var(--color-tinta);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-sheet);
   color: var(--color-tinta);
@@ -134,51 +153,49 @@ body {
   color: var(--color-tinta);
 }
 
-/* Staples — the paper is pinned, not floating. */
-.pena-staples {
-  position: relative;
-}
-.pena-staples::before,
-.pena-staples::after {
-  content: "";
-  position: absolute;
-  top: 8px;
-  width: 14px;
-  height: 4px;
-  background: rgb(25 20 7 / 0.35);
-  border-radius: 2px;
-}
-.pena-staples::before { left: 22px; transform: rotate(-24deg); }
-.pena-staples::after  { right: 22px; transform: rotate(18deg); }
+/* RETIRED by the prototype: cards there are squared-up and un-pinned, so
+   staples and tilt are now no-ops. Kept as empty hooks so screens not yet
+   swept conform automatically instead of breaking. Remove the class from
+   markup as you touch each screen. */
+.pena-staples { position: relative; }
+.pena-tilt-a, .pena-tilt-b, .pena-tilt-c { rotate: 0deg; }
 
-/* Tilt — posters sit at angles; straighten under a fine pointer's hover. */
-.pena-tilt-a { rotate: -1.2deg; transition: rotate 160ms var(--ease-out-strong); }
-.pena-tilt-b { rotate: 1.1deg;  transition: rotate 160ms var(--ease-out-strong); }
-.pena-tilt-c { rotate: -0.8deg; transition: rotate 160ms var(--ease-out-strong); }
-@media (hover: hover) and (pointer: fine) {
-  a.pena-tilt-a:hover, a.pena-tilt-b:hover, a.pena-tilt-c:hover,
-  button.pena-tilt-a:hover, button.pena-tilt-b:hover, button.pena-tilt-c:hover {
-    rotate: 0deg;
-  }
+/* .pena-tape — the torn strip of lime tape across a poster's top edge. */
+.pena-tape {
+  position: absolute;
+  top: -9px;
+  left: 26px;
+  width: 54px;
+  height: 16px;
+  background: rgb(198 230 63 / 0.75);
+  border: 1.5px solid rgb(16 33 74 / 0.35);
+  rotate: -3deg;
+  pointer-events: none;
 }
 
 /* Riso offset — print register on primary controls. Pairs with a 2px tinta
    border. Pressing pushes the paper flat. */
 .pena-riso {
-  box-shadow: 3px 3px 0 var(--color-tinta);
+  box-shadow: 4px 4px 0 var(--color-tinta);
   transition:
     box-shadow 150ms var(--ease-out-strong),
     translate 150ms var(--ease-out-strong);
 }
 .pena-riso:active {
   box-shadow: 1px 1px 0 var(--color-tinta);
-  translate: 2px 2px;
+  translate: 3px 3px;
 }
 @media (hover: hover) and (pointer: fine) {
   .pena-riso:not(:active):hover {
-    box-shadow: 4px 4px 0 var(--color-tinta);
+    box-shadow: 5px 5px 0 var(--color-tinta);
     translate: -1px -1px;
   }
+}
+/* The one loud CTA carries a deeper register. */
+.pena-riso-lg { box-shadow: 5px 5px 0 var(--color-tinta); }
+.pena-riso-lg:active { box-shadow: 2px 2px 0 var(--color-tinta); }
+@media (hover: hover) and (pointer: fine) {
+  .pena-riso-lg:not(:active):hover { box-shadow: 6px 6px 0 var(--color-tinta); }
 }
 
 /* The marquee tape — a tilted tinta band with a scrolling run of fixtures.
@@ -265,7 +282,7 @@ body {
 .pl-skeleton {
   position: relative;
   overflow: hidden;
-  background: rgb(243 233 210 / 0.25);
+  background: rgb(244 238 224 / 0.25);
   border-radius: var(--radius-field);
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -277,7 +294,7 @@ body {
     background: linear-gradient(
       90deg,
       transparent,
-      rgb(243 233 210 / 0.35),
+      rgb(244 238 224 / 0.35),
       transparent
     );
     animation: pl-shimmer 1.6s ease-in-out infinite;
@@ -299,6 +316,25 @@ body {
   height: max(100%, 44px);
 }
 
+/* The live pulse ring — a single ink ring breathing out of a round icon,
+   marking the one "go and look" affordance on a screen. */
+@media (prefers-reduced-motion: no-preference) {
+  .pena-pulse::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: var(--radius-pill);
+    border: 2px solid var(--color-tinta);
+    animation: pena-pulse-ring 2.4s ease-out infinite;
+  }
+}
+@keyframes pena-pulse-ring {
+  0%   { transform: scale(1); opacity: 0.9; }
+  70%  { transform: scale(1.35); opacity: 0; }
+  100% { opacity: 0; }
+}
+
 /* hide the scrollbar on horizontal filter rows (design intent) */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
