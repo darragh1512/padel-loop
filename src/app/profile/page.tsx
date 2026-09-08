@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
-import { ClubStamp, LoopRing, MiniLoop } from "@/components/brand";
+import { LoopRing, MiniLoop } from "@/components/brand";
 import { LevelChip, SectionLabel } from "@/components/ui";
 import SkillLevelPicker from "@/components/SkillLevelPicker";
 import { supabase } from "@/lib/supabaseClient";
@@ -262,11 +262,6 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* The club stamp — the one pure brand flourish on this screen. */}
-      <div className="flex justify-center mt-8 text-papel">
-        <ClubStamp />
-      </div>
-
       {/* Account actions — my games + edit profile + log out, in the design language. */}
       {!editing && (
         <>
@@ -294,7 +289,7 @@ export default function ProfilePage() {
       <button
         type="button"
         onClick={handleLogout}
-        className="t-mono block w-full h-12 text-center bg-papel text-naranja-d text-label tracking-[0.12em] border-2 border-dashed border-naranja-d rounded-full mt-2 active:scale-[0.98] transition-transform duration-150 ease-out"
+        className={`t-mono block w-full h-12 text-center bg-papel text-naranja-d text-label tracking-[0.12em] border-2 border-dashed border-naranja-d rounded-full ${editing ? "mt-8" : "mt-2"} active:scale-[0.98] transition-transform duration-150 ease-out`}
       >
         Log out
       </button>

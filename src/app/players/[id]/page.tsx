@@ -18,13 +18,15 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import { publishAvatarChange } from "@/lib/avatarBus";
 import PlayerQRCode from "@/components/PlayerQRCode";
 import QRScanner from "@/components/QRScanner";
 import SkillLevelPicker from "@/components/SkillLevelPicker";
-import { Button, Input, Skeleton, Textarea } from "@/components/ui";
+import { Button, Dialog, Input, Skeleton, Textarea } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import {
   getProfile,
+  removeAvatar,
   savePlayerProfile,
   uploadAvatar,
   SKILL_LEVELS,
@@ -163,6 +165,8 @@ export default function PlayerProfilePage() {
   const [fAvatarUrl, setFAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -288,6 +292,31 @@ export default function PlayerProfilePage() {
     setUploading(false);
   }
 
+  // Delete the uploaded photo for good and drop back to the generated
+  // DiceBear picture. Unlike the text fields this commits straight away
+  // rather than waiting for Save, so we update the shown profile as well as
+  // the form state — otherwise backing out of the edit form would show the
+  // old photo again even though it is gone from the database.
+  async function handleRemovePhoto() {
+    if (removing) return;
+    setRemoving(true);
+    setError(null);
+
+    const result = await removeAvatar(playerId);
+
+    if ("ok" in result) {
+      setFAvatarUrl(null);
+      setProfile((prev) => (prev ? { ...prev, avatar_url: null } : prev));
+      // Nudge the screens that cached the old photo (nav, home greeting).
+      publishAvatarChange({ userId: playerId, avatarUrl: null });
+      setConfirmingRemove(false);
+    } else {
+      // Nothing changed — their photo is still there and still works.
+      setError("Couldn’t remove that photo. Please try again.");
+    }
+    setRemoving(false);
+  }
+
   async function handleSave() {
     if (saving) return;
     setSaving(true);
@@ -314,6 +343,9 @@ export default function PlayerProfilePage() {
         created_at: prev?.created_at,
       }));
       setEditing(false);
+      // A newly uploaded photo only reaches the database here, so tell the
+      // other screens about it too — same reason as in handleRemovePhoto.
+      publishAvatarChange({ userId: playerId, avatarUrl: fAvatarUrl });
     } else {
       setError("Couldn’t save. Please try again.");
     }
@@ -568,6 +600,18 @@ export default function PlayerProfilePage() {
               <p className="text-label font-medium text-tinta/45 mt-1.5">
                 JPG or PNG. Replaces your current photo.
               </p>
+              {/* Only offered when there is an uploaded photo to remove — on
+                  the generated picture there is nothing to delete. */}
+              {fAvatarUrl && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingRemove(true)}
+                  disabled={uploading}
+                  className="t-mono text-micro text-naranja-d underline underline-offset-2 mt-2 rounded-field disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+                >
+                  Remove photo
+                </button>
+              )}
             </div>
             <input
               ref={fileInputRef}
@@ -873,6 +917,38 @@ export default function PlayerProfilePage() {
       )}
 
       <div className="h-4" />
+      {/* Removing a photo is destructive and immediate, so it asks first —
+          a centred confirm card, same as cancelling a game. */}
+      <Dialog
+        open={confirmingRemove}
+        onClose={() => !removing && setConfirmingRemove(false)}
+        title="Remove your photo?"
+      >
+        <p className="text-label font-medium text-tinta/70 mt-2">
+          Your photo will be deleted and you&rsquo;ll go back to your generated
+          Padel Loop picture. You can upload a new one any time.
+        </p>
+
+        <div className="flex gap-2.5 mt-5">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setConfirmingRemove(false)}
+            disabled={removing}
+          >
+            Keep photo
+          </Button>
+          <Button
+            variant="destructive"
+            className="flex-1"
+            onClick={handleRemovePhoto}
+            loading={removing}
+          >
+            Remove
+          </Button>
+        </div>
+      </Dialog>
+
       <BottomNav />
     </main>
   );

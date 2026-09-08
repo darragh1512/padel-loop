@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { supabase } from "@/lib/supabaseClient";
 import { getProfile } from "@/app/profiles";
+import { onAvatarChange } from "@/lib/avatarBus";
 
 // The prototype's own icon set — thin 2px strokes on a 24px grid.
 const ICONS: Record<string, string[]> = {
@@ -134,6 +135,18 @@ function ProfileNavItem() {
       active = false;
     };
   }, []);
+
+  // The avatar can be changed or removed from the profile screen, which
+  // lives in a different tree and so cannot update this state directly.
+  // Listen for the broadcast so the picture here changes straight away
+  // instead of waiting for the next navigation to remount us.
+  useEffect(
+    () =>
+      onAvatarChange((change) => {
+        if (change.userId === userId) setAvatarUrl(change.avatarUrl);
+      }),
+    [userId],
+  );
 
   if (!userId) {
     return <NavItem href="/profile" label="Profile" icon="profile" />;

@@ -205,6 +205,57 @@ export async function uploadAvatar(
   return { url: `${data.publicUrl}?v=${Date.now()}` };
 }
 
+// Remove a person's uploaded avatar, putting them back on the generated
+// DiceBear picture (PlayerAvatar seeds that from their user id, so this
+// restores exactly the avatar they had before they ever uploaded).
+//
+// ORDER MATTERS, because these are two separate systems that can fail
+// independently and we must never leave a broken picture on screen:
+//
+//   1. Clear avatar_url in the database FIRST. If this fails we stop and
+//      change nothing — their photo is still there and still works.
+//   2. Only then delete the file from storage. If THIS fails, the column is
+//      already null, so every screen has already fallen back to DiceBear and
+//      the person sees the right thing. The leftover file is a harmless
+//      orphan: uploadAvatar always writes the same `<userId>/avatar` path
+//      with upsert, so their next upload overwrites it anyway.
+//
+// Doing it the other way round (storage first) is what breaks avatars: the
+// file would be gone while avatar_url still pointed at it, so every screen
+// would try to load a dead URL.
+//
+// `storageOrphaned` tells the caller the row is clean but a file was left
+// behind — worth logging, but not worth bothering the person about, since
+// nothing they can see is wrong.
+export async function removeAvatar(
+  userId: string,
+): Promise<{ ok: true; storageOrphaned: boolean } | { error: string }> {
+  const { error: dbError } = await supabase
+    .from("profiles")
+    .update({ avatar_url: null })
+    .eq("id", userId);
+
+  if (dbError) {
+    console.error("Could not clear avatar_url:", dbError.message);
+    return { error: dbError.message };
+  }
+
+  const { error: storageError } = await supabase.storage
+    .from("avatars")
+    .remove([`${userId}/avatar`]);
+
+  if (storageError) {
+    // Not fatal — see the note above. The person is already back on DiceBear.
+    console.warn(
+      "Avatar cleared, but its file could not be deleted:",
+      storageError.message,
+    );
+    return { ok: true, storageOrphaned: true };
+  }
+
+  return { ok: true, storageOrphaned: false };
+}
+
 // ---------------------------------------------------------------------------
 // Finding players — the search screen (/search).
 // ---------------------------------------------------------------------------

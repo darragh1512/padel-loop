@@ -21,6 +21,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getUpcomingGamesFor, type Game } from "@/app/games";
 import { getConnectionCount } from "@/app/connections";
 import { getProfile } from "@/app/profiles";
+import { onAvatarChange } from "@/lib/avatarBus";
 import { APP_TIME_ZONE, dublinDateKey } from "@/lib/time";
 
 function ChevronRight({ className = "" }: { className?: string }) {
@@ -137,6 +138,18 @@ export default function HomeDashboard() {
       active = false;
     };
   }, []);
+
+  // The avatar can be changed or removed from the profile screen, which
+  // lives in a different tree and so cannot update this state directly.
+  // Listen for the broadcast so the picture here changes straight away
+  // instead of waiting for the next navigation to remount us.
+  useEffect(
+    () =>
+      onAvatarChange((change) => {
+        if (change.userId === userId) setAvatarUrl(change.avatarUrl);
+      }),
+    [userId],
+  );
 
   const firstName = name ? name.trim().split(/\s+/)[0] : null;
   const nextGame = upcoming[0] ?? null;
