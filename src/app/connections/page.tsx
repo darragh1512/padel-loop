@@ -11,7 +11,8 @@ import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import PlayerResultRow from "@/components/PlayerResultRow";
 import PlayerSearch from "@/components/PlayerSearch";
-import { SectionLabel } from "@/components/ui";
+import { ButtonLink, EmptyState, ErrorState, SectionLabel } from "@/components/ui";
+import { Users } from "lucide-react";
 import { getConnections, type ConnectionProfile } from "../connections";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -19,6 +20,10 @@ export default function ConnectionsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [people, setPeople] = useState<ConnectionProfile[]>([]);
+  // Separate from `people.length === 0`. A failed read must not be drawn
+  // as "no connections yet" — that tells somebody their friends are gone.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -30,15 +35,22 @@ export default function ConnectionsPage() {
         return;
       }
 
-      const connections = await getConnections(uid);
+      try {
+        const connections = await getConnections(uid);
+        if (!active) return;
+        setPeople(connections);
+        setFailed(false);
+      } catch {
+        if (!active) return;
+        setFailed(true);
+      }
       if (!active) return;
-      setPeople(connections);
       setLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, attempt]);
 
   if (loading) {
     // Skeleton rows in the shape of the list — sunken, subtle pulse.
@@ -71,13 +83,24 @@ export default function ConnectionsPage() {
         people.map((person, i) => (
           <PlayerResultRow key={person.id} person={person} delay={i * 40} />
         ))
+      ) : failed ? (
+        <ErrorState
+          onRetry={() => {
+            setLoading(true);
+            setAttempt((n) => n + 1);
+          }}
+        />
       ) : (
-        <div className="pl-card pena-staples pena-tilt-b px-4 pt-7 pb-6 text-center">
-          <div className="t-display text-display-xs text-tinta">No connections yet.</div>
-          <div className="text-label font-medium text-tinta/70 mt-2">
-            Open a player’s profile and tap Connect.
-          </div>
-        </div>
+        <EmptyState
+          icon={<Users size={22} strokeWidth={2.2} />}
+          title="No connections yet."
+          body="Find someone you have played with and tap Connect on their profile."
+          action={
+            <ButtonLink href="/search" variant="secondary" size="sm">
+              Find players
+            </ButtonLink>
+          }
+        />
       )}
 
       <div className="h-4" />

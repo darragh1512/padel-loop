@@ -15,18 +15,21 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Dialog } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
-import { cancelGame, stopRecurring } from "../../games";
+import { cancelGame, setGameClosed, stopRecurring } from "../../games";
 
 export default function CreatorActions({
   gameId,
   createdBy,
   recursWeekly = false,
   seriesId,
+  isManuallyClosed = false,
 }: {
   gameId: string;
   createdBy?: string;
   recursWeekly?: boolean;
   seriesId?: string;
+  // Whether the creator has already stopped new joins by hand.
+  isManuallyClosed?: boolean;
 }) {
   const router = useRouter();
   const [isCreator, setIsCreator] = useState(false);
@@ -39,6 +42,12 @@ export default function CreatorActions({
   const [confirmingStop, setConfirmingStop] = useState(false);
   const [stopWorking, setStopWorking] = useState(false);
   const [stopError, setStopError] = useState(false);
+
+  // Open/close to new joins. Held locally as well as passed in so the
+  // button flips the moment it succeeds, before the page refetches.
+  const [closed, setClosed] = useState(isManuallyClosed);
+  const [closeWorking, setCloseWorking] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -54,6 +63,26 @@ export default function CreatorActions({
   }, [createdBy]);
 
   if (!isCreator) return null;
+
+  // Flip the game between open and closed. Works in BOTH directions: a
+  // creator who closed a game because the last spot went to a friend can
+  // reopen it if that falls through.
+  async function handleToggleClosed() {
+    if (closeWorking) return;
+    setCloseWorking(true);
+    setCloseError(null);
+
+    const next = !closed;
+    const result = await setGameClosed(gameId, next);
+
+    if ("ok" in result) {
+      setClosed(next);
+      router.refresh(); // re-render the page so Join picks the change up
+    } else {
+      setCloseError(result.error);
+    }
+    setCloseWorking(false);
+  }
 
   async function handleCancel() {
     if (working) return;
@@ -111,6 +140,32 @@ export default function CreatorActions({
           Cancel game
         </Button>
       </div>
+
+      {/* Stop / allow new joins. For when the last spot went to someone
+          outside the app — and for putting the game back on Discover if
+          that falls through. It does NOT change the player count. */}
+      <Button
+        variant="secondary"
+        className="mt-2.5"
+        onClick={handleToggleClosed}
+        loading={closeWorking}
+        aria-pressed={closed}
+      >
+        {closed ? "Allow new players" : "Stop new players joining"}
+      </Button>
+      <p className="text-label font-medium text-tinta/55 text-center mt-1.5">
+        {closed
+          ? "This game is closed to new players. The spots left are unchanged."
+          : "Closes the game to new players without changing the spots left."}
+      </p>
+      <p
+        aria-live="polite"
+        className={`text-center text-label font-semibold text-naranja-d mt-1.5 ${
+          closeError ? "" : "hidden"
+        }`}
+      >
+        {closeError}
+      </p>
 
       {/* Stop repeating — only on a recurring game. Quiet secondary voice;
           destructive stays reserved for Cancel. */}

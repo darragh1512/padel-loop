@@ -16,12 +16,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
 import PlayerAvatar from "@/components/PlayerAvatar";
-import { Skeleton } from "@/components/ui";
+import { ErrorState, Skeleton } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import { getUpcomingGamesFor, type Game } from "@/app/games";
 import { getConnectionCount } from "@/app/connections";
 import { getProfile } from "@/app/profiles";
 import { onAvatarChange } from "@/lib/avatarBus";
+import { useRouter } from "next/navigation";
 import { APP_TIME_ZONE, dublinDateKey } from "@/lib/time";
 
 function ChevronRight({ className = "" }: { className?: string }) {
@@ -92,7 +93,13 @@ function Tile({
 }
 
 export default function HomeDashboard() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
+  // Home is the screen a brand-new person meets, so getting this wrong is
+  // the costliest place to do it: "nothing on the board yet" on a failed
+  // load tells somebody the Loop is dead on their first visit.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [upcoming, setUpcoming] = useState<Game[]>([]);
   const [connCount, setConnCount] = useState(0);
@@ -118,15 +125,39 @@ export default function HomeDashboard() {
       const { data } = await supabase.auth.getUser();
       const uid = data.user?.id ?? null;
       if (uid) {
-        const [games, count, profile] = await Promise.all([
-          getUpcomingGamesFor(uid),
-          getConnectionCount(uid),
-          getProfile(uid),
-        ]);
+        let games, count, profile;
+        try {
+          [games, count, profile] = await Promise.all([
+            getUpcomingGamesFor(uid),
+            getConnectionCount(uid),
+            getProfile(uid),
+          ]);
+        } catch {
+          if (!active) return;
+          setFailed(true);
+          setLoading(false);
+          return;
+        }
         if (!active) return;
+        setFailed(false);
         setUserId(uid);
         setUpcoming(games); // soonest first — [0] is the next game
         setConnCount(count);
+        // FIRST RUN. This is the ONLY place that sends anyone to /welcome,
+        // and that is deliberate: it is what keeps a shared game link out of
+        // onboarding. Somebody arriving on /games/[id] from WhatsApp goes
+        // sign-up → back to that game → join without ever touching home, so
+        // this never fires on them mid-intent. They get set up later, on
+        // their first visit here, by which point they are already in a game.
+        //
+        // onboarded_at is set when they finish OR skip, so this cannot fire
+        // twice — and being a column rather than a browser flag, it holds on
+        // a second device too.
+        if (profile && !profile.onboarded_at) {
+          router.replace("/welcome");
+          return;
+        }
+
         setName(profile?.name ?? null);
         setAvatarUrl(profile?.avatar_url ?? null);
         setRating(profile?.rating ?? null);
@@ -137,7 +168,7 @@ export default function HomeDashboard() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [router, attempt]);
 
   // The avatar can be changed or removed from the profile screen, which
   // lives in a different tree and so cannot update this state directly.
@@ -200,6 +231,27 @@ export default function HomeDashboard() {
             <Skeleton className="rounded-card h-24" />
             <Skeleton className="rounded-card h-24" />
           </div>
+        </div>
+      </>
+    );
+  }
+
+  // Failed, not empty. Everything below this point assumes real data, so the
+  // whole dashboard stands aside rather than drawing a wall of zeroes that
+  // reads as an accurate picture of an account with nothing in it.
+  if (failed) {
+    return (
+      <>
+        {header}
+        <div className="mt-4">
+          <ErrorState
+            title="Couldn’t load your games."
+            body="Your games are still there — this is us failing to fetch them, not an empty Loop."
+            onRetry={() => {
+              setLoading(true);
+              setAttempt((n) => n + 1);
+            }}
+          />
         </div>
       </>
     );

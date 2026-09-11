@@ -6,6 +6,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { readAuthParams } from "@/lib/pendingIntent";
+import { capture, identify } from "@/lib/analytics";
 import { useState } from "react";
 import { Wordmark } from "@/components/brand";
 import { Button, Field, Input } from "@/components/ui";
@@ -43,11 +45,24 @@ export default function SignupPage() {
       if (data.user) {
         await createProfile(data.user.id, { name, skill_level: skillLevel });
       }
-      router.push("/");
+      // Straight back to the game they came from, join still pending.
+      // The account exists from here. Identify by auth user id only —
+      // the email and name they just typed are never sent.
+      if (data.user) {
+        identify(data.user.id);
+        capture("signed_up", { has_join_intent: readAuthParams().intent === "join" });
+      }
+
+      const { next, intent } = readAuthParams();
+      router.push(
+        intent === "join" && next !== "/" ? `${next}?intent=join` : next,
+      );
     } else {
-      // Email confirmation required — profile is created on first profile visit.
+      // Email confirmation required. They are about to leave the site
+      // entirely, so the query string won't survive — the localStorage note
+      // written back on the game screen is what carries the intent home.
       setNotice(
-        "Account created! Check your email to confirm it, then log in.",
+        "Account created! Check your email to confirm it, then log in — we'll take you back to the game.",
       );
       setLoading(false);
     }
@@ -115,6 +130,26 @@ export default function SignupPage() {
         <Button type="submit" className="mt-2" loading={loading}>
           {loading ? "Creating account…" : "Sign up"}
         </Button>
+
+        {/* Directly under the button, so it is read at the moment of
+            agreeing rather than buried at the foot of the page. */}
+        <p className="text-center text-label font-medium text-papel/70">
+          Creating an account means you accept our{" "}
+          <Link
+            href="/terms"
+            className="text-lima underline underline-offset-2 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+          >
+            Terms of Use
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            className="text-lima underline underline-offset-2 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
 
         <p
           aria-live="polite"

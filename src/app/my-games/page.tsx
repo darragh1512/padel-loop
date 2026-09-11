@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import { ButtonLink, EmptyState, Skeleton } from "@/components/ui";
+import { CalendarPlus, CalendarSearch } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { APP_TIME_ZONE } from "@/lib/time";
 import { getGamesCreatedBy, getGamesJoinedBy, type Game } from "../games";
@@ -293,6 +294,7 @@ export default function MyGamesPage() {
           ))
         ) : filter === "Hosting" ? (
           <EmptyState
+            icon={<CalendarPlus size={22} strokeWidth={2.2} />}
             title="Run your own game."
             body="Set one up once — the Loop fills the spots."
             action={
@@ -303,6 +305,7 @@ export default function MyGamesPage() {
           />
         ) : (
           <EmptyState
+            icon={<CalendarSearch size={22} strokeWidth={2.2} />}
             title="Your next game is out there."
             body="Take a spot in a game near you, at your level."
             action={

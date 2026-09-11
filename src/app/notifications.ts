@@ -9,6 +9,7 @@
 // read anyone else's.
 
 import { supabase } from "@/lib/supabaseClient";
+import { DataError } from "@/lib/loadable";
 
 // One notification, matching the columns in the "notifications" table.
 export type Notification = {
@@ -31,7 +32,7 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
 
   if (error) {
     console.error("Could not load notifications:", error.message);
-    return [];
+    throw new DataError("Could not load notifications", error.message);
   }
   return (data ?? []) as Notification[];
 }

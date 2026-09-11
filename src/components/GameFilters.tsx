@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import GameCard from "@/components/GameCard";
 import { ButtonLink, ChipButton, EmptyState, SectionLabel, Skeleton } from "@/components/ui";
+import { CalendarPlus, SearchX } from "lucide-react";
 import { skillTierOf, type Game } from "@/lib/types";
 import { dublinDateKey } from "@/lib/time";
 import { supabase } from "@/lib/supabaseClient";
@@ -372,6 +373,13 @@ export default function GameFilters({
         filtered.map((g, i) => <GameCard key={g.id} game={g} delay={Math.min(i, 6) * 50} />)
       ) : (
         <EmptyState
+          icon={
+            anyActive ? (
+              <SearchX size={22} strokeWidth={2.2} />
+            ) : (
+              <CalendarPlus size={22} strokeWidth={2.2} />
+            )
+          }
           title={anyActive ? "Nothing matches — yet." : "The board is empty. ¿Jugamos?"}
           body={
             anyActive

@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { readAuthParams } from "@/lib/pendingIntent";
 import { useState } from "react";
 import { ClubStamp, Wordmark } from "@/components/brand";
 import { Button, Field, Input } from "@/components/ui";
@@ -33,7 +34,13 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/");
+    // Back to whatever they were trying to do — the game they tapped Join
+    // on, carrying ?intent=join so the join fires on arrival. Home only
+    // when they came here under their own steam.
+    const { next, intent } = readAuthParams();
+    router.push(
+      intent === "join" && next !== "/" ? `${next}?intent=join` : next,
+    );
   }
 
   return (

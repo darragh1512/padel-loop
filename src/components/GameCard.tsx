@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AvatarStack } from "./ui";
 import {
   type Game,
-  pricePerHead,
+  formatPrice,
   slotsLeft,
   formatTimeRange,
   formatDay,
@@ -16,6 +16,13 @@ import {
 // the real Join lives.
 export default function GameCard({ game, delay = 0 }: { game: Game; delay?: number }) {
   const slots = slotsLeft(game);
+  // The creator shut this game to new players by hand. The roster is
+  // untouched, so `slots` below is still the REAL number of empty spots —
+  // a 3-of-4 game still reads as 3 of 4, it just isn't joinable.
+  const closed = game.isManuallyClosed === true;
+  // null when the organiser hasn't set a price. Nothing is rendered in
+  // that case — no €0.00, no "Free", no bare euro sign.
+  const price = formatPrice(game.pricePerPlayer);
   // Alternate the pin angle with the card's position in the list.
   const tilt = Math.round(delay / 50) % 2 === 0 ? "pena-tilt-a" : "pena-tilt-b";
   return (
@@ -48,17 +55,28 @@ export default function GameCard({ game, delay = 0 }: { game: Game; delay?: numb
             <span className="text-tinta font-extrabold">
               {slots} spot{slots === 1 ? "" : "s"}
             </span>{" "}
-            open
+            {/* The count is never faked — only the word after it changes,
+                because an unfilled spot on a closed game is still unfilled,
+                just not open to take. */}
+            {closed ? "unfilled" : "open"}
           </span>
         </div>
         <div className="flex items-center gap-3.5">
-          <span className="text-label font-extrabold text-tinta">
-            €{pricePerHead(game).toFixed(0)}{" "}
-            <span className="text-micro text-tinta/45 font-normal">/ head</span>
-          </span>
-          <span className="text-label font-extrabold uppercase tracking-[0.04em] text-tinta border-b-2 border-naranja whitespace-nowrap">
-            Count me in
-          </span>
+          {price && (
+            <span className="text-label font-extrabold text-tinta">
+              {price}{" "}
+              <span className="text-micro text-tinta/45 font-normal">per player</span>
+            </span>
+          )}
+          {closed ? (
+            <span className="t-mono text-micro tracking-[0.14em] text-naranja-d border-[1.5px] border-dashed border-naranja-d rounded-pill px-2.5 py-1 whitespace-nowrap">
+              Closed
+            </span>
+          ) : (
+            <span className="text-label font-extrabold uppercase tracking-[0.04em] text-tinta border-b-2 border-naranja whitespace-nowrap">
+              Count me in
+            </span>
+          )}
         </div>
       </div>
     </Link>

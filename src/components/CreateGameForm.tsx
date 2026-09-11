@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { dublinToUtc } from "@/lib/time";
+import { formatPrice, parsePriceInput } from "@/lib/types";
 import { createGame } from "@/app/games";
 
 const FORMATS = ["Doubles", "Singles", "Open"] as const;
@@ -27,7 +28,6 @@ const LEVELS = ["1.0", "1.5", "2.0", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0"];
 // Quick-pick kick-off times. These just set the time field below.
 const SLOTS = ["18:30", "19:00", "19:30", "20:00", "20:30", "21:00"];
 
-const COURT_FEE = 44;
 
 /* The section rule: a tracked-out mono label with an ink hairline. */
 function Rule({ children }: { children: React.ReactNode }) {
@@ -135,7 +135,15 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
   const [error, setError] = useState(false);
 
   const players = format === "Singles" ? 2 : 4;
-  const perHead = COURT_FEE / players;
+  // The price box holds raw TEXT while it's being typed — it only becomes
+  // a number when the form is submitted, so a half-typed value like "12."
+  // doesn't fight the person entering it.
+  const [price, setPrice] = useState("");
+  const [priceError, setPriceError] = useState<string | null>(null);
+  // A live preview of the typed price for the action bar. Blank or
+  // not-yet-valid shows NO badge at all rather than a €0.00.
+  const parsedLivePrice = parsePriceInput(price);
+  const livePrice = "value" in parsedLivePrice ? formatPrice(parsedLivePrice.value) : null;
 
   async function handleCreate() {
     if (!userId) {
@@ -149,6 +157,15 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
       setError(true);
       return;
     }
+
+    // Price check happens BEFORE the game is sent, so a bad price can never
+    // reach the database. Blank is fine — it means no price set.
+    const parsedPrice = parsePriceInput(price);
+    if ("error" in parsedPrice) {
+      setPriceError(parsedPrice.error);
+      return;
+    }
+    setPriceError(null);
 
     setSaving(true);
     setError(false);
@@ -172,6 +189,7 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
         max_players: players,
         group_id: groupId,
         recurs_weekly: repeatsWeekly,
+        price_per_player: parsedPrice.value, // null = no price set
       },
       userId,
     );
@@ -413,20 +431,39 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
         />
       </div>
 
-      {/* The cost strip — the poster's naranja venue-strip voice. */}
-      <div className="rounded-card border-2 border-tinta shadow-sheet bg-naranja text-white px-3.5 py-3 mt-3">
-        <div className="t-eyebrow flex justify-between text-label tracking-[0.04em] normal-case">
-          <span>Court fee</span>
-          <span>€{COURT_FEE.toFixed(2)}</span>
-        </div>
-        <div className="t-eyebrow flex justify-between text-label tracking-[0.04em] normal-case opacity-90 mt-1.25">
-          <span>Split between</span>
-          <span>{players} players</span>
-        </div>
-        <div className="flex justify-between items-center mt-2.5 pt-2.5 border-t-2 border-dashed border-white/45">
-          <span className="t-display text-[0.875rem]">You each pay</span>
-          <span className="t-display text-display-sm">€{perHead.toFixed(2)}</span>
-        </div>
+      {/* Price — what ONE player pays. Optional: left blank, the game simply
+          has no price and no screen shows one. */}
+      <div className="pl-card px-3.5 py-3 mt-3">
+          <label
+            htmlFor="cg-price"
+            className="t-mono block text-[0.5625rem] tracking-[0.18em] text-tinta/50"
+          >
+            Price per player
+          </label>
+          <div className="flex items-baseline gap-1.5 mt-0.5">
+            <span className="t-display text-[1rem] text-tinta/45">€</span>
+            <input
+              id="cg-price"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="Optional"
+              aria-invalid={priceError ? true : undefined}
+              className="t-display flex-1 min-w-0 bg-transparent text-[1rem] text-tinta outline-none placeholder:text-tinta/35 focus:text-naranja-d"
+            />
+          </div>
+          {priceError ? (
+            <p aria-live="polite" className="text-label font-semibold text-naranja-d mt-1">
+              {priceError}
+            </p>
+          ) : (
+            <p className="t-eyebrow text-tiny tracking-normal normal-case text-tinta/55 mt-1">
+              What each player pays. Leave it blank if there&rsquo;s no set price.
+            </p>
+          )}
       </div>
 
       {error && (
@@ -451,9 +488,11 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
             className="t-mono pena-riso w-full flex items-center justify-center gap-2.5 bg-lima text-tinta border-2 border-tinta rounded-card py-3.5 text-title tracking-[0.16em] disabled:opacity-60 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-papel"
           >
             {saving ? "Creating…" : groupId ? "Propose game" : "Create game"}
-            <span className="t-mono bg-tinta text-lima rounded-stamp px-1.75 py-0.75 text-micro tracking-[0.04em]">
-              €{perHead.toFixed(2)}
-            </span>
+            {livePrice && (
+              <span className="t-mono bg-tinta text-lima rounded-stamp px-1.75 py-0.75 text-micro tracking-[0.04em]">
+                {livePrice}
+              </span>
+            )}
           </button>
         </div>
       </div>

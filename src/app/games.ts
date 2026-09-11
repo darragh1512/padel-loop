@@ -6,6 +6,7 @@
 // each row links one user to one game.
 
 import { supabase } from "@/lib/supabaseClient";
+import { DataError } from "@/lib/loadable";
 import { APP_TIME_ZONE } from "@/lib/time";
 import { getGroupConversationsFor, type Group } from "./groups";
 
@@ -20,6 +21,8 @@ export type Game = {
   max_players: number; // total spots in the game
   created_by: string | null; // the user id of whoever created the game
   status?: string | null; // "active" (default) or "cancelled"
+  price_per_player?: number | string | null; // euro PER PLAYER; null/absent = not set
+  is_manually_closed?: boolean | null; // creator stopped new joins by hand
 };
 
 // Turns a stored timestamp (e.g. "2026-06-10T17:30:00+00:00") into friendly
@@ -179,7 +182,9 @@ export async function getUpcomingGamesFor(userId: string): Promise<Game[]> {
 
   if (error) {
     console.error("Could not load joined games:", error.message);
-    return [];
+    // Throws instead of returning [] so the home screen can tell this apart
+    // from "you have no games" — see src/lib/loadable.ts.
+    throw new DataError("Could not load joined games", error.message);
   }
 
   const gameIds = (rows ?? []).map((row) => row.game_id as string);
@@ -325,10 +330,49 @@ export async function joinGame(
 }
 
 // Remove the logged-in user from a game (they tapped "Leave").
+// Two situations where leaving is refused. Both are checked here so the
+// person gets a sentence explaining why rather than a failed delete, but
+// NEITHER is a security boundary — these are client-side checks that a
+// direct API call would skip. The database-side versions live in the
+// player-leaves migration (see MIGRATIONS_PENDING.md).
+export const LEAVE_REFUSED_CREATOR =
+  "You created this game, so you can't leave it — cancel the game instead.";
+export const LEAVE_REFUSED_RESULT =
+  "This game already has a match result, so its players are fixed.";
+
 export async function leaveGame(
   gameId: string,
   userId: string,
 ): Promise<{ ok: true } | { error: string }> {
+  // 1. The organiser can't walk away from their own game. Leaving would
+  //    strand a game that still has their name on it: they would keep Edit,
+  //    Cancel and chat access (both are keyed off created_by) while quietly
+  //    vanishing from the roster. Cancelling is the honest action.
+  const { data: game } = await supabase
+    .from("games")
+    .select("created_by")
+    .eq("id", gameId)
+    .maybeSingle();
+
+  if (game && game.created_by === userId) {
+    return { error: LEAVE_REFUSED_CREATOR };
+  }
+
+  // 2. Once a match result exists the four players are part of the record.
+  //    Leaving does NOT remove them from match_result_participants, and the
+  //    consensus check counts that table — so a departed player is still
+  //    required to submit a scoresheet, and the result would sit unfinalised
+  //    forever waiting for someone who has gone.
+  const { data: result } = await supabase
+    .from("match_results")
+    .select("id")
+    .eq("game_id", gameId)
+    .maybeSingle();
+
+  if (result) {
+    return { error: LEAVE_REFUSED_RESULT };
+  }
+
   const { error } = await supabase
     .from("game_players")
     .delete()
@@ -340,12 +384,181 @@ export async function leaveGame(
     return { error: error.message };
   }
 
+  // The spot frees itself: every count in the app is derived live from
+  // game_players (the old current_players column is unused), and chat
+  // membership is derived the same way — so canUserChat now returns false
+  // and the thread drops off their /chat list. Their existing messages stay
+  // in the thread; leaving a conversation isn't the same as erasing what
+  // was said in it.
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// The waitlist — queueing for a game that is already full.
+// ---------------------------------------------------------------------------
+//
+// Queued people live in their OWN table (game_waitlist), never in
+// game_players. That is what keeps the 4/4 display, the match-result
+// checks and the recurring-game roll correct without any of them knowing
+// the waitlist exists — a queued person simply isn't a player yet.
+
+// One person waiting, in queue order.
+export type WaitlistEntry = {
+  userId: string;
+  joinedAt: string; // ISO timestamp — the queue order, never rewritten
+};
+
+// Everyone queued for a game, front of the queue first.
+export async function getWaitlist(gameId: string): Promise<WaitlistEntry[]> {
+  const { data, error } = await supabase
+    .from("game_waitlist")
+    .select("user_id, joined_at")
+    .eq("game_id", gameId)
+    .order("joined_at", { ascending: true });
+
+  if (error) {
+    // Before the waitlist migration is run the table doesn't exist. An
+    // empty queue is the honest answer then, and every screen degrades to
+    // exactly the behaviour it had before the feature.
+    console.error("Could not load the waitlist:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    userId: row.user_id as string,
+    joinedAt: row.joined_at as string,
+  }));
+}
+
+// Where this person sits in the queue, 1-based, or null if they aren't in
+// it. 1 = next in line.
+export function waitlistPositionOf(
+  queue: WaitlistEntry[],
+  userId: string | null,
+): number | null {
+  if (!userId) return null;
+  const index = queue.findIndex((entry) => entry.userId === userId);
+  return index === -1 ? null : index + 1;
+}
+
+// "1st" / "2nd" / "3rd" / "4th" — for showing someone their place.
+export function ordinal(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
+// The queue with names and avatars attached, front first — what the
+// organiser sees under the roster. Same manual join as the roster itself
+// (read the ids, then read those profiles in one more query).
+export type WaitlistPlayer = {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+};
+
+export async function getWaitlistPlayers(
+  gameId: string,
+): Promise<WaitlistPlayer[]> {
+  const queue = await getWaitlist(gameId);
+  if (queue.length === 0) return [];
+
+  const ids = queue.map((entry) => entry.userId);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, name, avatar_url")
+    .in("id", ids);
+
+  const byId = new Map<string, { name?: string; avatar_url?: string }>();
+  for (const row of profiles ?? []) {
+    byId.set(row.id as string, row as { name?: string; avatar_url?: string });
+  }
+
+  // Queue order is authoritative — map over `queue`, not over `profiles`.
+  return queue.map((entry) => {
+    const profile = byId.get(entry.userId);
+    return {
+      userId: entry.userId,
+      name: profile?.name ?? "Player",
+      avatarUrl: profile?.avatar_url ?? null,
+    };
+  });
+}
+
+// Take a place in the queue for a full game.
+export async function joinWaitlist(
+  gameId: string,
+  userId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("game_waitlist")
+    .insert({ game_id: gameId, user_id: userId });
+
+  if (error) {
+    console.error("Could not join the waitlist:", error.message);
+    // 23505 is the unique (game_id, user_id) — they are already queued, so
+    // the end state they wanted is already true.
+    if (error.code === "23505") return { ok: true };
+    return { error: "Couldn't join the queue. Give it another try." };
+  }
+
+  return { ok: true };
+}
+
+// Give up a place in the queue. Always allowed — unlike leaving a game,
+// there is no match result to protect and no spot to strand, because a
+// queued person was never in the game.
+export async function leaveWaitlist(
+  gameId: string,
+  userId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("game_waitlist")
+    .delete()
+    .eq("game_id", gameId)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Could not leave the waitlist:", error.message);
+    return { error: "Couldn't leave the queue. Give it another try." };
+  }
+
   return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
 // Creating a game
 // ---------------------------------------------------------------------------
+
+// Is this error the database saying "that column doesn't exist yet"?
+//
+// price_per_player is added by a migration that may not have been run on
+// this database yet. Sending a column that isn't there fails the WHOLE
+// write, which would stop people creating or editing games at all — so we
+// detect that specific failure and retry without the price. The game still
+// saves; only the price is dropped, and the console says why.
+//
+// 42703 is Postgres's own undefined_column code. PGRST204 is PostgREST
+// failing to find the column in its cached schema. The message check is a
+// last resort for wrappers that pass neither code through.
+function isMissingColumn(
+  error: { code?: string; message?: string } | null,
+  column: string,
+): boolean {
+  if (!error) return false;
+  if (error.code === "42703" || error.code === "PGRST204") return true;
+  const msg = (error.message ?? "").toLowerCase();
+  return msg.includes(column) && (msg.includes("column") || msg.includes("schema"));
+}
 
 // The details needed to create a new game (the form fields the user fills in).
 export type NewGame = {
@@ -356,6 +569,7 @@ export type NewGame = {
   max_players: number;
   group_id?: string; // set when this game is a group proposal (phase 2 of group chats)
   recurs_weekly?: boolean; // repeat this game weekly (the database rolls it forward)
+  price_per_player?: number | null; // euro PER PLAYER; null = no price set
 };
 
 // Saves a brand-new game, recording who created it (created_by), then adds
@@ -381,12 +595,30 @@ export async function createGame(
   if (game.recurs_weekly) {
     row.recurs_weekly = true;
   }
+  // Only sent when a price was actually typed, so an ordinary create is
+  // unchanged when nobody sets one.
+  if (game.price_per_player != null) {
+    row.price_per_player = game.price_per_player;
+  }
 
-  const { data, error } = await supabase
-    .from("games")
-    .insert(row)
-    .select("id") // ask the database to hand back the new row's id
-    .single();
+  const insertGame = () =>
+    supabase
+      .from("games")
+      .insert(row)
+      .select("id") // ask the database to hand back the new row's id
+      .single();
+
+  let { data, error } = await insertGame();
+
+  // Price column not there yet? Save the game without it rather than
+  // failing the create outright.
+  if (error && "price_per_player" in row && isMissingColumn(error, "price_per_player")) {
+    console.warn(
+      "games.price_per_player is missing — creating this game without a price. Run the price migration.",
+    );
+    delete row.price_per_player;
+    ({ data, error } = await insertGame());
+  }
 
   if (error || !data) {
     console.error("Could not create game:", error?.message);
@@ -424,6 +656,7 @@ export type GameEdits = {
   game_time: string; // an ISO timestamp, e.g. "2026-06-10T17:30:00+00:00"
   skill_level: string;
   max_players: number;
+  price_per_player?: number | null; // euro PER PLAYER; null = clear the price
 };
 
 // Save changes to an existing game's row in the "games" table. Only the
@@ -434,19 +667,72 @@ export async function updateGame(
   gameId: string,
   edits: GameEdits,
 ): Promise<{ ok: true } | { error: string }> {
-  const { error } = await supabase
-    .from("games")
-    .update({
-      venue: edits.venue,
-      location: edits.location,
-      game_time: edits.game_time,
-      skill_level: edits.skill_level,
-      max_players: edits.max_players,
-    })
-    .eq("id", gameId);
+  // Unlike createGame the price is sent even when it is null, because on
+  // an edit null is a real instruction: clear the price back to not-set.
+  const row: Record<string, unknown> = {
+    venue: edits.venue,
+    location: edits.location,
+    game_time: edits.game_time,
+    skill_level: edits.skill_level,
+    max_players: edits.max_players,
+    price_per_player: edits.price_per_player ?? null,
+  };
+
+  const saveGame = () => supabase.from("games").update(row).eq("id", gameId);
+
+  let { error } = await saveGame();
+
+  // Price column not there yet? Save everything else rather than blocking
+  // the edit entirely.
+  if (error && isMissingColumn(error, "price_per_player")) {
+    console.warn(
+      "games.price_per_player is missing — saving this game without the price. Run the price migration.",
+    );
+    delete row.price_per_player;
+    ({ error } = await saveGame());
+  }
 
   if (error) {
     console.error("Could not update game:", error.message);
+    return { error: error.message };
+  }
+
+  return { ok: true };
+}
+
+// Open or close a game to NEW joins by hand. This is the creator's override
+// for the case the app can't see: they filled the last spot in person, or a
+// arrangement fell through and they want the game listed again.
+//
+// It writes ONLY is_manually_closed. The roster is not touched, so the
+// player count is exactly what it was — a 3-of-4 game stays 3 of 4, just
+// closed. Nothing here fakes a full game.
+//
+// Only the creator should reach this (CreatorActions renders the control
+// for nobody else), but the UI is not the safeguard — see the RLS note in
+// the migration and README of this change.
+export async function setGameClosed(
+  gameId: string,
+  closed: boolean,
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("games")
+    .update({ is_manually_closed: closed })
+    .eq("id", gameId);
+
+  if (error) {
+    // Unlike the price, this column IS the whole action — there is nothing
+    // sensible to fall back to, and silently succeeding would be a lie. Say
+    // exactly what is wrong instead.
+    if (isMissingColumn(error, "is_manually_closed")) {
+      console.error(
+        "games.is_manually_closed is missing — run the price/manual-close migration.",
+      );
+      return {
+        error: "This needs the latest database update before it will work.",
+      };
+    }
+    console.error("Could not change the game's closed state:", error.message);
     return { error: error.message };
   }
 
@@ -527,7 +813,9 @@ export async function getMessages(gameId: string): Promise<ChatMessage[]> {
 
   if (error) {
     console.error("Could not load messages:", error.message);
-    return [];
+    // A thread that failed to load must not read as a thread nobody has
+    // written in.
+    throw new DataError("Could not load messages", error.message);
   }
   if (!rows || rows.length === 0) {
     return [];

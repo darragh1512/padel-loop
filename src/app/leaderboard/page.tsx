@@ -12,7 +12,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import PlayerAvatar from "@/components/PlayerAvatar";
-import { ChipButton, EmptyState, SectionLabel } from "@/components/ui";
+import { ButtonLink, ChipButton, EmptyState, SectionLabel } from "@/components/ui";
+import { Trophy } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
   getLeaderboard,
@@ -180,8 +181,14 @@ export default function LeaderboardPage() {
         ))
       ) : (
         <EmptyState
+          icon={<Trophy size={22} strokeWidth={2.2} />}
           title="No one's ranked yet."
           body={`Play ${RANKED_MIN_MATCHES} confirmed matches and the board begins.`}
+          action={
+            <ButtonLink href="/discover" variant="secondary" size="sm">
+              Find a game
+            </ButtonLink>
+          }
         />
       )}
 

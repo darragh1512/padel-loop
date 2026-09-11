@@ -12,6 +12,7 @@ import { GhostButton, PrimaryButton, SectionLabel } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import { dublinToUtc, utcToDublinInput } from "@/lib/time";
 import { getGame, updateGame } from "../../../games";
+import { readPrice, parsePriceInput } from "@/lib/types";
 
 const SKILL_LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
 
@@ -41,6 +42,10 @@ export default function EditGamePage() {
   const [skillLevel, setSkillLevel] =
     useState<(typeof SKILL_LEVELS)[number]>("Intermediate");
   const [maxPlayers, setMaxPlayers] = useState(4);
+  // Held as TEXT while being edited; parsed on save. Empty means the game
+  // has no price, which is a real, saveable state.
+  const [price, setPrice] = useState("");
+  const [priceError, setPriceError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
@@ -68,6 +73,11 @@ export default function EditGamePage() {
         setSkillLevel(game.skill_level as (typeof SKILL_LEVELS)[number]);
       }
       setMaxPlayers(game.max_players);
+      // readPrice copes with the column not existing yet (undefined), so
+      // the edit form still loads before the price migration is run — the
+      // box just starts empty.
+      const existingPrice = readPrice(game.price_per_player);
+      setPrice(existingPrice == null ? "" : existingPrice.toFixed(2));
       setAllowed(true);
       setLoading(false);
     })();
@@ -78,6 +88,16 @@ export default function EditGamePage() {
 
   async function handleSave() {
     if (saving) return;
+
+    // Checked before anything is sent, so a bad price never reaches the
+    // database. Blank is valid and clears the price.
+    const parsedPrice = parsePriceInput(price);
+    if ("error" in parsedPrice) {
+      setPriceError(parsedPrice.error);
+      return;
+    }
+    setPriceError(null);
+
     setSaving(true);
     setError(false);
 
@@ -87,6 +107,7 @@ export default function EditGamePage() {
       game_time: dublinInputToIso(gameTime),
       skill_level: skillLevel,
       max_players: maxPlayers,
+      price_per_player: parsedPrice.value, // null = clear the price
     });
 
     if ("ok" in result) {
@@ -202,6 +223,41 @@ export default function EditGamePage() {
             +
           </button>
         </div>
+      </div>
+
+      {/* Price per player — optional. Cleared (left blank) means the game
+          has no price and no screen shows one. */}
+      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-naranja">
+        <label
+          htmlFor="edit-price"
+          className="t-mono block text-micro tracking-[0.12em] text-tinta/70 mb-1"
+        >
+          Price per player
+        </label>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-body font-extrabold text-tinta/45">€</span>
+          <input
+            id="edit-price"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="Optional"
+            aria-invalid={priceError ? true : undefined}
+            className={fieldClass}
+          />
+        </div>
+        {priceError ? (
+          <p aria-live="polite" className="text-label font-semibold text-naranja-d mt-1">
+            {priceError}
+          </p>
+        ) : (
+          <p className="text-label font-medium text-tinta/55 mt-1">
+            What each player pays. Leave blank for no set price.
+          </p>
+        )}
       </div>
 
       <div className="h-3" />

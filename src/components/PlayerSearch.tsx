@@ -8,6 +8,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import PlayerResultRow from "@/components/PlayerResultRow";
+import { EmptyState, ErrorState } from "@/components/ui";
+import { UserSearch } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { searchProfiles, type ProfileSearchResult } from "@/app/profiles";
 
@@ -33,6 +35,9 @@ export default function PlayerSearch({
   // Bumped on every query change so a slow, stale request can't overwrite
   // newer results once it finally resolves.
   const reqId = useRef(0);
+  // A failed search must not say "no players found" — that is a claim
+  // about the world, and we did not get an answer about the world.
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -54,8 +59,18 @@ export default function PlayerSearch({
 
     setSearching(true);
     const handle = setTimeout(async () => {
-      const found = await searchProfiles(term, currentUserId.current);
+      let found;
+      try {
+        found = await searchProfiles(term, currentUserId.current);
+      } catch {
+        if (id !== reqId.current) return;
+        setFailed(true);
+        setResults([]);
+        setSearching(false);
+        return;
+      }
       if (id !== reqId.current) return; // a newer query has superseded this one
+      setFailed(false);
       setResults(found.filter((p) => p.id !== currentUserId.current));
       setSearching(false);
       setSearched(true);
@@ -111,10 +126,18 @@ export default function PlayerSearch({
             results.map((person, i) => (
               <PlayerResultRow key={person.id} person={person} delay={i * 40} />
             ))
+          ) : failed ? (
+            <ErrorState
+              title="Search didn't work."
+              body="That's a connection problem, not an empty Loop. Try again."
+              onRetry={() => setQuery((q) => q)}
+            />
           ) : searched ? (
-            <div className="pl-surface rounded-card px-4 py-5 text-center text-label font-medium text-tinta/70">
-              No players found for “{query.trim()}”.
-            </div>
+            <EmptyState
+              icon={<UserSearch size={22} strokeWidth={2.2} />}
+              title={`No players called “${query.trim()}”.`}
+              body="Try part of a name, or a different spelling."
+            />
           ) : null}
         </div>
       )}

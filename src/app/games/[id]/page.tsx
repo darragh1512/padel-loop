@@ -1,20 +1,81 @@
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import { CourtHero } from "@/components/brand";
-import { Avatar, Chip, SectionLabel } from "@/components/ui";
-import PlayerAvatar from "@/components/PlayerAvatar";
+import { Chip, SectionLabel } from "@/components/ui";
 import { getGame } from "@/lib/data";
-import { formatDay, formatTimeRange, isCancelled, pricePerHead } from "@/lib/types";
+import {
+  formatDay,
+  formatPrice,
+  formatTimeRange,
+  isCancelled,
+  isFull,
+} from "@/lib/types";
 import { notFound } from "next/navigation";
 import JoinGame from "./join-game";
 import CreatorActions from "./creator-actions";
 import ChatThread from "./chat-thread";
 import LogResult from "./log-result";
+import { hasMatchResult } from "../../match-results";
+import { getWaitlistPlayers } from "../../games";
+import WaitlistPanel from "./waitlist-panel";
+import ShareGame from "./share-game";
+import TrackGameView from "./track-view";
+import GameRoster from "./game-roster";
+import { cache } from "react";
+import type { Metadata } from "next";
+import { shareDescription, shareTitle } from "./share-copy";
 
 // Read fresh data on each request so the players list and "open spot" count
 // (both derived from the live game_players table) always reflect the latest
 // joins/leaves. JoinGame also calls router.refresh() to update this in place.
 export const dynamic = "force-dynamic";
+
+// generateMetadata and the page body both need the game. React's cache()
+// dedupes them within a single request, so a link preview scrape costs one
+// database read rather than two.
+const loadGame = cache(getGame);
+
+// The WhatsApp link preview. Title is the club, description is date, time,
+// level and spots left; the picture is generated next door in
+// opengraph-image.tsx, which Next wires up by file convention — no og:image
+// URL is written by hand here.
+//
+// A game DELETED after its link was shared falls through to a plain card
+// rather than an error, so a stale link in a group chat reads as a finished
+// game instead of a broken site.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const game = await loadGame(id);
+
+  if (!game) {
+    return {
+      title: "Game not found · Padel Loop",
+      description: "This game is no longer listed.",
+    };
+  }
+
+  const title = shareTitle(game);
+  const description = shareDescription(game);
+
+  return {
+    title: `${title} · Padel Loop`,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function GameDetailPage({
   params,
@@ -22,23 +83,42 @@ export default async function GameDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const game = await getGame(id);
+  const game = await loadGame(id);
+  // Whether a match is already being scored — leaving is refused once it is.
+  const hasResult = await hasMatchResult(id);
+  // The queue. Queued people are NOT in game.players, so nothing below
+  // this line changes the 3-of-4 count.
+  const queue = await getWaitlistPlayers(id);
   if (!game) notFound();
 
-  const perHead = pricePerHead(game);
+  // The price the organiser set, already formatted — or null when they
+  // haven't set one. Everything price-related on this screen is hidden
+  // when it's null rather than falling back to a made-up number.
+  const price = formatPrice(game.pricePerPlayer);
   const emptySlots = game.maxPlayers - game.players.length;
 
   return (
     <main className="px-5 pt-6 relative">
-      <Link
-        href="/discover"
-        aria-label="Back to games"
-        className="pl-hit inline-flex text-papel/85 hover:text-papel rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </Link>
+      <TrackGameView gameId={game.id} />
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          href="/discover"
+          aria-label="Back to games"
+          className="pl-hit inline-flex text-papel/85 hover:text-papel rounded-pill transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+        {/* Shareable by anyone who can see the game, signed in or not — a
+            link that can't be passed on again dead-ends the chain that
+            brought this person here in the first place. */}
+        <ShareGame
+          gameId={game.id}
+          venue={game.venue}
+          when={`${formatDay(game)} · ${formatTimeRange(game)}`}
+        />
+      </div>
 
       <CourtHero />
 
@@ -60,13 +140,16 @@ export default async function GameDetailPage({
         createdBy={game.createdBy}
         recursWeekly={game.recursWeekly}
         seriesId={game.seriesId}
+        isManuallyClosed={game.isManuallyClosed}
       />
 
-      <div className="grid grid-cols-3 gap-2 mt-5">
+      {/* The price cell only exists when there is a price, so the strip is
+          two cells wide instead of three rather than showing a blank. */}
+      <div className={`grid gap-2 mt-5 ${price ? "grid-cols-3" : "grid-cols-2"}`}>
         {[
           ["Level", `${game.levelMin.toFixed(1)}–${game.levelMax.toFixed(1)}`],
           ["Format", game.format[0].toUpperCase() + game.format.slice(1)],
-          ["Per head", `€${perHead.toFixed(0)}`],
+          ...(price ? [["Per player", price]] : []),
         ].map(([k, v]) => (
           <div key={k} className="pl-card px-2.5 py-3 text-center">
             <div className="t-mono text-micro tracking-[0.14em] text-naranja-d">{k}</div>
@@ -75,62 +158,34 @@ export default async function GameDetailPage({
         ))}
       </div>
 
-      <SectionLabel>
-        Players · {game.players.length} of {game.maxPlayers}
-      </SectionLabel>
-      <div className="pl-card px-4 py-1.5">
-        {game.players.map((p) => (
-          <div
-            key={p.id}
-            className="flex items-center justify-between py-2.5 border-b border-tinta/15 last:border-0"
-          >
-            <Link
-              href={`/players/${p.id}`}
-              className="flex items-center gap-3 rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
-            >
-              <PlayerAvatar
-                userId={p.id}
-                avatarUrl={p.avatarUrl}
-                name={p.name}
-                className="size-9"
-              />
-              <div>
-                <div className="text-body font-extrabold text-tinta">{p.name}</div>
-                <div className="t-mono text-micro tracking-[0.1em] text-tinta/70">
-                  {p.isOrganiser ? "Organiser · " : ""}
-                  {p.gamesPlayed ?? 0} games
-                </div>
-              </div>
-            </Link>
-            <Chip>Level {p.level.toFixed(1)}</Chip>
-          </div>
-        ))}
-        {Array.from({ length: emptySlots }).map((_, i) => (
-          <div key={`s${i}`} className="flex items-center gap-3 py-2.5">
-            <Avatar size="md" />
-            <div>
-              <div className="text-body font-extrabold text-naranja-d">+ you?</div>
-              <div className="text-label font-medium text-tinta/45">This spot is really open</div>
+      <GameRoster
+        players={game.players}
+        maxPlayers={game.maxPlayers}
+        emptySlots={emptySlots}
+      />
+
+      {/* The queue, under the roster and organiser-only. Deliberately a
+          separate card below the players, never mixed into them. */}
+      <WaitlistPanel
+        createdBy={game.createdBy}
+        queue={queue}
+        manuallyClosed={game.isManuallyClosed === true}
+      />
+
+      {/* Price — shown ONLY when the organiser set one. price_per_player is
+          what one player pays, so it is presented as-is: no total is derived
+          from it, because the court's total cost isn't something we know. */}
+      {price && (
+        <>
+          <SectionLabel>Price</SectionLabel>
+          <div className="pl-card p-4">
+            <div className="flex justify-between items-center text-body font-medium text-tinta/70">
+              <span>Per player</span>
+              <span className="t-display text-display-sm text-tinta">{price}</span>
             </div>
           </div>
-        ))}
-      </div>
-
-      <SectionLabel>Cost split</SectionLabel>
-      <div className="pl-card p-4">
-        <div className="flex justify-between text-label font-medium text-tinta/70 py-1">
-          <span>Court · {game.durationMins} min</span>
-          <span className="text-tinta font-extrabold">€{game.courtFee.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-label font-medium text-tinta/70 py-1">
-          <span>Split between</span>
-          <span className="text-tinta font-extrabold">{game.maxPlayers} players</span>
-        </div>
-        <div className="flex justify-between items-center text-body font-medium text-tinta/70 border-t-2 border-tinta mt-1.5 pt-2.5">
-          <span>You pay</span>
-          <span className="t-display text-display-sm text-tinta">€{perHead.toFixed(2)}</span>
-        </div>
-      </div>
+        </>
+      )}
 
       <div className="mt-6">
         {isCancelled(game) ? (
@@ -144,7 +199,18 @@ export default async function GameDetailPage({
           </div>
         ) : (
           /* Real join/leave behaviour on the shared Button kit. */
-          <JoinGame gameId={game.id} perHead={perHead} />
+          <JoinGame
+            gameId={game.id}
+            priceLabel={price}
+            // The creator is in the roster but cannot leave — they cancel.
+            createdBy={game.createdBy}
+            hasResult={hasResult}
+            // Two separate facts, passed separately on purpose: a game can
+            // be closed by hand while spots remain, and the button needs to
+            // say which is true.
+            manuallyClosed={game.isManuallyClosed === true}
+            full={isFull(game)}
+          />
         )}
       </div>
 

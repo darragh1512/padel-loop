@@ -72,6 +72,10 @@ export type EntryOutcome = {
 export async function submitEntry(
   gameId: string,
   sets: ResultSet[],
+  // Player ids this submitter says did not turn up. Someone is only
+  // RECORDED absent when every submitter names them (the RPC decides), so
+  // one person ticking a box does not brand anybody.
+  absent: string[] = [],
 ): Promise<EntryOutcome> {
   const { data, error } = await supabase.rpc("submit_result_entry", {
     p_game_id: Number(gameId),
@@ -79,6 +83,7 @@ export async function submitEntry(
       team1_games: s.team1Games,
       team2_games: s.team2Games,
     })),
+    p_absent: absent,
   });
 
   if (error) {
@@ -137,6 +142,27 @@ export type ResultDetail = {
 // Profiles are joined the same way as the game roster: read the participant
 // rows, then look their ids up in `profiles` in one more query and pair the
 // name + avatar_url back (see getPlayersForGame in src/lib/data.ts).
+// Does this game have a match result at all, in ANY state (pending,
+// disputed or confirmed)? Once one exists the four players are part of the
+// record — the consensus check counts match_result_participants, which
+// leaving does not touch — so the game screen uses this to stop someone
+// leaving a match that is already being scored.
+export async function hasMatchResult(gameId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("match_results")
+    .select("id")
+    .eq("game_id", gameId)
+    .maybeSingle();
+
+  if (error) {
+    // Read failure shouldn't wrongly block someone from leaving; leaveGame
+    // re-checks server-side before it deletes anything.
+    console.error("Could not check for a match result:", error.message);
+    return false;
+  }
+  return data != null;
+}
+
 export async function getResultDetail(
   gameId: string,
 ): Promise<ResultDetail | null> {
@@ -245,7 +271,12 @@ export async function getResultDetail(
 }
 
 // A player's match record, counted from FINALISED results only.
-export type PlayerMatchStats = { played: number; won: number; lost: number };
+export type PlayerMatchStats = {
+  played: number;
+  won: number;
+  lost: number;
+  reliability: Reliability;
+};
 
 // Work out a player's win/loss record across confirmed match results.
 //   • played = confirmed results this user took part in,
@@ -255,15 +286,54 @@ export type PlayerMatchStats = { played: number; won: number; lost: number };
 // up in the stat. Done as a manual two-step join (the same style the rest of
 // the app uses instead of relying on a DB relationship), so it's two small
 // queries, never N+1.
+// ── Reliability ─────────────────────────────────────────────────────────
+// Turned-up vs committed, over games where attendance was actually
+// RECORDED. Three rules, all deliberate:
+//
+//   1. Only confirmed results count. Same rule as every other earned
+//      number here (stats, ratings, badges, the leaderboard).
+//   2. Only rows where attended is not null count. Results confirmed
+//      before attendance existed have no record, and treating a blank as
+//      a turn-up would invent a clean sheet nobody earned. This is why
+//      everyone reads as no-data until they play new games.
+//   3. A game where no result was ever submitted is not in the data at
+//      all — no match_results row means the player is a participant in
+//      nothing, so it lands in neither the numerator nor the denominator.
+//      Nobody is marked down for a game that simply went unrecorded.
+//
+// NOT stored. This is a plain count over rows and does not depend on the
+// order they arrived, so unlike the Elo rating it needs no replay, no
+// one-shot flag and no rebuild job — the same reasoning as badges.ts.
+
+// Below this many recorded games there is no score at all. One or two data
+// points make a percentage that looks authoritative and means nothing, so
+// the profile shows the shortfall instead of a number.
+export const RELIABILITY_MIN_GAMES = 5;
+
+export type Reliability = {
+  recorded: number; // confirmed games where attendance was recorded
+  attended: number; // of those, how many they turned up to
+  // The percentage, or null when there isn't enough to say. Null is not
+  // zero — callers must render the shortfall, never a 0%.
+  percent: number | null;
+};
+
 export async function getPlayerMatchStats(
   userId: string,
 ): Promise<PlayerMatchStats> {
-  const empty: PlayerMatchStats = { played: 0, won: 0, lost: 0 };
+  const empty: PlayerMatchStats = {
+    played: 0,
+    won: 0,
+    lost: 0,
+    reliability: { recorded: 0, attended: 0, percent: null },
+  };
 
   // 1. Every result this user was a participant in, and the team they were on.
+  // `attended` rides along on the query that was already being made, so
+  // reliability costs no extra round trip.
   const { data: partRows, error: partError } = await supabase
     .from("match_result_participants")
-    .select("result_id, team")
+    .select("result_id, team, attended")
     .eq("user_id", userId);
   if (partError) {
     console.error("Could not load match participation:", partError.message);
@@ -273,8 +343,15 @@ export async function getPlayerMatchStats(
 
   // result_id → the team this user played on for that result.
   const teamByResult = new Map<string, number>();
+  // result_id → did they turn up. Absent from this map = never recorded
+  // (an older result, or one confirmed before attendance existed).
+  const attendedByResult = new Map<string, boolean>();
   for (const r of partRows) {
     teamByResult.set(String(r.result_id), r.team as number);
+    const attended = (r as { attended?: boolean | null }).attended;
+    if (attended != null) {
+      attendedByResult.set(String(r.result_id), attended);
+    }
   }
 
   // 2. Of those, keep only the CONFIRMED ones (status='confirmed' guarantees
@@ -292,6 +369,11 @@ export async function getPlayerMatchStats(
 
   let played = 0;
   let won = 0;
+  // Reliability is tallied in the SAME pass, over the same confirmed
+  // results, so it can never disagree with the played/won numbers beside it.
+  let recorded = 0;
+  let attended = 0;
+
   for (const res of results ?? []) {
     played += 1;
     const myTeam = teamByResult.get(String(res.id));
@@ -299,9 +381,31 @@ export async function getPlayerMatchStats(
     if (myTeam != null && winner != null && myTeam === winner) {
       won += 1;
     }
+
+    // Only counts when attendance was actually recorded for this result.
+    // A missing entry is silence, not a turn-up and not a no-show.
+    const turnedUp = attendedByResult.get(String(res.id));
+    if (turnedUp !== undefined) {
+      recorded += 1;
+      if (turnedUp) attended += 1;
+    }
   }
 
-  return { played, won, lost: played - won };
+  return {
+    played,
+    won,
+    lost: played - won,
+    reliability: {
+      recorded,
+      attended,
+      // null, never 0, below the threshold — the profile renders the
+      // shortfall instead of a number that would read as a bad score.
+      percent:
+        recorded >= RELIABILITY_MIN_GAMES
+          ? Math.round((attended / recorded) * 100)
+          : null,
+    },
+  };
 }
 
 // One confirmed result in a player's history: when it was finalised and

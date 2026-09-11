@@ -30,6 +30,8 @@ export type Game = {
                               // was created (not when it's happening). Used to place a
                               // group's proposed games in the group thread by when they
                               // were proposed, not by game_time.
+  pricePerPlayer?: number | null; // euro PER PLAYER (not the court total); null = not set
+  isManuallyClosed?: boolean; // creator stopped new joins by hand — NOT the same as full
   recursWeekly?: boolean;    // this game repeats weekly (rolls forward after it's played)
   seriesId?: string;         // root game id of its weekly chain (the root points at itself)
 };
@@ -43,6 +45,80 @@ export const isCancelled = (g: Game) =>
 
 export const pricePerHead = (g: Game) => g.courtFee / g.maxPlayers;
 export const slotsLeft = (g: Game) => g.maxPlayers - g.players.length;
+
+// ── Why a game can't be joined ───────────────────────────────────────────
+// There are two DIFFERENT reasons, and they are kept deliberately separate:
+//
+//   isFull(g)             — every spot is taken. A fact about the roster.
+//   g.isManuallyClosed    — the creator stopped new joins by hand, e.g. they
+//                           filled the last spot outside the app. The roster
+//                           is untouched by this: a 3-of-4 game stays 3 of 4.
+//
+// They are NOT collapsed into a single "closed" flag, for two reasons:
+// a game can be both at once, and downstream features (the waitlist) need
+// to tell them apart. Read whichever one you actually mean.
+export const isFull = (g: Game) => slotsLeft(g) <= 0;
+
+
+// ── Price ────────────────────────────────────────────────────────────────
+// price_per_player is what ONE player pays. It is NULLABLE and null means
+// "the organiser hasn't set a price" — which is NOT the same as free. Null
+// must render as nothing at all: no €0.00, no "Free", no bare euro sign.
+// A genuinely free game is 0, and that DOES render (as €0.00).
+//
+// Everything that reads a price goes through these helpers so that rule is
+// enforced in one place rather than re-decided at each call site.
+
+/* Normalise whatever came back from the database into a number or null.
+   Tolerates the column being absent entirely (undefined) — exactly what
+   happens on any deployment where the price migration hasn't been run yet —
+   and tolerates a numeric arriving as a string, which PostgREST does for
+   some numeric types. Anything that isn't a finite, non-negative number
+   reads as "no price set" rather than throwing. */
+export function readPrice(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/* Turn what someone typed in a price box into a price we can store, or
+   explain why we can't. This is the SINGLE place typed input is judged,
+   so the create form and the edit form cannot drift apart.
+
+     ""  / spaces  → { value: null }  — "no price set", a valid choice
+     "12" / "12.50" → { value: 12.5 }
+     "-3" / "abc" / "1.234" → { error }
+
+   The pattern below is what blocks negatives and non-numbers: a minus
+   sign simply has no way through it, and neither does a letter. */
+export function parsePriceInput(raw: string): { value: number | null } | { error: string } {
+  const text = raw.trim();
+  if (text === "") return { value: null };
+
+  if (!/^\d+(\.\d{1,2})?$/.test(text)) {
+    return {
+      error: "Enter a price like 12 or 12.50 — numbers only, and no minus sign.",
+    };
+  }
+
+  const n = Number(text);
+  if (!Number.isFinite(n) || n < 0) {
+    return { error: "Enter a price like 12 or 12.50 — numbers only, and no minus sign." };
+  }
+  // Matches the numeric(6,2) column: anything bigger can't be stored.
+  if (n > 9999.99) {
+    return { error: "That price is too high." };
+  }
+  return { value: n };
+}
+
+/* Format a price for display, or null when there is nothing to show. Callers
+   render the result only when it isn't null, so "no price" renders nothing. */
+export function formatPrice(value: number | null | undefined): string | null {
+  const n = readPrice(value);
+  return n == null ? null : `€${n.toFixed(2)}`;
+}
+
 
 // Which skill tier a game belongs to, worked out from its level band
 // (Beginner 1.0–2.5, Intermediate 2.5–3.5, Advanced 3.5–5.0). Used by the

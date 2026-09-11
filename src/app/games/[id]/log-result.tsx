@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Button, SectionLabel } from "@/components/ui";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import { capture } from "@/lib/analytics";
 import type { Player } from "@/lib/types";
 import {
   getResultDetail,
@@ -111,6 +112,9 @@ export default function LogResult({
   // Owner's "Start match" team-assignment form.
   const [startOpen, setStartOpen] = useState(false);
   const [teams, setTeams] = useState<Record<string, Team>>({});
+  // Player ids this person is reporting as no-shows, sent with the
+  // scoresheet. Empty is the normal case: everybody turned up.
+  const [absent, setAbsent] = useState<string[]>([]);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
@@ -278,6 +282,17 @@ export default function LogResult({
     setSets((arr) => (arr.length <= 1 ? arr : arr.filter((_, i) => i !== idx)));
   }
 
+  // Who THIS submitter says did not turn up. It is only a report: the
+  // database records an absence when every submitter names the same person,
+  // so ticking someone here cannot brand them on its own.
+  function toggleAbsent(id: string) {
+    setAbsent((current) =>
+      current.includes(id)
+        ? current.filter((x) => x !== id)
+        : [...current, id],
+    );
+  }
+
   async function handleSubmitEntry() {
     if (submitting || !userId) return;
     setEntryError(null);
@@ -290,7 +305,21 @@ export default function LogResult({
 
     setSubmitting(true);
     try {
-      await submitEntry(gameId, parsed.sets);
+      const outcome = await submitEntry(gameId, parsed.sets, absent);
+
+      // Two separate events. A scoresheet going in is not the same as a
+      // result being agreed — the gap between them is where disputes and
+      // people who never submit live, and that gap is the thing worth
+      // watching. Counts only; no scores, no player ids.
+      capture("result_submitted", {
+        game_id: gameId,
+        sets: parsed.sets.length,
+        marked_absent: absent.length,
+      });
+
+      if (outcome?.status === "confirmed") {
+        capture("result_confirmed", { game_id: gameId });
+      }
       setEntryOpen(false);
       await refreshDetail();
       router.refresh();
@@ -427,6 +456,40 @@ export default function LogResult({
           </div>
         ))}
       </div>
+      {/* Attendance — part of the scoresheet, not a separate step. Left
+          alone it says everyone turned up, which is the normal case. */}
+      <div className="mt-5">
+        <p className="t-mono text-micro tracking-[0.14em] text-tinta/55">
+          Anyone not turn up?
+        </p>
+        <p className="text-label font-medium text-tinta/55 mt-1">
+          Only recorded if everyone who files a scoresheet says the same.
+        </p>
+        <div className="flex flex-wrap gap-1.5 mt-2.5">
+          {detail?.participants
+            .filter((p) => p.userId !== userId)
+            .map((p) => {
+              const marked = absent.includes(p.userId);
+              return (
+                <button
+                  key={p.userId}
+                  type="button"
+                  onClick={() => toggleAbsent(p.userId)}
+                  aria-pressed={marked}
+                  className={`t-mono text-micro tracking-[0.1em] rounded-pill px-3 py-1.5 border-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja ${
+                    marked
+                      ? "bg-naranja-d text-papel border-naranja-d"
+                      : "bg-transparent text-tinta/70 border-tinta/25"
+                  }`}
+                >
+                  {marked ? "✗ " : ""}
+                  {p.name}
+                </button>
+              );
+            })}
+        </div>
+      </div>
+
       <div className="flex gap-2.5 mt-5">
         <Button
           className="flex-1"

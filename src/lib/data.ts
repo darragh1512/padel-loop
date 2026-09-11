@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { dublinDateKey, dublinToUtc } from "@/lib/time";
-import { isCancelled, type Game, type Player } from "./types";
+import { isCancelled, readPrice, type Game, type Player } from "./types";
 
 /* ── Games data for the redesigned UI ───────────────────────────
    Reuses the existing Supabase client (src/lib/supabaseClient.ts), so the
@@ -173,6 +173,15 @@ function rowToGame(row: any, players: Player[] = []): Game {
     createdBy: row.created_by ?? undefined, // who created the game (for owner-only actions)
     status: row.status ?? undefined, // "active" / "cancelled" (drives browse filtering + label)
     createdAt: row.created_at ?? undefined, // when the row was made (group-thread ordering)
+    // readPrice turns a missing column (undefined, which is what comes
+    // back before the price migration is run) into null, so this is safe
+    // either side of the migration.
+    pricePerPlayer: readPrice(row.price_per_player), // null = no price set
+    // Strict === true so a missing column (undefined, before the migration
+    // is run) reads as "not closed" rather than anything surprising. This
+    // deliberately does NOT touch players/maxPlayers: closing a game by
+    // hand never changes its count.
+    isManuallyClosed: row.is_manually_closed === true,
     recursWeekly: row.recurs_weekly ?? false, // repeats weekly (rolls forward after it's played)
     seriesId: row.series_id != null ? String(row.series_id) : undefined, // weekly-chain root id
   };

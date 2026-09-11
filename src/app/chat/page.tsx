@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import { ButtonLink, EmptyState, Skeleton } from "@/components/ui";
+import { MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { APP_TIME_ZONE, dublinDateKey } from "@/lib/time";
 import { getConversationsFor, formatGameTime, type Conversation } from "../games";
@@ -339,6 +340,7 @@ export default function ChatPage() {
           </div>
         ) : !loggedIn ? (
           <EmptyState
+            icon={<MessageCircle size={22} strokeWidth={2.2} />}
             title="Your conversations live here."
             body="Log in and every game you join brings its group chat with it."
             action={
@@ -349,6 +351,7 @@ export default function ChatPage() {
           />
         ) : sections.length === 0 ? (
           <EmptyState
+            icon={<MessageCircle size={22} strokeWidth={2.2} />}
             title="No conversations yet."
             body="Join a game and its group chat appears here."
             action={

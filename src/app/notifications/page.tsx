@@ -9,6 +9,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
+import { ButtonLink, EmptyState, ErrorState } from "@/components/ui";
+import { Bell } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
   getNotifications,
@@ -69,6 +71,10 @@ function NotificationItem({ n, delay = 0 }: { n: Notification; delay?: number })
 export default function NotificationsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  // Kept apart from an empty inbox: a failed read saying "Nothing yet"
+  // hides the fact that there might be plenty.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [items, setItems] = useState<Notification[]>([]);
 
   useEffect(() => {
@@ -81,19 +87,28 @@ export default function NotificationsPage() {
         return;
       }
 
-      const list = await getNotifications(uid);
-      if (!active) return;
-      setItems(list);
-      setLoading(false);
+      try {
+        const list = await getNotifications(uid);
+        if (!active) return;
+        setItems(list);
+        setFailed(false);
+        setLoading(false);
 
-      // Mark read AFTER we've captured the list, so the view above can still
-      // show which ones were unread this time around.
-      await markAllNotificationsRead(uid);
+        // Mark read AFTER the list is captured, so the view above can still
+        // show which ones were unread this time around. Only on a SUCCESSFUL
+        // read — clearing the badge for an inbox we failed to load would
+        // hide notifications nobody has actually seen.
+        await markAllNotificationsRead(uid);
+      } catch {
+        if (!active) return;
+        setFailed(true);
+        setLoading(false);
+      }
     })();
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, attempt]);
 
   return (
     <main className="px-5 pt-6 relative">
@@ -113,13 +128,24 @@ export default function NotificationsPage() {
         </div>
       ) : items.length > 0 ? (
         items.map((n, i) => <NotificationItem key={n.id} n={n} delay={i * 40} />)
+      ) : failed ? (
+        <ErrorState
+          onRetry={() => {
+            setLoading(true);
+            setAttempt((n) => n + 1);
+          }}
+        />
       ) : (
-        <div className="pl-card pena-staples pena-tilt-b px-4 pt-7 pb-6 text-center">
-          <div className="t-display text-display-xs text-tinta">Nothing yet.</div>
-          <div className="text-label font-medium text-tinta/70 mt-2">
-            We’ll tell you here when one of your games fills up.
-          </div>
-        </div>
+        <EmptyState
+          icon={<Bell size={22} strokeWidth={2.2} />}
+          title="Nothing yet."
+          body="We'll tell you here when a game fills up or someone drops out."
+          action={
+            <ButtonLink href="/discover" variant="secondary" size="sm">
+              Find a game
+            </ButtonLink>
+          }
+        />
       )}
 
       <div className="h-4" />

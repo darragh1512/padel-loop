@@ -222,20 +222,108 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 /* ── EmptyState ── a stapled mini-poster that teaches and invites; never a
    bare "nothing here". The poster shout does the welcoming. */
+/* ── The three states every list can be in ──────────────────────────────
+   loading / empty / errored. They are different things and must not look
+   the same: a failed fetch rendered as "no games yet" tells somebody the
+   Loop is dead when the network merely blinked.
+
+   All three share one shape — icon, one-line heading, one line of
+   subtext, one action — so a person learns it once. The icon is a lucide
+   glyph (already a dependency, already used in HomeGate), drawn in a
+   stamped papel circle like every other round mark in the app.          */
+
+/* The icon medallion the three states share. */
+function StateIcon({ children }: { children: ReactNode }) {
+  return (
+    <div className="size-12 mx-auto rounded-pill border-2 border-tinta bg-lima/70 grid place-items-center text-tinta">
+      {children}
+    </div>
+  );
+}
+
+/* GENUINELY EMPTY — there is no data, and that is the truth. Always give
+   it an action: an empty screen should point somewhere, not just sit
+   there. */
 export function EmptyState({
+  icon,
   title,
   body,
   action,
 }: {
+  icon?: ReactNode;
   title: string;
   body?: string;
   action?: ReactNode;
 }) {
   return (
     <div className="pl-card px-6 pt-7 pb-6 text-center">
-      <p className="t-display text-display-xs text-tinta">{title}</p>
+      {icon && <StateIcon>{icon}</StateIcon>}
+      <p className={`t-display text-display-xs text-tinta ${icon ? "mt-3.5" : ""}`}>
+        {title}
+      </p>
       {body && <p className="text-body font-medium text-tinta/70 mt-2">{body}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
+    </div>
+  );
+}
+
+/* ERRORED — we asked and did not get an answer. Deliberately NOT phrased
+   as absence: it says the loading failed, and the action is to try again,
+   because retrying is the thing that resolves this state. The naranja-d
+   dashed border is the same treatment cancelled games use. */
+export function ErrorState({
+  title = "That didn't load.",
+  body = "Something went wrong on our end, not yours. Give it another go.",
+  onRetry,
+  retryHref,
+}: {
+  title?: string;
+  body?: string;
+  onRetry?: () => void;
+  retryHref?: string;
+}) {
+  return (
+    <div className="pl-card border-2 border-dashed border-naranja-d px-6 pt-7 pb-6 text-center">
+      <div className="size-12 mx-auto rounded-pill border-2 border-naranja-d bg-papel grid place-items-center text-naranja-d">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden>
+          <path d="M12 8v5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
+          <path d="M12 3.5 21 19H3z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+        </svg>
+      </div>
+      <p className="t-display text-display-xs text-tinta mt-3.5">{title}</p>
+      <p className="text-body font-medium text-tinta/70 mt-2">{body}</p>
+      <div className="mt-4 flex justify-center">
+        {onRetry ? (
+          <Button variant="secondary" size="sm" onClick={onRetry}>
+            Try again
+          </Button>
+        ) : (
+          <ButtonLink href={retryHref ?? "/"} variant="secondary" size="sm">
+            Try again
+          </ButtonLink>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* LOADING — the shape of what is coming, never a spinner and never a
+   message. Rows sized to the list they stand in for, so nothing jumps
+   when the real thing lands. */
+export function LoadingRows({
+  rows = 3,
+  height = "h-21",
+}: {
+  rows?: number;
+  height?: string;
+}) {
+  return (
+    <div className="space-y-2.5" aria-busy="true" aria-live="polite">
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} className={`rounded-card ${height}`} />
+      ))}
+      <span className="sr-only">Loading…</span>
     </div>
   );
 }

@@ -6,6 +6,8 @@
 // profile and an account are always linked together.
 
 import { supabase } from "@/lib/supabaseClient";
+import { getBlockedIds } from "./blocks";
+import { DataError } from "@/lib/loadable";
 
 // The shape of one profile — these names match the columns in your Supabase
 // "profiles" table.
@@ -17,6 +19,7 @@ export type Profile = {
   home_club: string | null; // their home padel club
   bio: string | null; // a short "about me" they can write
   avatar_url: string | null; // public URL of their uploaded photo, if any
+  onboarded_at?: string | null; // first-run setup shown; null = never asked
   rating?: number | null; // Elo-style rating, moved ONLY by confirmed match
   // results (the database owns it — see 20260812000000_ratings.sql). Distinct
   // from skill_level, which is what the player SAYS they play like.
@@ -256,6 +259,57 @@ export async function removeAvatar(
   return { ok: true, storageOrphaned: false };
 }
 
+// Close the first-run question, whether they filled it in or skipped it.
+//
+// Skipping HAS to write this too. If it did not, "skippable" would mean
+// "asked again on every single login", which is the thing we were told not to
+// do. What this records is that we asked — not that they answered.
+export async function markOnboarded(
+  userId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ onboarded_at: new Date().toISOString() })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("Could not mark onboarding done:", error.message);
+    return { error: error.message };
+  }
+  return { ok: true };
+}
+
+// Delete this account, permanently.
+//
+// ONE call. Everything — reassigning their games, clearing their rows,
+// removing the avatar file, the profile and the auth user — happens inside
+// the delete_my_account() Postgres function as a single transaction. That is
+// deliberate: a sequence of client calls is precisely what can fail halfway
+// and strand somebody with a profile but no login, or the reverse.
+//
+// So the only thing left to do here is sign out. If the RPC fails, nothing
+// was deleted and they still have a working account.
+export async function deleteMyAccount(): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase.rpc("delete_my_account");
+
+  if (error) {
+    console.error("Could not delete account:", error.message);
+    return { error: error.message };
+  }
+
+  // The account is gone, so this session is already dead server-side. Signing
+  // out clears the local token so the app stops acting logged in. A failure
+  // here is not worth surfacing — the deletion succeeded, which is what was
+  // asked for, and the next request would 401 anyway.
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // Local cleanup only.
+  }
+
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Finding players — the search screen (/search).
 // ---------------------------------------------------------------------------
@@ -293,12 +347,23 @@ export async function searchProfiles(
     request = request.neq("id", excludeUserId); // never show yourself
   }
 
-  const { data, error } = await request;
+  // Blocked people are dropped AFTER the query rather than with a .not(
+  // "id", "in", ...) filter: the list is small, it keeps the SQL simple,
+  // and it means a failure to read blocks degrades to showing everyone
+  // rather than showing nobody.
+  const [{ data, error }, blocked] = await Promise.all([
+    request,
+    getBlockedIds(excludeUserId),
+  ]);
 
   if (error) {
     console.error("Could not search players:", error.message);
-    return [];
+    // Not the same as "nobody by that name" — throwing keeps the two apart
+    // for the search box.
+    throw new DataError("Could not search players", error.message);
   }
 
-  return (data ?? []) as ProfileSearchResult[];
+  return ((data ?? []) as ProfileSearchResult[]).filter(
+    (person) => !blocked.has(person.id),
+  );
 }
