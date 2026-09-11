@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# ...but the template carries no secrets and should be committed.
+!.env.example

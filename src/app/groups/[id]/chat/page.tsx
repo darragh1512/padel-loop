@@ -69,7 +69,7 @@ export default function GroupChatPage() {
     // Same fixed overlay + papel grain as the game chat page — one shared
     // full-screen chat "shell" look, whichever kind of thread it is.
     <div className="fixed inset-0 z-40 bg-papel [background-image:radial-gradient(rgb(25_20_7_/_0.05)_1px,transparent_1.2px)] [background-size:9px_9px]">
-      <div className="mx-auto max-w-md h-full flex flex-col">
+      <div className="mx-auto max-w-md h-full flex flex-col pt-[env(safe-area-inset-top)]">
         <header className="shrink-0 flex items-center gap-3 px-4 py-3 border-b-2 border-tinta bg-papel text-tinta">
           <Link
             href="/chat"

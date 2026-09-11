@@ -29,7 +29,7 @@ export default async function GameChatPage({
     // poster — writing on the noticeboard. Centred to the same phone width
     // as the rest of the app.
     <div className="fixed inset-0 z-40 bg-papel [background-image:radial-gradient(rgb(25_20_7_/_0.05)_1px,transparent_1.2px)] [background-size:9px_9px]">
-      <div className="mx-auto max-w-md h-full flex flex-col">
+      <div className="mx-auto max-w-md h-full flex flex-col pt-[env(safe-area-inset-top)]">
         {/* Compact summary strip — venue, area · time, plus back + view game. */}
         <header className="shrink-0 flex items-center gap-3 px-4 py-3 border-b-2 border-tinta bg-papel text-tinta">
           <Link
