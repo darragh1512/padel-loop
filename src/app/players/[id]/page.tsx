@@ -19,10 +19,12 @@ import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { publishAvatarChange } from "@/lib/avatarBus";
+import { blockUser, isBlocked, unblockUser } from "../../blocks";
+import ReportDialog from "@/components/ReportDialog";
 import PlayerQRCode from "@/components/PlayerQRCode";
 import QRScanner from "@/components/QRScanner";
 import SkillLevelPicker from "@/components/SkillLevelPicker";
-import { Button, Dialog, Input, Skeleton, Textarea } from "@/components/ui";
+import { Button, Dialog, ErrorState, Input, Skeleton, Textarea } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import {
   getProfile,
@@ -41,6 +43,7 @@ import {
 } from "../../connections";
 import {
   getPlayerMatchStats,
+  RELIABILITY_MIN_GAMES,
   getPlayerResultHistory,
   type PlayerMatchStats,
   type PlayerResultOutcome,
@@ -147,6 +150,7 @@ export default function PlayerProfilePage() {
 
   // The viewed player's match record (confirmed results only).
   const [matchStats, setMatchStats] = useState<PlayerMatchStats>({
+    reliability: { recorded: 0, attended: 0, percent: null },
     played: 0,
     won: 0,
     lost: 0,
@@ -166,6 +170,16 @@ export default function PlayerProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
+  // Blocking this player. One-directional: nothing here tells them.
+  const [blocked, setBlocked] = useState(false);
+  const [confirmingBlock, setConfirmingBlock] = useState(false);
+  const [blockBusy, setBlockBusy] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
+  const [reporting, setReporting] = useState(false);
+  // Separate from "player not found". A failed load rendering as a missing
+  // player tells somebody their friend deleted their account.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -184,16 +198,25 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [{ data: auth }, loadedProfile, upcoming, count, mStats, hist] =
-        await Promise.all([
-          supabase.auth.getUser(),
-          getProfile(playerId),
-          getUpcomingGamesFor(playerId),
-          getConnectionCount(playerId),
-          getPlayerMatchStats(playerId),
-          getPlayerResultHistory(playerId),
-        ]);
+      let auth, loadedProfile, upcoming, count, mStats, hist;
+      try {
+        [{ data: auth }, loadedProfile, upcoming, count, mStats, hist] =
+          await Promise.all([
+            supabase.auth.getUser(),
+            getProfile(playerId),
+            getUpcomingGamesFor(playerId),
+            getConnectionCount(playerId),
+            getPlayerMatchStats(playerId),
+            getPlayerResultHistory(playerId),
+          ]);
+      } catch {
+        if (!active) return;
+        setFailed(true);
+        setLoading(false);
+        return;
+      }
       if (!active) return;
+      setFailed(false);
 
       const viewerId = auth.user?.id ?? null;
       setProfile(loadedProfile);
@@ -216,7 +239,7 @@ export default function PlayerProfilePage() {
     return () => {
       active = false;
     };
-  }, [playerId]);
+  }, [playerId, attempt]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -226,6 +249,53 @@ export default function PlayerProfilePage() {
   // Connect when not yet connected, disconnect when already connected. The
   // viewed player's connection count moves with it. Sends logged-out visitors
   // to log in first.
+  // Load whether this viewer has blocked this player.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!currentUserId || currentUserId === playerId) return;
+      const result = await isBlocked(currentUserId, playerId);
+      if (active) setBlocked(result);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [currentUserId, playerId]);
+
+  async function handleBlock() {
+    if (!currentUserId || blockBusy) return;
+    setBlockBusy(true);
+    setBlockError(null);
+
+    const result = await blockUser(currentUserId, playerId);
+
+    if ("ok" in result) {
+      setBlocked(true);
+      // Blocking drops any connection between the two in the database, so
+      // reflect that here rather than leaving a stale Connected button.
+      setConnected(false);
+      setConfirmingBlock(false);
+    } else {
+      setBlockError(result.error);
+    }
+    setBlockBusy(false);
+  }
+
+  async function handleUnblock() {
+    if (!currentUserId || blockBusy) return;
+    setBlockBusy(true);
+    setBlockError(null);
+
+    const result = await unblockUser(currentUserId, playerId);
+
+    if ("ok" in result) {
+      setBlocked(false);
+    } else {
+      setBlockError(result.error);
+    }
+    setBlockBusy(false);
+  }
+
   async function handleToggleConnect() {
     if (!currentUserId) {
       router.push("/login");
@@ -391,6 +461,26 @@ export default function PlayerProfilePage() {
     );
   }
 
+  // Ordered BEFORE the not-found branch on purpose: a read that failed is
+  // not evidence that the player is gone.
+  if (failed) {
+    return (
+      <main className="px-5 pt-6 relative">
+        <div className="mt-10">
+          <ErrorState
+            title="Couldn't load this profile."
+            body="The player is fine — this is us failing to fetch them."
+            onRetry={() => {
+              setLoading(true);
+              setAttempt((n) => n + 1);
+            }}
+          />
+        </div>
+        <BottomNav />
+      </main>
+    );
+  }
+
   if (!profile) {
     return (
       <main className="px-5 pt-6 relative">
@@ -432,12 +522,33 @@ export default function PlayerProfilePage() {
     },
     { label: "Played", value: String(matchStats.played) },
     { label: "Won", value: String(matchStats.won) },
+    // Turned up vs committed. Below the threshold there is no percentage —
+    // an em dash, with the shortfall spelled out under the poster, rather
+    // than a 0% that would read as a terrible record instead of no record.
+    {
+      label: "Reliable",
+      value:
+        matchStats.reliability.percent != null
+          ? `${matchStats.reliability.percent}%`
+          : "—",
+    },
     {
       label: "Mates",
       value: String(connCount),
       href: isOwner ? "/connections" : undefined,
     },
   ];
+
+  // What to say under the poster about the reliability cell. Spelled out
+  // whenever there is no number, so an em dash never reads as a score of
+  // nothing — and everyone will be in this state for a while, because
+  // attendance is only recorded on results confirmed from now on.
+  const reliabilityNote =
+    matchStats.reliability.percent != null
+      ? `Turned up to ${matchStats.reliability.attended} of ${matchStats.reliability.recorded} recorded games.`
+      : matchStats.reliability.recorded === 0
+        ? "No attendance recorded yet — it starts being tracked when a match result is confirmed."
+        : `Reliability needs ${RELIABILITY_MIN_GAMES} recorded games. ${matchStats.reliability.recorded} so far.`;
 
   return (
     <main className="px-5 pt-4 relative">
@@ -539,6 +650,12 @@ export default function PlayerProfilePage() {
         })}
       </div>
 
+      {/* Says in words what the Reliable cell means — always shown, because an
+          em dash on its own would read as a bad score rather than no score. */}
+      <p className="text-label font-medium text-papel/75 mt-2 px-0.5">
+        {reliabilityNote}
+      </p>
+
       {/* Connect / Connected — only on someone else's profile. */}
       {!isOwner && (
         <Button
@@ -550,6 +667,105 @@ export default function PlayerProfilePage() {
           {connected ? "Connected ✓" : "Connect"}
         </Button>
       )}
+
+      {/* Block / Unblock — quiet, under Connect, and only on somebody
+          else's profile. Nothing here is visible to them. */}
+      {!isOwner && currentUserId && (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              blocked ? handleUnblock() : setConfirmingBlock(true)
+            }
+            disabled={blockBusy}
+            className="t-mono block w-full text-center text-micro tracking-[0.12em] text-papel/60 hover:text-papel/90 underline underline-offset-4 mt-3 rounded-field disabled:opacity-50 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+          >
+            {blocked ? "Unblock this player" : "Block this player"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setReporting(true)}
+            className="t-mono block w-full text-center text-micro tracking-[0.12em] text-papel/60 hover:text-papel/90 underline underline-offset-4 mt-2 rounded-field transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+          >
+            Report this player
+          </button>
+          <p
+            aria-live="polite"
+            className={`text-center text-label font-semibold text-naranja-d mt-1.5 ${
+              blockError ? "" : "hidden"
+            }`}
+          >
+            {blockError}
+          </p>
+        </>
+      )}
+
+      {currentUserId && (
+        <ReportDialog
+          open={reporting}
+          onClose={() => setReporting(false)}
+          reporterId={currentUserId}
+          reportedId={playerId}
+          reportedName={profile.name}
+          context="profile"
+          alreadyBlocked={blocked}
+          onBlocked={() => {
+            setBlocked(true);
+            setConnected(false); // blocking drops the connection
+          }}
+        />
+      )}
+
+      <Dialog
+        open={confirmingBlock}
+        onClose={() => !blockBusy && setConfirmingBlock(false)}
+        title="Block this player?"
+      >
+        <p className="text-label font-medium text-tinta/70 mt-2">
+          They won&rsquo;t be told, and nothing changes for them.
+        </p>
+
+        <p className="t-mono text-micro tracking-[0.12em] text-tinta/70 mt-3">
+          For you, they disappear from
+        </p>
+        <ul className="text-label font-medium text-tinta/70 mt-1 space-y-0.5 list-disc pl-4">
+          <li>Player search and your connections</li>
+          <li>Chat threads, including messages already sent</li>
+        </ul>
+
+        <p className="t-mono text-micro tracking-[0.12em] text-tinta/70 mt-3">
+          What blocking can&rsquo;t do
+        </p>
+        <p className="text-label font-medium text-tinta/70 mt-1">
+          It won&rsquo;t take either of you out of a game you&rsquo;ve both
+          joined — padel is four people on one court, so you&rsquo;d still be
+          playing together. In a shared game they stay on the roster, marked
+          as blocked, and you can leave the game if you&rsquo;d rather not.
+        </p>
+
+        <p className="text-label font-medium text-tinta/70 mt-3">
+          Any connection between you is removed.
+        </p>
+
+        <div className="flex gap-2.5 mt-5">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setConfirmingBlock(false)}
+            disabled={blockBusy}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            className="flex-1"
+            onClick={handleBlock}
+            loading={blockBusy}
+          >
+            Block
+          </Button>
+        </div>
+      </Dialog>
 
       {/* ── Segmented control ────────────────────────────────────────────── */}
       {!editing && (

@@ -11,6 +11,8 @@
 // sit — so almost everything here checks BOTH directions (a↔b).
 
 import { supabase } from "@/lib/supabaseClient";
+import { getBlockedIds } from "./blocks";
+import { DataError } from "@/lib/loadable";
 
 // One row of the "connections" table.
 export type Connection = {
@@ -128,11 +130,19 @@ export async function getConnections(
 
   if (error) {
     console.error("Could not load connections:", error.message);
-    return [];
+    // Throws rather than returning [] so the screen can tell this apart
+    // from "you have no connections yet" — see src/lib/loadable.ts.
+    throw new DataError("Could not load connections", error.message);
   }
 
   // 2. The OTHER person in each row is whichever id isn't me. De-duplicate in
   //    case the same pair somehow exists both ways round.
+  // Blocking drops the connection row in the database, so a blocked person
+  // should already be gone from here. This filter is the backstop for the
+  // window between the two, and for any row created before blocking
+  // existed.
+  const blocked = await getBlockedIds(userId);
+
   const otherIds = Array.from(
     new Set(
       (rows ?? []).map((row) =>
@@ -141,7 +151,7 @@ export async function getConnections(
           : (row.requester_id as string),
       ),
     ),
-  );
+  ).filter((id) => !blocked.has(id));
   if (otherIds.length === 0) {
     return [];
   }

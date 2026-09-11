@@ -9,11 +9,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
+import BlockedList from "./blocked-list";
+import { resetAnalytics } from "@/lib/analytics";
 import { LoopRing, MiniLoop } from "@/components/brand";
 import { LevelChip, SectionLabel } from "@/components/ui";
 import SkillLevelPicker from "@/components/SkillLevelPicker";
 import { supabase } from "@/lib/supabaseClient";
-import { getProfile, updateProfile, SKILL_LEVELS } from "../profiles";
+import {
+  deleteMyAccount,
+  getProfile,
+  updateProfile,
+  SKILL_LEVELS,
+} from "../profiles";
+import { Button, Dialog } from "@/components/ui";
 
 // Static match history — design as-is (no data source yet).
 const RECENT = [
@@ -63,6 +71,14 @@ export default function ProfilePage() {
   const [fHome, setFHome] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
+
+  // Deleting the account. The typed confirmation is the point: this is the
+  // one action in the app that cannot be undone by any means, so it must not
+  // be reachable by a mis-tap.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteText, setDeleteText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -116,8 +132,34 @@ export default function ProfilePage() {
   }
 
   async function handleLogout() {
+    // Stop attributing this device to them — the next person to sign in
+    // on a shared phone must not be counted as the same person.
+    resetAnalytics();
     await supabase.auth.signOut();
     router.push("/login");
+  }
+
+  async function handleDeleteAccount() {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+
+    const result = await deleteMyAccount();
+
+    if ("ok" in result) {
+      // Everything happened in one transaction and the session is already
+      // signed out. A hard navigation rather than router.push, so no stale
+      // client state survives for an account that no longer exists.
+      window.location.href = "/";
+      return;
+    }
+
+    // Nothing was deleted — the whole function rolled back — so they still
+    // have a working account and can simply try again.
+    setDeleteError(
+      "Couldn't delete your account. Nothing was changed — please try again.",
+    );
+    setDeleting(false);
   }
 
   if (loading) {
@@ -262,6 +304,25 @@ export default function ProfilePage() {
         ))}
       </div>
 
+      {/* The written-down bits. Text lives in content/*.md. */}
+      <div className="flex gap-2 mt-8">
+        <Link
+          href="/terms"
+          className="t-mono flex-1 flex items-center justify-center h-11 bg-papel text-tinta text-micro tracking-[0.12em] border-2 border-tinta rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
+        >
+          Terms
+        </Link>
+        <Link
+          href="/privacy"
+          className="t-mono flex-1 flex items-center justify-center h-11 bg-papel text-tinta text-micro tracking-[0.12em] border-2 border-tinta rounded-full active:scale-[0.98] transition-transform duration-150 ease-out"
+        >
+          Privacy
+        </Link>
+      </div>
+
+      {/* Manage and unblock. Renders nothing when nobody is blocked. */}
+      <BlockedList userId={userId} />
+
       {/* Account actions — my games + edit profile + log out, in the design language. */}
       {!editing && (
         <>
@@ -293,6 +354,100 @@ export default function ProfilePage() {
       >
         Log out
       </button>
+
+      {/* The one irreversible action in the app. Quiet, last, and behind a
+          typed confirmation. */}
+      <button
+        type="button"
+        onClick={() => {
+          setDeleteText("");
+          setDeleteError(null);
+          setConfirmingDelete(true);
+        }}
+        className="t-mono block w-full text-center text-micro tracking-[0.12em] text-papel/60 hover:text-papel/90 underline underline-offset-4 mt-8 rounded-field transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+      >
+        Delete my account
+      </button>
+
+      <Dialog
+        open={confirmingDelete}
+        onClose={() => !deleting && setConfirmingDelete(false)}
+        title="Delete your account?"
+      >
+        <p className="text-label font-medium text-tinta/70 mt-2">
+          This cannot be undone.
+        </p>
+
+        <p className="t-mono text-micro tracking-[0.12em] text-tinta/70 mt-3">
+          Deleted for good
+        </p>
+        <ul className="text-label font-medium text-tinta/70 mt-1 space-y-0.5 list-disc pl-4">
+          <li>Your login, name, photo and profile</li>
+          <li>Your chat messages</li>
+          <li>Your connections and notifications</li>
+          <li>Your place in any game or waiting list</li>
+        </ul>
+
+        <p className="t-mono text-micro tracking-[0.12em] text-tinta/70 mt-3">
+          Kept, with your name removed
+        </p>
+        <ul className="text-label font-medium text-tinta/70 mt-1 space-y-0.5 list-disc pl-4">
+          <li>
+            Match results you played in — they are the other three players&rsquo;
+            record too, so they stay, showing you only as a past player
+          </li>
+          <li>
+            Games you organised that others joined — handed to another player
+            so the game still goes ahead
+          </li>
+        </ul>
+
+        <label className="block mt-4">
+          <span className="text-label font-medium text-tinta/70">
+            Type <span className="font-extrabold text-tinta">DELETE</span> to
+            confirm
+          </span>
+          <input
+            type="text"
+            value={deleteText}
+            onChange={(e) => setDeleteText(e.target.value)}
+            placeholder="DELETE"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            className="w-full mt-1.5 pl-surface rounded-field px-3.5 py-2.5 text-body font-medium text-tinta placeholder:text-tinta/35 outline-none focus:border-naranja"
+          />
+        </label>
+
+        <div className="flex gap-2.5 mt-4">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setConfirmingDelete(false)}
+            disabled={deleting}
+          >
+            Keep my account
+          </Button>
+          <Button
+            variant="destructive"
+            className="flex-1"
+            onClick={handleDeleteAccount}
+            loading={deleting}
+            disabled={deleteText.trim().toUpperCase() !== "DELETE"}
+          >
+            Delete
+          </Button>
+        </div>
+
+        <p
+          aria-live="polite"
+          className={`text-center text-label font-semibold text-naranja-d mt-3 ${
+            deleteError ? "" : "hidden"
+          }`}
+        >
+          {deleteError}
+        </p>
+      </Dialog>
 
       <BottomNav />
     </main>

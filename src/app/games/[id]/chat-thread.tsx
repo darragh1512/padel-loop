@@ -33,9 +33,11 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { getBlockedIds } from "@/app/blocks";
+import ReportDialog from "@/components/ReportDialog";
 import { APP_TIME_ZONE } from "@/lib/time";
 import PlayerAvatar from "@/components/PlayerAvatar";
-import { SectionLabel } from "@/components/ui";
+import { ErrorState, SectionLabel } from "@/components/ui";
 import { canUserChat, getMessages, sendMessage } from "../../games";
 import {
   canUserChatInGroup,
@@ -115,6 +117,13 @@ export default function ChatThread({
   const [canChat, setCanChat] = useState(false);
   const [ready, setReady] = useState(false); // finished the access check
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
+  // The message being reported, if any. Held whole rather than by id so
+  // the dialog can send a copy of the text as evidence — the message
+  // itself can be deleted out from under the report.
+  const [reporting, setReporting] = useState<ThreadMessage | null>(null);
+  // A thread that failed to load must not read as a thread nobody has
+  // written in — that invites somebody to repeat a message already there.
+  const [failed, setFailed] = useState(false);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,12 +137,39 @@ export default function ChatThread({
   }, []);
 
   // Pull the latest messages from the database into the screen.
+  // Messages from anyone this viewer has blocked are dropped — both the
+  // history and anything arriving live, since Realtime updates come back
+  // through this same reload.
+  //
+  // Only THIS viewer stops seeing them. The blocked person's own thread is
+  // untouched and still shows everything, including their own messages, so
+  // nothing about the thread tells them they have been blocked.
   const reload = useCallback(async () => {
-    const msgs = isGroup
-      ? await getGroupMessages(threadId)
-      : await getMessages(threadId);
-    setMessages(msgs);
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id ?? null;
+
+    const [msgs, blocked] = await Promise.all([
+      isGroup ? getGroupMessages(threadId) : getMessages(threadId),
+      getBlockedIds(uid),
+    ]);
+
+    setMessages(
+      blocked.size === 0
+        ? msgs
+        : msgs.filter((m) => !blocked.has(m.user_id)),
+    );
   }, [isGroup, threadId]);
+
+  // reload() throws when the read fails; this wraps it for the callers
+  // that need the failure recorded rather than propagated.
+  const reloadSafely = useCallback(async () => {
+    try {
+      await reload();
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    }
+  }, [reload]);
 
   // On first load: find who's logged in, check whether they're allowed to chat,
   // and if so load the messages and start listening for new ones.
@@ -157,7 +193,7 @@ export default function ChatThread({
       setReady(true);
       if (!allowed) return;
 
-      await reload();
+      await reloadSafely();
 
       // Live updates: listen for new rows in "messages" for THIS thread only.
       // Whenever one arrives (from anyone), refresh the thread.
@@ -173,7 +209,7 @@ export default function ChatThread({
             filter: `${idColumn}=eq.${threadId}`,
           },
           () => {
-            reload();
+            reloadSafely();
           },
         )
         .subscribe();
@@ -184,7 +220,7 @@ export default function ChatThread({
       active = false;
       if (channel) supabase.removeChannel(channel);
     };
-  }, [isGroup, threadId, reload]);
+  }, [isGroup, threadId, reloadSafely]);
 
   // Whenever the messages change (first load or a new one arrives), keep the
   // newest message in view.
@@ -291,6 +327,17 @@ export default function ChatThread({
           >
             {m.body}
           </div>
+          {/* Only on somebody else's message, and deliberately quiet —
+              present when it's needed, invisible the rest of the time. */}
+          {!mine && (
+            <button
+              type="button"
+              onClick={() => setReporting(m)}
+              className="t-mono text-[9px] tracking-[0.1em] text-tinta/40 hover:text-naranja-d mt-1 px-1 rounded-field transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+            >
+              Report
+            </button>
+          )}
         </div>
       ),
     };
@@ -307,16 +354,28 @@ export default function ChatThread({
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 
-  const messageList =
-    combinedEntries.length === 0 ? (
-      <p className="text-label font-medium text-tinta/70 text-center my-6">
-        No messages yet — say hello to your group. ¿Jugamos?
-      </p>
-    ) : (
-      combinedEntries.map((entry) => (
+  const messageList = failed ? (
+    <div className="my-4">
+      <ErrorState
+        title="Couldn't load the messages."
+        body="They're still there — this is a loading problem, not an empty thread."
+        onRetry={() => {
+          setFailed(false);
+          reloadSafely();
+        }}
+      />
+    </div>
+  ) : combinedEntries.length === 0 ? (
+    <p className="text-label font-medium text-tinta/70 text-center my-6">
+      No messages yet — say hello to your group. ¿Jugamos?
+    </p>
+  ) : (
+    <>
+      {combinedEntries.map((entry) => (
         <Fragment key={entry.key}>{entry.node}</Fragment>
-      ))
-    );
+      ))}
+    </>
+  );
 
   // The input + send button. Identical for both layouts; full-screen just adds
   // a little safe-area padding so it clears the phone's home indicator.
@@ -354,11 +413,33 @@ export default function ChatThread({
     </form>
   );
 
+  // Mounted in both layouts below. Dialog is fixed-position and renders
+  // null when closed, so where it sits in the tree makes no difference.
+  const reportDialog =
+    reporting && userId ? (
+      <ReportDialog
+        open={reporting != null}
+        onClose={() => setReporting(null)}
+        reporterId={userId}
+        reportedId={reporting.user_id}
+        reportedName={reporting.senderName}
+        context="message"
+        messageId={reporting.id}
+        messageText={reporting.body}
+        onBlocked={() => {
+          setReporting(null);
+          // Their messages come straight out of this thread.
+          reload();
+        }}
+      />
+    ) : null;
+
   // ── Full-screen layout (the /games/[id]/chat page) ────────────────────────
   // Fills its parent's height; messages scroll, composer is pinned at the bottom.
   if (fullScreen) {
     return (
       <div className="flex flex-col h-full min-h-0">
+        {reportDialog}
         <div
           ref={scrollRef}
           className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 px-4 py-4"
@@ -379,6 +460,7 @@ export default function ChatThread({
   // ── Embedded card layout (the game detail page) — unchanged ───────────────
   return (
     <>
+      {reportDialog}
       <SectionLabel>Group chat</SectionLabel>
       <div className="pl-card overflow-hidden flex flex-col">
         {/* Messages — this area scrolls on its own; newest stays at the bottom. */}
