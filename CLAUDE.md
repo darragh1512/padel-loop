@@ -83,7 +83,7 @@ To stay focused, we are deliberately leaving these for later:
   "Needs more matches" list showing "X of 3". Reached from a new
   Leaderboard row on the home dashboard (bottom nav keeps its 4-tab +
   create shape).
-- Player ratings (CODE COMPLETE — migration NOT yet run). Elo-style rating
+- Player ratings (COMPLETE — migration applied 2026-09-11). Elo-style rating
   per player, moved ONLY by confirmed match results (K=32, expected score vs
   the OPPOSING pair's average — the standard doubles adaptation). Starting
   rating comes from the self-declared skill level (Beginner 800 … Pro 1200)
@@ -97,7 +97,7 @@ To stay focused, we are deliberately leaving these for later:
   labelled "SELF-RATED · X" line under the player's name so the two can't be
   confused. Known accepted limitation: RLS is row-level, so a player could
   hand-edit their own rating via the API; a rebuild corrects it.
-- Dublin time fix (CODE COMPLETE — migration NOT yet run). Game times are now
+- Dublin time fix (COMPLETE — migration applied 2026-09-11). Game times are now
   stored as TRUE UTC instants and presented — displayed AND typed — pinned to
   Europe/Dublin everywhere, fixing both the recurring-games DST shift and a
   live bug where summer games displayed an hour late (constructors wrote
@@ -119,7 +119,7 @@ To stay focused, we are deliberately leaving these for later:
     new `app_meta` table (RLS on, no policies) so re-running the file can
     never double-shift. RUN ORDER: 20260810 first if not yet run, then this,
     then deploy the client in the same sitting.
-- Recurring weekly games (CODE COMPLETE — migration NOT yet run). A game
+- Recurring weekly games (COMPLETE — migration applied 2026-09-11). A game
   created with the new "Repeats weekly" toggle rolls forward automatically:
   once its game_time passes, next week's instance is created with the same
   venue/time/roster (players are auto-joined and each gets a
@@ -357,6 +357,36 @@ To stay focused, we are deliberately leaving these for later:
   - `src/app/games/[id]/join-button.tsx` — the "Join" button (shows a
     confirmation when tapped; no real booking yet).
   - Navigation works: list → tap a game → detail → "Back to games" → list.
+
+## Migrations (HOW TO CHANGE THE DATABASE)
+
+**Never apply a migration. Never run `supabase db push`.**
+
+This repo applies every database change BY HAND in the Supabase SQL editor.
+The CLI is not set up here (no `supabase/config.toml`, no linked project), and
+Supabase holds no migration history for the files already applied — so a
+`db push` would find that history empty and try to re-run everything from June
+onward, including two migrations that rewrite live data (player ratings, and
+every game time).
+
+When a database change is needed, do all three of these and then STOP:
+
+1. Write the SQL to `supabase/migrations/<UTC timestamp>_<name>.sql` in the
+   house style — a header comment saying what and why, lettered sections, and
+   every statement idempotent so a part-finished run can be retried from the
+   top.
+2. Print the full SQL in the reply, so it can be read before it is run.
+3. Append an entry to `MIGRATIONS_PENDING.md`: the filename, a one-line note on
+   what it does, and what it depends on — run order relative to other pending
+   files, plus any PRE-FLIGHT step such as enabling an extension.
+
+Applying it is the owner's job, in the SQL editor, in their own time.
+
+Because a migration can sit unapplied for a while, code that reads a new column
+must degrade sanely meanwhile: a missing column reads as absent, never as a
+crash. See `readPrice` in `src/lib/types.ts` (missing column → null → renders
+nothing) and the `isMissingColumn` retry in `src/app/games.ts` (write drops the
+unknown column rather than failing the whole save).
 
 ## Database (Supabase)
 - The app reads games from a **Supabase** database (table: `games`).
