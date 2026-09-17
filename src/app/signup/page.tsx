@@ -1,8 +1,11 @@
 "use client";
-// The sign-up screen: name, skill level, email + password to create a new
-// account. As soon as the account is made we also create the person's profile
-// (name + skill level), then send them to the home page. Leads with the serif
-// wordmark; logic unchanged.
+// The sign-up screen: name, skill level, email + password.
+//
+// Email confirmation is OFF in Supabase, so creating the account signs the
+// person in immediately — there is no interstitial and nothing to check an
+// inbox for. We create their profile, then send them straight into the app:
+// back to the game whose link brought them here if there is one, otherwise
+// home (which routes first-timers on to /welcome).
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,14 +26,12 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
     setError(null);
-    setNotice(null);
 
     const { data, error } = await supabase.auth.signUp({ email, password });
 
@@ -40,32 +41,43 @@ export default function SignupPage() {
       return;
     }
 
-    if (data.session) {
-      // Active straight away — create their profile, then go home.
-      if (data.user) {
-        await createProfile(data.user.id, { name, skill_level: skillLevel });
-      }
-      // Straight back to the game they came from, join still pending.
-      // The account exists from here. Identify by auth user id only —
-      // the email and name they just typed are never sent.
-      if (data.user) {
-        identify(data.user.id);
-        capture("signed_up", { has_join_intent: readAuthParams().intent === "join" });
-      }
+    // Email confirmation is OFF, so signUp hands back a live session and the
+    // person is signed in from this moment. There is no "check your email"
+    // step and no interruption — they go straight into the app.
+    let userId = data.user?.id ?? null;
 
-      const { next, intent } = readAuthParams();
-      router.push(
-        intent === "join" && next !== "/" ? `${next}?intent=join` : next,
-      );
-    } else {
-      // Email confirmation required. They are about to leave the site
-      // entirely, so the query string won't survive — the localStorage note
-      // written back on the game screen is what carries the intent home.
-      setNotice(
-        "Account created! Check your email to confirm it, then log in — we'll take you back to the game.",
-      );
-      setLoading(false);
+    // Belt and braces: if a session somehow doesn't come back (confirmation
+    // switched on again, or a transient auth hiccup), sign in explicitly
+    // rather than leaving them on a form that looks like it did nothing.
+    if (!data.session) {
+      const { data: signIn, error: signInError } =
+        await supabase.auth.signInWithPassword({ email, password });
+
+      if (signInError || !signIn.session) {
+        setError(
+          "Your account was created, but we couldn't sign you in. Try logging in.",
+        );
+        setLoading(false);
+        return;
+      }
+      userId = signIn.user?.id ?? userId;
     }
+
+    if (userId) {
+      await createProfile(userId, { name, skill_level: skillLevel });
+
+      // Identify by auth user id only — the email and name they just typed
+      // are never sent.
+      identify(userId);
+      capture("signed_up", { has_join_intent: readAuthParams().intent === "join" });
+    }
+
+    // Into the app: back to the game they came from with the join still
+    // pending, or home.
+    const { next, intent } = readAuthParams();
+    router.push(
+      intent === "join" && next !== "/" ? `${next}?intent=join` : next,
+    );
   }
 
   return (
@@ -156,12 +168,6 @@ export default function SignupPage() {
           className={`text-center text-label font-semibold text-naranja-d ${error ? "" : "hidden"}`}
         >
           {error}
-        </p>
-        <p
-          aria-live="polite"
-          className={`t-mono text-center text-micro text-tinta bg-lima border-[1.5px] border-tinta rounded-field px-3 py-2 ${notice ? "" : "hidden"}`}
-        >
-          {notice}
         </p>
       </form>
 
