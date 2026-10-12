@@ -76,11 +76,14 @@
 
 /* The wall: flat court blue, painted court lines, and a fine halftone dot
    grain — all three fixed so posters scroll over the paint. The court lines
-   are CSS gradients (as in the prototype), not an SVG overlay. */
+   are CSS gradients (as in the prototype), not an SVG overlay.
+   .pena-wall paints the same wall on a full-screen overlay (the chats),
+   which covers body and so would otherwise lose it. */
 html {
   background: var(--color-pista-d);
 }
-body {
+body,
+.pena-wall {
   background:
     /* halftone grain */
     radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px) 0 0 / 6px 6px,
@@ -91,6 +94,8 @@ body {
     var(--color-pista);
   background-attachment: fixed;
   color: var(--color-papel);
+}
+body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }

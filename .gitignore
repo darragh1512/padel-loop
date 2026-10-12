@@ -44,3 +44,6 @@ next-env.d.ts
 
 # ...but the template carries no secrets and should be committed.
 !.env.example
+
+# database backups (never commit — contains production data)
+/backups/

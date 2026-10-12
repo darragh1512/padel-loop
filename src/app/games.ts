@@ -216,13 +216,15 @@ export async function getUpcomingGamesFor(userId: string): Promise<Game[]> {
 // The ids of every game the user is already in — games they've JOINED (a row in
 // game_players) or CREATED (their id in created_by). The discovery list uses
 // this to hide games the user can't join again, so it only shows genuinely
-// joinable games. Returns a de-duplicated list of ids as strings.
+// joinable games. Games they were REMOVED from are included too — they can't
+// rejoin those. Returns a de-duplicated list of ids as strings.
 export async function getJoinedOrCreatedGameIds(
   userId: string,
 ): Promise<string[]> {
-  const [joined, created] = await Promise.all([
+  const [joined, created, removed] = await Promise.all([
     supabase.from("game_players").select("game_id").eq("user_id", userId),
     supabase.from("games").select("id").eq("created_by", userId),
+    supabase.from("game_removals").select("game_id").eq("user_id", userId),
   ]);
 
   if (joined.error) {
@@ -235,6 +237,9 @@ export async function getJoinedOrCreatedGameIds(
   const ids = new Set<string>();
   for (const row of joined.data ?? []) ids.add(String(row.game_id));
   for (const row of created.data ?? []) ids.add(String(row.id));
+  // No error log here: before the removals migration runs the table is
+  // missing, and "removed from nothing" is the right answer.
+  for (const row of removed.data ?? []) ids.add(String(row.game_id));
   return Array.from(ids);
 }
 
@@ -391,6 +396,56 @@ export async function leaveGame(
   // in the thread; leaving a conversation isn't the same as erasing what
   // was said in it.
   return { ok: true };
+}
+
+// The organiser takes a player out of their game. Everything happens inside
+// the remove_player_from_game database function, which is the real rule: it
+// checks the caller is the organiser, refuses once a match result exists,
+// records the removal (so they can't rejoin), frees the spot and notifies
+// the removed player. The app only hides the button — this is the boundary.
+export async function removePlayer(
+  gameId: string,
+  userId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase.rpc("remove_player_from_game", {
+    p_game_id: Number(gameId),
+    p_user_id: userId,
+  });
+
+  if (error) {
+    console.error("Could not remove player:", error.message);
+    // The function's refusals are written as sentences for people (no
+    // result yet, not the organiser, etc.) — pass those through. Anything
+    // else (network, function missing) gets a plain retry message.
+    if (error.code === "23514" || error.code === "42501") {
+      return { error: error.message };
+    }
+    return { error: "Couldn't remove that player. Please try again." };
+  }
+
+  return { ok: true };
+}
+
+// Was this person removed from this game by its organiser? Used to show
+// them what happened instead of a Join button that would only fail.
+export async function wasRemovedFrom(
+  gameId: string,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("game_removals")
+    .select("id")
+    .eq("game_id", gameId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    // Before the migration runs the table doesn't exist — nobody has been
+    // removed, which is the honest answer.
+    console.error("Could not check removals:", error.message);
+    return false;
+  }
+  return data != null;
 }
 
 // ---------------------------------------------------------------------------

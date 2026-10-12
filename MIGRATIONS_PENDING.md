@@ -25,7 +25,7 @@ from the top.
 
 ## Pending
 
-Nothing. Every file in `supabase/migrations/` has been applied.
+None.
 
 ## Applied
 
@@ -46,11 +46,19 @@ All twelve run by hand in the SQL editor on **2026-09-11**, in filename order.
 | `20260915000000_reports.sql` | `reports`, `profiles.is_admin`, `is_admin()`, rate limiting, and the admin notification |
 | `20260916000000_onboarding.sql` | `profiles.onboarded_at` |
 
+Run by hand in the SQL editor since:
+
+| File | Applied | What it added |
+|---|---|---|
+| `20260928010000_chat_pins.sql` | 2026-10-07 | `chat_pins` (own-rows-only RLS, only chats you're in), `can_pin_chat()`, the 3-pin limit trigger, and unpin-on-leave triggers for games and groups |
+| `20260928000000_organiser_removes_player.sql` | 2026-10-12 | `game_removals`, `remove_player_from_game()` (organiser-only, refused once a match result exists), the no-rejoin / no-queue triggers, the removed player's notification, and a `notify_player_left` that stays quiet for removals |
+
 ### Two follow-ups those files asked for
 
 Worth confirming both were done, because neither is visible from the schema:
 
-- **Make yourself an admin.** `20260915` ships the moderation queue, but
+- **Make yourself an admin.** DONE 2026-10-12 (owner's account,
+  `is_admin = true` confirmed). `20260915` ships the moderation queue, but
   `/admin/reports` returns nothing until this runs — the gate is RLS, not the
   page:
 

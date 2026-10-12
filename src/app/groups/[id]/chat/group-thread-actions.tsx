@@ -67,7 +67,7 @@ export default function GroupThreadActions({
             setJustAddedIds([]);
             setAdding(true);
           }}
-          className="pl-press pl-hit size-9 rounded-pill border-[1.5px] border-tinta text-tinta flex items-center justify-center hover:bg-lima/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+          className="pl-press pl-hit size-9 rounded-card border-2 border-tinta bg-papel text-tinta flex items-center justify-center hover:bg-lima/40 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-lima"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path
@@ -83,7 +83,7 @@ export default function GroupThreadActions({
           type="button"
           aria-label="Leave group"
           onClick={() => setLeaving(true)}
-          className="pl-press pl-hit size-9 rounded-pill border-[1.5px] border-dashed border-naranja-d text-naranja-d flex items-center justify-center hover:bg-naranja-d/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+          className="pl-press pl-hit size-9 rounded-card border-2 border-dashed border-naranja-d bg-papel text-naranja-d flex items-center justify-center hover:bg-naranja-d/10 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-lima"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path

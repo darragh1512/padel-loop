@@ -25,6 +25,7 @@ import {
   leaveWaitlist,
   ordinal,
   waitlistPositionOf,
+  wasRemovedFrom,
 } from "../../games";
 
 export default function JoinGame({
@@ -65,6 +66,9 @@ export default function JoinGame({
   // meantime. Their intent is honoured as far as it still can be: we say so
   // plainly and leave the queue in front of them.
   const [filledWhileAway, setFilledWhileAway] = useState(false);
+  // The organiser removed this person. They can't rejoin or queue, so they
+  // get a plain notice instead of a button the database would refuse.
+  const [removed, setRemoved] = useState(false);
   // Guards the auto-join so it fires at most once per page load.
   const pendingHandled = useRef(false);
 
@@ -73,12 +77,14 @@ export default function JoinGame({
     const { data } = await supabase.auth.getUser();
     const uid = data.user?.id ?? null;
     setUserId(uid);
-    const [players, queue] = await Promise.all([
+    const [players, queue, wasRemoved] = await Promise.all([
       getGamePlayers(gameId),
       getWaitlist(gameId),
+      uid ? wasRemovedFrom(gameId, uid) : Promise.resolve(false),
     ]);
     setJoined(uid != null && players.includes(uid));
     setQueuePosition(waitlistPositionOf(queue, uid));
+    setRemoved(wasRemoved);
   }, [gameId]);
 
   useEffect(() => {
@@ -105,7 +111,7 @@ export default function JoinGame({
   // re-fire on the next render or the next visit.
   useEffect(() => {
     if (loading || pendingHandled.current) return;
-    if (!userId || joined || queuePosition != null) return;
+    if (!userId || joined || removed || queuePosition != null) return;
 
     let intentParam: string | null = null;
     try {
@@ -150,6 +156,7 @@ export default function JoinGame({
     loading,
     userId,
     joined,
+    removed,
     queuePosition,
     gameId,
     full,
@@ -276,6 +283,21 @@ export default function JoinGame({
         <span className="font-extrabold"> Cancel game</span> above — the whole
         game comes off and everyone is told.
       </p>
+    );
+  }
+
+  // Removed by the organiser: say so plainly, and offer no way back in —
+  // the database refuses both joining and queueing for this game.
+  if (removed && !joined) {
+    return (
+      <div className="w-full rounded-card py-4 px-4 text-center bg-papel border-2 border-dashed border-naranja-d">
+        <div className="t-mono text-label tracking-[0.14em] text-naranja-d">
+          Removed
+        </div>
+        <div className="text-label font-medium text-tinta/70 mt-1">
+          The organiser removed you from this game, so you can&apos;t rejoin it.
+        </div>
+      </div>
     );
   }
 

@@ -37,7 +37,8 @@ import { getBlockedIds } from "@/app/blocks";
 import ReportDialog from "@/components/ReportDialog";
 import { APP_TIME_ZONE } from "@/lib/time";
 import PlayerAvatar from "@/components/PlayerAvatar";
-import { ErrorState, SectionLabel } from "@/components/ui";
+import { MessageCircle } from "lucide-react";
+import { EmptyState, ErrorState, SectionLabel } from "@/components/ui";
 import { canUserChat, getMessages, sendMessage } from "../../games";
 import {
   canUserChatInGroup,
@@ -69,6 +70,10 @@ export type InlineThreadItem = {
   createdAt: string;
   content: ReactNode;
 };
+
+// The app's focus ring — 3px lima, offset from the shape (FOCUS in ui.tsx).
+const FOCUS_RING =
+  "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-lima";
 
 // Turn a stored timestamp into a short clock time like "14:32", on a Dublin
 // clock — the same fixed timezone every other time in the app renders in
@@ -283,6 +288,13 @@ export default function ChatThread({
   // timestamp once. This is purely a render-time merge — the messages state,
   // loading, access check, and Realtime subscription above are all untouched
   // by inlineItems existing or not.
+  // The small print around each bubble (name, time, Report) sits on
+  // whatever is behind the thread: the blue wall full-screen, a papel
+  // poster when embedded on the game page. Ink on paper, paper on the wall.
+  const print = fullScreen
+    ? { name: "text-papel/85", faint: "text-papel/60", report: "text-papel/55 hover:text-papel" }
+    : { name: "text-tinta/70", faint: "text-tinta/45", report: "text-tinta/45 hover:text-naranja-d" };
+
   const messageEntries = messages.map((m) => {
     const mine = m.user_id === userId;
     return {
@@ -294,7 +306,7 @@ export default function ChatThread({
             mine ? "items-end self-end" : "items-start self-start"
           }`}
         >
-          <div className="flex items-center gap-2 mb-1 px-1">
+          <div className="flex items-center gap-2 mb-1.5 px-0.5">
             <Link
               href={`/players/${m.user_id}`}
               aria-label={m.senderName}
@@ -309,21 +321,20 @@ export default function ChatThread({
             </Link>
             <Link
               href={`/players/${m.user_id}`}
-              className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+              className={`t-mono text-tiny ${print.name} rounded-field active:opacity-70 transition-opacity duration-150 ease-out ${FOCUS_RING}`}
             >
               {mine ? "You" : m.senderName}
             </Link>
-            <span className="t-mono text-[9px] tracking-[0.06em] text-tinta/45">
+            <span className={`t-mono text-tiny ${print.faint}`}>
               {shortTime(m.created_at)}
             </span>
           </div>
-          {/* Paper scraps on the board: yours get the lima print pass. */}
+          {/* Paper scraps on the board — a 2px ink edge and the poster drop,
+              like every card on the wall. Yours get the lima print pass. */}
           <div
-            className={
-              mine
-                ? "bg-lima text-tinta border-[1.5px] border-tinta rounded-card rounded-br-none px-3.5 py-2 text-body font-medium leading-snug break-words"
-                : "bg-papel text-tinta border-[1.5px] border-tinta rounded-card rounded-bl-none px-3.5 py-2 text-body font-medium leading-snug break-words"
-            }
+            className={`${
+              mine ? "bg-lima rounded-br-none" : "bg-papel rounded-bl-none"
+            } text-tinta border-2 border-tinta rounded-card shadow-sheet px-3.5 py-2.5 text-body font-medium break-words`}
           >
             {m.body}
           </div>
@@ -333,7 +344,7 @@ export default function ChatThread({
             <button
               type="button"
               onClick={() => setReporting(m)}
-              className="t-mono text-[9px] tracking-[0.1em] text-tinta/40 hover:text-naranja-d mt-1 px-1 rounded-field transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+              className={`t-mono text-tiny ${print.report} mt-2 px-0.5 rounded-field transition-colors duration-150 ease-out ${FOCUS_RING}`}
             >
               Report
             </button>
@@ -366,9 +377,21 @@ export default function ChatThread({
       />
     </div>
   ) : combinedEntries.length === 0 ? (
-    <p className="text-label font-medium text-tinta/70 text-center my-6">
-      No messages yet — say hello to your group. ¿Jugamos?
-    </p>
+    fullScreen ? (
+      // On the wall, the empty thread gets the app's empty-state poster.
+      // The composer right underneath is its one action.
+      <div className="my-auto">
+        <EmptyState
+          icon={<MessageCircle size={22} strokeWidth={2.2} aria-hidden />}
+          title="No messages yet"
+          body="Say hello to your group below. ¿Jugamos?"
+        />
+      </div>
+    ) : (
+      <p className="text-label font-medium text-tinta/70 text-center my-6">
+        No messages yet — say hello to your group. ¿Jugamos?
+      </p>
+    )
   ) : (
     <>
       {combinedEntries.map((entry) => (
@@ -379,10 +402,12 @@ export default function ChatThread({
 
   // The input + send button. Identical for both layouts; full-screen just adds
   // a little safe-area padding so it clears the phone's home indicator.
+  // The field is the app's standard printed input; Send is the screen's one
+  // primary action, so it's the lima cut-square button with the riso offset.
   const composer = (
     <form
       onSubmit={handleSend}
-      className={`flex items-center gap-2 border-t-2 border-tinta p-3 bg-papel ${
+      className={`flex items-center gap-2.5 border-t-2 border-tinta p-3 bg-papel ${
         fullScreen ? "pb-[max(0.75rem,env(safe-area-inset-bottom))]" : ""
       }`}
     >
@@ -392,13 +417,13 @@ export default function ChatThread({
         onChange={(e) => setText(e.target.value)}
         placeholder="Message your group…"
         aria-label="Type a message"
-        className="flex-1 pl-surface rounded-pill px-4 py-2.5 text-body font-medium text-tinta placeholder:text-tinta/45 focus:outline-none focus:border-naranja transition-colors duration-150 ease-out"
+        className="flex-1 min-w-0 h-11 pl-surface rounded-field px-4 text-body font-medium text-tinta placeholder:text-tinta/45 placeholder:font-normal focus:outline-none focus:border-naranja transition-colors duration-150 ease-out"
       />
       <button
         type="submit"
         disabled={sending || text.trim().length === 0}
         aria-label="Send message"
-        className="pena-riso pl-hit shrink-0 size-10 rounded-pill bg-naranja text-papel border-2 border-tinta inline-flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+        className={`pena-riso pl-hit shrink-0 size-11 rounded-card bg-lima text-tinta border-2 border-tinta inline-flex items-center justify-center disabled:opacity-45 disabled:pointer-events-none ${FOCUS_RING}`}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path
@@ -442,13 +467,15 @@ export default function ChatThread({
         {reportDialog}
         <div
           ref={scrollRef}
-          className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 px-4 py-4"
+          className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4 px-5 py-5"
         >
           {messageList}
         </div>
+        {/* Sits on the wall, so it's the papel-on-naranja-d stamp the Chat
+            tab uses for its errors. */}
         <p
           aria-live="polite"
-          className={`text-center text-label font-semibold text-naranja-d py-1 ${error ? "" : "hidden"}`}
+          className={`mx-5 mb-2 text-center text-label font-semibold text-papel bg-naranja-d rounded-field px-3 py-1.5 ${error ? "" : "hidden"}`}
         >
           {error}
         </p>

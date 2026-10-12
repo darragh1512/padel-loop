@@ -158,10 +158,16 @@ export default async function GameDetailPage({
         ))}
       </div>
 
+      {/* The organiser sees Remove next to each other player — until a
+          match result exists (the four are then part of the record) or the
+          game is cancelled. The database enforces the same rules. */}
       <GameRoster
+        gameId={game.id}
         players={game.players}
         maxPlayers={game.maxPlayers}
         emptySlots={emptySlots}
+        createdBy={game.createdBy}
+        locked={hasResult || isCancelled(game)}
       />
 
       {/* The queue, under the roster and organiser-only. Deliberately a

@@ -30,6 +30,7 @@ import ChatThread, {
   type InlineThreadItem,
 } from "../../../games/[id]/chat-thread";
 import GroupThreadActions from "./group-thread-actions";
+import { ChatPinButton } from "@/components/ChatPin";
 import {
   getGroup,
   getGroupMembers,
@@ -66,15 +67,15 @@ export default function GroupChatPage() {
   }));
 
   return (
-    // Same fixed overlay + papel grain as the game chat page — one shared
+    // Same fixed overlay + court-blue wall as the game chat page — one shared
     // full-screen chat "shell" look, whichever kind of thread it is.
-    <div className="fixed inset-0 z-40 bg-papel [background-image:radial-gradient(rgb(25_20_7_/_0.05)_1px,transparent_1.2px)] [background-size:9px_9px]">
+    <div className="fixed inset-0 z-40 pena-wall">
       <div className="mx-auto max-w-md h-full flex flex-col pt-[env(safe-area-inset-top)]">
-        <header className="shrink-0 flex items-center gap-3 px-4 py-3 border-b-2 border-tinta bg-papel text-tinta">
+        <header className="relative shrink-0 flex items-center gap-3 px-4 py-3 border-b-2 border-tinta bg-papel text-tinta">
           <Link
             href="/chat"
             aria-label="Back to chats"
-            className="pl-press pl-hit shrink-0 text-tinta/70 hover:text-tinta rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+            className="pl-press pl-hit shrink-0 text-tinta/70 hover:text-tinta rounded-field focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-lima"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path
@@ -88,19 +89,26 @@ export default function GroupChatPage() {
           </Link>
 
           <div className="min-w-0 flex-1">
-            <div className="text-body font-extrabold text-tinta truncate">
+            <div className="t-display text-display-xs text-tinta truncate">
               {group?.name ?? "Group chat"}
             </div>
-            <div className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 truncate mt-0.5">
+            <div className="t-mono text-tiny text-tinta/70 truncate mt-1">
               {members ? `${memberCount} member${memberCount === 1 ? "" : "s"}` : ""}
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Pin to the top of MY Chat tab — personal, nobody else sees it. */}
+            <ChatPinButton
+              kind="group"
+              id={groupId}
+              title={group?.name ?? "this group"}
+            />
+
             <Link
               href={`/groups/${groupId}/propose`}
               aria-label="Propose a game"
-              className="pl-press pl-hit size-9 rounded-pill border-[1.5px] border-tinta text-tinta flex items-center justify-center hover:bg-lima/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+              className="pl-press pl-hit size-9 rounded-card border-2 border-tinta bg-papel text-tinta flex items-center justify-center hover:bg-lima/40 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-lima"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path

@@ -59,6 +59,33 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Pinned chats (CODE DONE 2026-09-28 — migration
+  `20260928010000_chat_pins.sql` APPLIED 2026-10-07; app code not yet deployed). Personal pins, max 3, for game
+  AND group chats. `chat_pins` table (game_id xor group_id; RLS: read/insert/
+  delete own rows only, insert only for chats you're in via can_pin_chat);
+  3-pin cap is a BEFORE INSERT trigger with a per-user advisory lock;
+  leaving a game/group deletes that pin. Client: `src/app/chat-pins.ts`
+  (pinKey = "game:ID"/"group:ID" since ids can collide across kinds),
+  `src/components/ChatPin.tsx` (PinToggle — lima when pinned; PinLimitDialog;
+  self-contained ChatPinButton for the full-screen chat headers). Chat tab:
+  "Pinned · N of 3" section on top (pinned cards wear .pena-tape), pinned
+  chats are lifted out of their normal section/Past; filter applies to it.
+  Before the migration runs, getPinnedKeys returns empty and pinning shows
+  "Couldn't pin that chat".
+- Organiser removes a player (CODE DONE 2026-09-28 — migration
+  `20260928000000_organiser_removes_player.sql` APPLIED 2026-10-12). Organiser sees a dashed-naranja "Remove" pill next
+  to every other player in the roster (`game-roster.tsx`), hidden once a
+  match result exists or the game is cancelled; tapping opens the stapled
+  Dialog "Remove [name] from this game?". The real rule is the SECURITY
+  DEFINER RPC `remove_player_from_game` (organiser-only, no self-removal, no
+  removal once a match_results row exists) — the game_players DELETE policy
+  is still own-row-only, so there's no direct-API bypass. It records the
+  removal in `game_removals`, which BEFORE INSERT triggers on game_players
+  and game_waitlist use to block rejoining/queueing; the freed spot promotes
+  the waitlist as usual; the removed player gets a 'removed_from_game'
+  notification; notify_player_left stays silent for removals. The removed
+  player's game page shows a "Removed" notice instead of Join, and Discover
+  hides that game from them (`getJoinedOrCreatedGameIds`).
 - Badges (COMPLETE, NO migration needed — deliberately). Three families on
   the player profile: connections (10/25/50/100), games played
   (5/10/25/50/100 confirmed matches), and win streaks (3/5/10 confirmed

@@ -19,6 +19,14 @@ import { MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { APP_TIME_ZONE, dublinDateKey } from "@/lib/time";
 import { getConversationsFor, formatGameTime, type Conversation } from "../games";
+import {
+  MAX_PINS,
+  getPinnedKeys,
+  pinChat,
+  pinKey,
+  unpinChat,
+} from "../chat-pins";
+import { PinLimitDialog, PinToggle } from "@/components/ChatPin";
 
 // A short timestamp for the last message: the clock time if it was today
 // (e.g. "14:32"), otherwise the date (e.g. "10 Jun"). Empty if there's none.
@@ -45,6 +53,11 @@ function shortStamp(iso: string | null): string {
 // The id + link target for a conversation, whichever kind it is.
 function conversationKey(c: Conversation): string {
   return c.kind === "game" ? c.game.id : c.group.id;
+}
+// Kind-prefixed ("game:12" / "group:12") — a game and a group can share a
+// numeric id, so this is what pins and list keys use.
+function pinKeyFor(c: Conversation): string {
+  return pinKey(c.kind, conversationKey(c));
 }
 function conversationHref(c: Conversation): string {
   return c.kind === "game"
@@ -91,10 +104,44 @@ function initialsFor(name: string): string {
   return ((parts[0][0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
 }
 
-/* One conversation card — shared by games AND groups, and by the active list
-   and the collapsed "Past games" list below it. `muted` dials back opacity
-   for past rows only. */
-function ConversationRow({ c, muted = false }: { c: Conversation; muted?: boolean }) {
+/* One conversation card — shared by games AND groups, and by the pinned,
+   active and collapsed "Past games" lists. `muted` dials back opacity for
+   past rows only. A pinned card wears a strip of lime tape across its top
+   edge: taped to the top of the noticeboard.
+
+   The pin button sits BESIDE the card's link, not inside it — a button
+   nested in a link is invalid and would open the chat on every pin tap. */
+function ConversationRow({
+  c,
+  muted = false,
+  pinned,
+  pinBusy,
+  onTogglePin,
+}: {
+  c: Conversation;
+  muted?: boolean;
+  pinned: boolean;
+  pinBusy: boolean;
+  onTogglePin: () => void;
+}) {
+  const title = c.kind === "game" ? c.game.venue : c.group.name;
+  return (
+    <div className="relative">
+      {pinned && <span className="pena-tape z-10" aria-hidden />}
+      <ConversationCard c={c} muted={muted} />
+      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+        <PinToggle
+          pinned={pinned}
+          busy={pinBusy}
+          title={title}
+          onToggle={onTogglePin}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ConversationCard({ c, muted = false }: { c: Conversation; muted?: boolean }) {
   const title = c.kind === "game" ? c.game.venue : c.group.name;
   const soon = imminent(c);
   const hasMessages = c.lastMessageBody != null;
@@ -119,7 +166,7 @@ function ConversationRow({ c, muted = false }: { c: Conversation; muted?: boolea
   return (
     <Link
       href={conversationHref(c)}
-      className={`pl-card pl-press relative flex items-center gap-3 py-2.75 pr-3.25 pl-4 overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima ${
+      className={`pl-card pl-press relative flex items-center gap-3 py-2.75 pr-15 pl-4 overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima ${
         muted ? "opacity-60" : ""
       }`}
     >
@@ -188,7 +235,15 @@ export default function ChatPage() {
   const [pastOpen, setPastOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>("All");
 
-  // On load: find who's logged in and fetch their conversations.
+  // Pins are this person's own — pinKeyFor() values. Nobody else's list
+  // is affected by anything here.
+  const [userId, setUserId] = useState<string | null>(null);
+  const [pins, setPins] = useState<Set<string>>(new Set());
+  const [pinBusy, setPinBusy] = useState<string | null>(null);
+  const [limitOpen, setLimitOpen] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  // On load: find who's logged in and fetch their conversations and pins.
   useEffect(() => {
     let active = true;
     (async () => {
@@ -196,10 +251,15 @@ export default function ChatPage() {
       const uid = data.user?.id ?? null;
       if (!active) return;
       setLoggedIn(uid != null);
+      setUserId(uid);
       if (uid) {
-        const convos = await getConversationsFor(uid);
+        const [convos, pinned] = await Promise.all([
+          getConversationsFor(uid),
+          getPinnedKeys(uid),
+        ]);
         if (!active) return;
         setConversations(convos);
+        setPins(pinned);
       }
       setLoading(false);
     })();
@@ -207,6 +267,52 @@ export default function ChatPage() {
       active = false;
     };
   }, []);
+
+  // The failure notice clears itself after a few seconds.
+  useEffect(() => {
+    if (!pinError) return;
+    const t = setTimeout(() => setPinError(null), 4000);
+    return () => clearTimeout(t);
+  }, [pinError]);
+
+  async function togglePin(c: Conversation) {
+    if (!userId || pinBusy) return;
+    const key = pinKeyFor(c);
+    const pinned = pins.has(key);
+    setPinError(null);
+
+    // A fourth pin: say so before asking the database, which would refuse
+    // it anyway (the limit is enforced there too).
+    if (!pinned && pins.size >= MAX_PINS) {
+      setLimitOpen(true);
+      return;
+    }
+
+    setPinBusy(key);
+    const result = pinned
+      ? await unpinChat(userId, c.kind, conversationKey(c))
+      : await pinChat(userId, c.kind, conversationKey(c));
+    setPinBusy(null);
+
+    if ("error" in result) {
+      if ("limit" in result && result.limit) setLimitOpen(true);
+      else setPinError(result.error);
+      return;
+    }
+
+    setPins((prev) => {
+      const next = new Set(prev);
+      if (pinned) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  const rowProps = (c: Conversation) => ({
+    pinned: pins.has(pinKeyFor(c)),
+    pinBusy: pinBusy === pinKeyFor(c),
+    onTogglePin: () => togglePin(c),
+  });
 
   // Active/past split, derived purely from game_time — no schema change, no
   // second query. Boundary is DUBLIN midnight (not "now"), so a game later
@@ -221,7 +327,11 @@ export default function ChatPage() {
     return key !== "" && key < todayKey; // unreadable time → keep it active
   };
   const activeConversations = conversations.filter((c) => !isPast(c));
-  const pastConversations = conversations.filter((c) => isPast(c));
+  // Pinned chats are lifted out of wherever they'd normally sit (including
+  // Past) and shown above everything; the rest keep their normal order.
+  const pastConversations = conversations.filter(
+    (c) => isPast(c) && !pins.has(pinKeyFor(c)),
+  );
 
   const counts = useMemo(
     () => ({
@@ -232,19 +342,33 @@ export default function ChatPage() {
     [activeConversations],
   );
 
+  const matchesFilter = (c: Conversation) =>
+    filter === "All"
+      ? true
+      : filter === "Games"
+        ? c.kind === "game"
+        : c.kind === "group";
+
+  // Pinned, in the list's normal (most-recent-activity) order.
+  const pinnedRows = conversations.filter(
+    (c) => pins.has(pinKeyFor(c)) && matchesFilter(c),
+  );
+
   const sections = useMemo(() => {
-    const visible = activeConversations.filter((c) =>
-      filter === "All"
-        ? true
-        : filter === "Games"
-          ? c.kind === "game"
-          : c.kind === "group",
+    const visible = activeConversations.filter(
+      (c) =>
+        !pins.has(pinKeyFor(c)) &&
+        (filter === "All"
+          ? true
+          : filter === "Games"
+            ? c.kind === "game"
+            : c.kind === "group"),
     );
     return [
       { title: "Game chats", rows: visible.filter((c) => c.kind === "game") },
       { title: "Groups", rows: visible.filter((c) => c.kind === "group") },
     ].filter((s) => s.rows.length > 0);
-  }, [activeConversations, filter]);
+  }, [activeConversations, filter, pins]);
 
   return (
     <main className="px-5 pt-3 relative">
@@ -349,7 +473,7 @@ export default function ChatPage() {
               </ButtonLink>
             }
           />
-        ) : sections.length === 0 ? (
+        ) : sections.length === 0 && pinnedRows.length === 0 ? (
           <EmptyState
             icon={<MessageCircle size={22} strokeWidth={2.2} />}
             title="No conversations yet."
@@ -361,16 +485,47 @@ export default function ChatPage() {
             }
           />
         ) : (
-          sections.map((s) => (
-            <div key={s.title} className="mb-4">
-              <Rule>{s.title}</Rule>
-              <div className="flex flex-col gap-2.25">
-                {s.rows.map((c) => (
-                  <ConversationRow key={conversationKey(c)} c={c} />
-                ))}
+          <>
+            {/* Pinned — above everything. Extra gap so each card's strip of
+                tape has room to sit across its top edge. */}
+            {pinnedRows.length > 0 && (
+              <div className="mb-4">
+                <Rule>
+                  Pinned · {pins.size} of {MAX_PINS}
+                </Rule>
+                <div className="flex flex-col gap-4 pt-2">
+                  {pinnedRows.map((c) => (
+                    <ConversationRow
+                      key={pinKeyFor(c)}
+                      c={c}
+                      muted={isPast(c)}
+                      {...rowProps(c)}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))
+            )}
+
+            {sections.map((s) => (
+              <div key={s.title} className="mb-4">
+                <Rule>{s.title}</Rule>
+                <div className="flex flex-col gap-2.25">
+                  {s.rows.map((c) => (
+                    <ConversationRow key={pinKeyFor(c)} c={c} {...rowProps(c)} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {pinError && (
+          <p
+            role="status"
+            className="text-center text-label font-semibold text-papel bg-naranja-d rounded-field px-3 py-1.5 mb-3"
+          >
+            {pinError}
+          </p>
         )}
 
         {/* Past game chats — the dashed drawer at the foot of the board. */}
@@ -406,13 +561,15 @@ export default function ChatPage() {
             {pastOpen && (
               <div className="flex flex-col gap-2.25 mt-2.5">
                 {pastConversations.map((c) => (
-                  <ConversationRow key={conversationKey(c)} c={c} muted />
+                  <ConversationRow key={pinKeyFor(c)} c={c} muted {...rowProps(c)} />
                 ))}
               </div>
             )}
           </>
         )}
       </div>
+
+      <PinLimitDialog open={limitOpen} onClose={() => setLimitOpen(false)} />
 
       <div className="h-4" />
       <BottomNav />
