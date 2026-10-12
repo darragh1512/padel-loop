@@ -281,15 +281,22 @@ export async function markOnboarded(
 
 // Delete this account, permanently.
 //
-// ONE call. Everything — reassigning their games, clearing their rows,
-// removing the avatar file, the profile and the auth user — happens inside
-// the delete_my_account() Postgres function as a single transaction. That is
-// deliberate: a sequence of client calls is precisely what can fail halfway
-// and strand somebody with a profile but no login, or the reverse.
+// TWO stages:
+//   1. Their photo files, through the Storage API, while they are still
+//      signed in (afterwards nobody has permission to). Supabase forbids the
+//      database deleting storage files directly, so this can't live in the
+//      function. Best effort: a failure here never stops the deletion.
+//   2. Everything else — reassigning their games, clearing their rows, the
+//      profile and the auth user — in the delete_my_account() Postgres
+//      function as a single transaction, so it can't fail halfway and strand
+//      somebody with a profile but no login. It also writes any photo file
+//      that survived stage 1 to avatar_cleanup, so none is forgotten.
 //
-// So the only thing left to do here is sign out. If the RPC fails, nothing
-// was deleted and they still have a working account.
+// If the RPC fails they still have a working account (at worst without
+// their uploaded photo, which stage 1 may already have removed).
 export async function deleteMyAccount(): Promise<{ ok: true } | { error: string }> {
+  await removeAllAvatarFiles();
+
   const { error } = await supabase.rpc("delete_my_account");
 
   if (error) {
@@ -308,6 +315,39 @@ export async function deleteMyAccount(): Promise<{ ok: true } | { error: string 
   }
 
   return { ok: true };
+}
+
+// Stage 1 of deleteMyAccount: every file in the signed-in player's avatars
+// folder (normally just `<userId>/avatar`). Never throws; problems are only
+// logged, because the database records any file left behind. Clears
+// avatar_url FIRST, the same order as removeAvatar, so if the account
+// deletion then fails their profile isn't left pointing at a missing photo.
+async function removeAllAvatarFiles(): Promise<void> {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) return;
+
+    const { data: files, error: listError } = await supabase.storage
+      .from("avatars")
+      .list(userId);
+    if (listError) {
+      console.error("Could not list avatar files:", listError.message);
+      return;
+    }
+    if (!files || files.length === 0) return;
+
+    await supabase.from("profiles").update({ avatar_url: null }).eq("id", userId);
+
+    const { error: removeError } = await supabase.storage
+      .from("avatars")
+      .remove(files.map((f) => `${userId}/${f.name}`));
+    if (removeError) {
+      console.error("Could not remove avatar files:", removeError.message);
+    }
+  } catch (err) {
+    console.error("Avatar removal failed:", err);
+  }
 }
 
 // ---------------------------------------------------------------------------

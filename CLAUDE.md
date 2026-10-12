@@ -59,6 +59,17 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Account deletion FIX (CODE DONE 2026-10-12 — migration
+  `20261012010000_delete_account_storage_api.sql` PENDING). Deletion had been
+  failing for every account: Supabase now refuses `delete from
+  storage.objects` (42501 "Direct deletion from storage tables is not
+  allowed. Use the Storage API instead"), and it was inside the one-
+  transaction delete_my_account(). Now: `deleteMyAccount()` in profiles.ts
+  first clears avatar_url and removes every file in `avatars/<uid>/` via the
+  Storage API (best effort, never blocks), then calls the RPC, which no
+  longer deletes files but INSERTs any surviving ones into `avatar_cleanup`
+  (RLS on, no policies — owner clears it in the dashboard) before deleting
+  the account. NEVER delete from storage.objects in SQL again.
 - Sign-up terms tick-box (COMPLETE 2026-10-12, no migration). `/signup` now
   has a required "I agree to the Terms of Use and Privacy Policy" checkbox
   above Sign up; the button is disabled until it's ticked and handleSubmit

@@ -154,10 +154,11 @@ export default function ProfilePage() {
       return;
     }
 
-    // Nothing was deleted — the whole function rolled back — so they still
-    // have a working account and can simply try again.
+    // The account wasn't deleted — the whole function rolled back — so they
+    // still have a working account and can simply try again. (Their uploaded
+    // photo may already be gone; that runs first. See deleteMyAccount.)
     setDeleteError(
-      "Couldn't delete your account. Nothing was changed — please try again.",
+      "Couldn't delete your account. It's still active — please try again.",
     );
     setDeleting(false);
   }
