@@ -59,6 +59,13 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- Sign-up terms tick-box (COMPLETE 2026-10-12, no migration). `/signup` now
+  has a required "I agree to the Terms of Use and Privacy Policy" checkbox
+  above Sign up; the button is disabled until it's ticked and handleSubmit
+  also refuses unticked. Replaces the old passive "Creating an account means
+  you accept…" line (which was also papel-on-papel, near invisible).
+  Acceptance is not stored in the database — add a timestamp column if
+  that's ever needed.
 - Pinned chats (CODE DONE 2026-09-28 — migration
   `20260928010000_chat_pins.sql` APPLIED 2026-10-07; app code not yet deployed). Personal pins, max 3, for game
   AND group chats. `chat_pins` table (game_id xor group_id; RLS: read/insert/

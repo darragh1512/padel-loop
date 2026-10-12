@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { readAuthParams } from "@/lib/pendingIntent";
 import { capture, identify } from "@/lib/analytics";
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { Wordmark } from "@/components/brand";
 import { Button, Field, Input } from "@/components/ui";
 import SkillLevelPicker from "@/components/SkillLevelPicker";
@@ -25,11 +26,14 @@ export default function SignupPage() {
   const [skillLevel, setSkillLevel] = useState("Beginner");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    // The button is disabled until the box is ticked; this is the backstop.
+    if (!agreed) return;
     setLoading(true);
     setError(null);
 
@@ -139,29 +143,49 @@ export default function SignupPage() {
           />
         </Field>
 
-        <Button type="submit" className="mt-2" loading={loading}>
+        {/* Directly above the button, so agreeing is a deliberate act at the
+            moment of signing up — Sign up stays disabled until it's ticked. */}
+        <div className="flex items-start gap-3 mt-1">
+          <span className="relative shrink-0 size-6 mt-px">
+            <input
+              id="signup-terms"
+              type="checkbox"
+              required
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="peer appearance-none size-6 rounded-[4px] border-2 border-tinta bg-papel checked:bg-lima cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+            />
+            <Check
+              aria-hidden
+              strokeWidth={3.5}
+              className="pointer-events-none absolute inset-0 m-auto size-4 text-tinta opacity-0 peer-checked:opacity-100"
+            />
+          </span>
+          <label
+            htmlFor="signup-terms"
+            className="text-label font-medium text-tinta cursor-pointer"
+          >
+            I agree to the{" "}
+            <Link
+              href="/terms"
+              className="font-bold underline underline-offset-2 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+            >
+              Terms of Use
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              className="font-bold underline underline-offset-2 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </label>
+        </div>
+
+        <Button type="submit" className="mt-1" loading={loading} disabled={!agreed}>
           {loading ? "Creating account…" : "Sign up"}
         </Button>
-
-        {/* Directly under the button, so it is read at the moment of
-            agreeing rather than buried at the foot of the page. */}
-        <p className="text-center text-label font-medium text-papel/70">
-          Creating an account means you accept our{" "}
-          <Link
-            href="/terms"
-            className="text-lima underline underline-offset-2 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-          >
-            Terms of Use
-          </Link>{" "}
-          and{" "}
-          <Link
-            href="/privacy"
-            className="text-lima underline underline-offset-2 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-          >
-            Privacy Policy
-          </Link>
-          .
-        </p>
 
         <p
           aria-live="polite"
