@@ -25,9 +25,7 @@ from the top.
 
 ## Pending
 
-| File | What it adds | Depends on |
-|---|---|---|
-| `20261012010000_delete_account_storage_api.sql` | FIXES account deletion (was failing for everyone with `42501: Direct deletion from storage tables is not allowed`). `delete_my_account()` no longer deletes from `storage.objects`; it logs any surviving avatar files to the new `avatar_cleanup` table instead. The app now deletes the files through the Storage API first. | `20260914` (supersedes its `delete_my_account()`). No pre-flight. Safe in either order relative to the app deploy. |
+None.
 
 ## Applied
 
@@ -55,6 +53,7 @@ Run by hand in the SQL editor since:
 | `20260928010000_chat_pins.sql` | 2026-10-07 | `chat_pins` (own-rows-only RLS, only chats you're in), `can_pin_chat()`, the 3-pin limit trigger, and unpin-on-leave triggers for games and groups |
 | `20260928000000_organiser_removes_player.sql` | 2026-10-12 | `game_removals`, `remove_player_from_game()` (organiser-only, refused once a match result exists), the no-rejoin / no-queue triggers, the removed player's notification, and a `notify_player_left` that stays quiet for removals |
 | `20261012000000_terms_acceptances.sql` | 2026-10-12 | `terms_acceptances`: append-only GDPR record of who ticked the sign-up terms box, when (server-stamped), and which terms/privacy versions |
+| `20261012010000_delete_account_storage_api.sql` | 2026-10-12 | FIXES account deletion (was failing for everyone with `42501: Direct deletion from storage tables is not allowed`): `delete_my_account()` no longer deletes from `storage.objects` and logs surviving avatar files to `avatar_cleanup`; the app deletes them through the Storage API first. Retested live: account, agreement and photo all removed. |
 
 ### Two follow-ups those files asked for
 

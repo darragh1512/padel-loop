@@ -60,7 +60,8 @@ To stay focused, we are deliberately leaving these for later:
 
 ## Project status / progress log
 - Account deletion FIX (CODE DONE 2026-10-12 — migration
-  `20261012010000_delete_account_storage_api.sql` PENDING). Deletion had been
+  `20261012010000_delete_account_storage_api.sql` APPLIED 2026-10-12;
+  retested live: account, agreement row and photo all removed). Deletion had been
   failing for every account: Supabase now refuses `delete from
   storage.objects` (42501 "Direct deletion from storage tables is not
   allowed. Use the Storage API instead"), and it was inside the one-
