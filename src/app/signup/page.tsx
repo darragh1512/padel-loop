@@ -18,6 +18,7 @@ import { Button, Field, Input } from "@/components/ui";
 import SkillLevelPicker from "@/components/SkillLevelPicker";
 import { supabase } from "@/lib/supabaseClient";
 import { createProfile } from "../profiles";
+import { recordTermsAcceptance } from "../terms-acceptance";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -69,6 +70,8 @@ export default function SignupPage() {
 
     if (userId) {
       await createProfile(userId, { name, skill_level: skillLevel });
+      // They can only get here with the box ticked — record it as evidence.
+      await recordTermsAcceptance();
 
       // Identify by auth user id only — the email and name they just typed
       // are never sent.

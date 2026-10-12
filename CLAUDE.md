@@ -64,8 +64,14 @@ To stay focused, we are deliberately leaving these for later:
   above Sign up; the button is disabled until it's ticked and handleSubmit
   also refuses unticked. Replaces the old passive "Creating an account means
   you accept…" line (which was also papel-on-papel, near invisible).
-  Acceptance is not stored in the database — add a timestamp column if
-  that's ever needed.
+  Acceptance is recorded (CODE DONE 2026-10-12 — migration
+  `20261012000000_terms_acceptances.sql` APPLIED 2026-10-12): after createProfile,
+  signup calls `recordTermsAcceptance()` (`src/app/terms-acceptance.ts`),
+  which inserts into the append-only `terms_acceptances` table (own-row
+  insert/select, admins read all, no update/delete; accepted_at stamped by a
+  trigger). TERMS_VERSION / PRIVACY_VERSION in that file must be bumped
+  whenever the "Last updated" date in content/terms.md or privacy.md changes.
+  Failure never blocks sign-up. Pre-existing users have no row (no backfill).
 - Pinned chats (CODE DONE 2026-09-28 — migration
   `20260928010000_chat_pins.sql` APPLIED 2026-10-07; app code not yet deployed). Personal pins, max 3, for game
   AND group chats. `chat_pins` table (game_id xor group_id; RLS: read/insert/

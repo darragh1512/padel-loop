@@ -52,6 +52,7 @@ Run by hand in the SQL editor since:
 |---|---|---|
 | `20260928010000_chat_pins.sql` | 2026-10-07 | `chat_pins` (own-rows-only RLS, only chats you're in), `can_pin_chat()`, the 3-pin limit trigger, and unpin-on-leave triggers for games and groups |
 | `20260928000000_organiser_removes_player.sql` | 2026-10-12 | `game_removals`, `remove_player_from_game()` (organiser-only, refused once a match result exists), the no-rejoin / no-queue triggers, the removed player's notification, and a `notify_player_left` that stays quiet for removals |
+| `20261012000000_terms_acceptances.sql` | 2026-10-12 | `terms_acceptances`: append-only GDPR record of who ticked the sign-up terms box, when (server-stamped), and which terms/privacy versions |
 
 ### Two follow-ups those files asked for
 
