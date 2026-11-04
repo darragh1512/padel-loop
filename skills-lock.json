@@ -19,6 +19,12 @@
       "skillPath": "skills/emil-design-eng/SKILL.md",
       "computedHash": "ac3fc5b4e206488ffc408a2806f829bb2e5eaf518fded09be34790685c2b3a0d"
     },
+    "glassyui": {
+      "source": "alexburlis/glassyui",
+      "sourceType": "github",
+      "skillPath": "skills/glassyui/SKILL.md",
+      "computedHash": "92870117e818fbb758138188101b19edec1625dcbb0d6203c64c955852c7e54a"
+    },
     "review-animations": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
