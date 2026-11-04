@@ -31,7 +31,7 @@
 
   /* One scale, fixed rem. Body/label sizes carry over; display sizes are the
      poster-headline range (used with .t-display for weight/case/stretch).  */
-  --text-nav: 0.625rem;              /* 10px — bottom-nav mono labels only */
+  --text-nav: 0.6875rem;             /* 11px — bottom-nav mono labels only */
   --text-nav--line-height: 1.4;
   --text-tiny: 0.625rem;             /* 10px — stamped tags inside cards */
   --text-tiny--line-height: 1.4;
@@ -156,6 +156,43 @@ body {
   background: var(--color-papel);
   border: 2px solid var(--color-tinta);
   color: var(--color-tinta);
+}
+
+/* .pena-glass — glassine, the translucent paper printers use, for the floating
+   layer only (never on content). Sits on Glassy UI's .lg-glass-surface and
+   strips it back to the frost: no sheen, rim light, grain or soft shadow, and
+   papel in place of white. The hard ink edge comes from the piece wearing it.
+   The backdrop loses most of its colour before the papel goes over it, because
+   papel laid straight over court blue turns a cold periwinkle. Full-strength
+   tinta holds 8:1 or better over everything that scrolls beneath it.
+   Goes solid where someone has asked for less transparency or more contrast,
+   and where the browser can't blur. */
+:root {
+  --lg-opaque-surface: var(--color-papel);
+}
+.pena-glass {
+  border-radius: 0;
+  box-shadow: none;
+}
+.pena-glass::before {
+  background: rgb(244 238 224 / 0.72);
+  -webkit-backdrop-filter: blur(16px) saturate(0.35) sepia(0.6) brightness(1.25);
+  backdrop-filter: blur(16px) saturate(0.35) sepia(0.6) brightness(1.25);
+}
+.pena-glass::after {
+  display: none;
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .pena-glass::before {
+    background: var(--color-papel);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .pena-glass::before {
+    background: var(--color-papel);
+  }
 }
 
 /* RETIRED by the prototype: cards there are squared-up and un-pinned, so

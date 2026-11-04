@@ -84,6 +84,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-lg-theme="light"
       className={`${archivo.variable} ${archivoBlack.variable} ${spaceMono.variable}`}
     >
       <head>

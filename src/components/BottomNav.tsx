@@ -1,16 +1,18 @@
 "use client";
 
-// The bottom navigation — a papel strip pinned along the foot of the board.
+// The bottom navigation — a strip of frosted film along the foot of the board,
+// with the posters blurring past beneath it.
 // Five equal columns: Home · Games · the create stamp · Chat · Profile.
 //
 // Straight from the prototype: the active tab's icon sits in a filled tinta
-// pill with a lima glyph, its label goes solid tinta, and the create button is
-// an oversized naranja stamp lifted clear of the strip on a hard ink shadow.
+// pill with a lima glyph, and the create button is an oversized naranja stamp
+// lifted clear of the strip on a hard ink shadow.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import "@/components/glassyui/styles/liquid.css";
 import { supabase } from "@/lib/supabaseClient";
 import { getProfile } from "@/app/profiles";
 import { onAvatarChange } from "@/lib/avatarBus";
@@ -47,7 +49,9 @@ function NavIcon({ name }: { name: keyof typeof ICONS }) {
 }
 
 /* One tab column. The icon wrapper is the active indicator — a tinta pill
-   behind a lima glyph. Inactive sits at half-strength ink. */
+   behind a lima glyph. Everything stays full-strength ink so it holds its
+   contrast over whatever scrolls beneath the glass. Switching tabs doesn't
+   animate: it happens too often to earn it. */
 function TabShell({
   active,
   label,
@@ -62,17 +66,13 @@ function TabShell({
   return (
     <>
       <span
-        className={`grid place-items-center w-8.5 h-7.5 rounded-pill transition-colors duration-150 ease-out ${
-          active ? "bg-tinta text-lima" : "bg-transparent text-tinta/50"
+        className={`grid place-items-center w-8.5 h-7.5 rounded-pill ${
+          active ? "bg-tinta text-lima" : "bg-transparent text-tinta"
         }`}
       >
         {children}
       </span>
-      <span
-        className={`t-mono text-nav ${active ? "text-tinta" : "text-tinta/50"}`}
-      >
-        {label}
-      </span>
+      <span className="t-mono text-nav text-tinta">{label}</span>
       {badge && (
         <span className="absolute top-0.5 right-1/2 translate-x-4.5 size-2 rounded-pill bg-naranja border-2 border-papel" />
       )}
@@ -81,7 +81,7 @@ function TabShell({
 }
 
 const TAB_CLASS =
-  "relative flex flex-col items-center gap-1.5 pt-1 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja";
+  "pl-press relative flex flex-col items-center gap-1.5 pt-1 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta";
 
 function NavItem({
   href,
@@ -174,7 +174,14 @@ function ProfileNavItem() {
 export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-20">
-      <div className="mx-auto w-full max-w-md bg-papel border-t-2 border-tinta grid grid-cols-5 items-end px-3 pt-2 pb-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+      <div className="relative isolate mx-auto w-full max-w-md border-t-2 border-tinta grid grid-cols-5 items-end px-3 pt-2 pb-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+        {/* The frost is its own layer behind the tabs: glass clips what it
+            holds, and the create stamp has to stand proud of the strip. */}
+        <span
+          aria-hidden
+          data-lg-preset="standard"
+          className="lg-glass-surface pena-glass absolute inset-0 -z-10"
+        />
         <NavItem href="/" label="Home" icon="home" />
         <NavItem href="/my-games" label="Games" icon="games" />
 
@@ -184,7 +191,7 @@ export default function BottomNav() {
           <Link
             href="/create"
             aria-label="Create game"
-            className="-translate-y-6.5 size-15 rounded-pill bg-naranja text-white border-[3px] border-tinta grid place-items-center shadow-[0_5px_0_var(--color-tinta)] active:shadow-[0_2px_0_var(--color-tinta)] active:translate-y-[-1.375rem] transition-[box-shadow,translate,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+            className="-translate-y-6.5 size-15 rounded-pill bg-naranja text-tinta border-[3px] border-tinta grid place-items-center shadow-[0_5px_0_var(--color-tinta)] active:shadow-[0_2px_0_var(--color-tinta)] active:translate-y-[-1.375rem] transition-[box-shadow,translate,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
           >
             <svg viewBox="0 0 24 24" fill="none" className="size-6.5" aria-hidden>
               <path
