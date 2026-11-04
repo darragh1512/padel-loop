@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#ffcf3f">
+<title>Padel Loop: Rally</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sun: #ffcf3f;
+  --ink: #2b1650;
+  --tomato: #ff5a3c;
+  --mint: #2fd6a6;
+  --mint-d: #17a881;
+  --sky: #59c6ff;
+  --grape: #7a4dff;
+  --cream: #fff8e6;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--sun); }
+body { color: var(--ink); font-family: Nunito, -apple-system, system-ui, sans-serif; font-weight: 700; -webkit-user-select: none; user-select: none; overscroll-behavior: none; touch-action: manipulation; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.fat { font-family: "Bagel Fat One", "Arial Rounded MT Bold", sans-serif; font-weight: 400; }
+
+#page { position: relative; max-width: 480px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 112px); }
+
+/* Everything is a chunky physical piece: ink edge, solid depth underneath. */
+.piece { position: relative; background: var(--cream); border: 3px solid var(--ink); border-radius: 26px; box-shadow: 0 7px 0 var(--ink); }
+.key { transition: transform 90ms cubic-bezier(.23,1,.32,1), box-shadow 90ms cubic-bezier(.23,1,.32,1); }
+.key:active { transform: translateY(6px); box-shadow: 0 1px 0 var(--ink); }
+
+header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+h1 { margin: 0; font-size: clamp(2.625rem, 13vw, 3.5rem); line-height: .95; font-weight: 400; }
+#streak { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: 800; font-size: .9375rem; }
+#sound { width: 48px; height: 48px; flex: none; border-radius: 16px; display: grid; place-items: center; }
+
+#next { display: flex; width: 100%; align-items: center; gap: 12px; margin-top: 16px; padding: 12px 14px; background: var(--tomato); text-align: left; color: #210c05; }
+#next .big { font-size: 2.5rem; line-height: 1; }
+#next .txt { flex: 1; font-size: 1rem; line-height: 1.2; font-weight: 800; }
+
+#game { margin-top: 18px; padding: 14px; }
+#game h2 { margin: 0; font-size: 1.75rem; font-weight: 400; line-height: 1; }
+#say { margin: 4px 0 10px; font-size: 1.0625rem; font-weight: 800; }
+
+/* The court is a toy. */
+#court { position: relative; height: 196px; background: var(--mint); border: 3px solid var(--ink); border-radius: 20px; box-shadow: inset 0 -8px 0 var(--mint-d); transform-origin: 50% 100%; touch-action: none; }
+#court svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+.seat { position: absolute; width: 68px; height: 68px; margin: -34px; }
+.seat[data-s="0"] { left: 25%; top: 28%; }
+.seat[data-s="1"] { left: 25%; top: 70%; }
+.seat[data-s="2"] { left: 75%; top: 28%; }
+.seat[data-s="3"] { left: 75%; top: 70%; }
+.token { display: block; width: 68px; height: 68px; border-radius: 50%; touch-action: none; filter: drop-shadow(0 5px 0 var(--ink)); will-change: transform; }
+.token svg { display: block; width: 100%; height: 100%; }
+#socket { position: absolute; inset: 3px; border-radius: 50%; background: rgb(23 110 88 / .55); border: 3px dashed var(--cream); }
+#socket::after { content: ""; position: absolute; inset: 15px; border-radius: 50%; background: rgb(255 248 230 / .9); animation: wait 1.2s ease-in-out infinite; }
+@keyframes wait { 50% { transform: scale(.5); opacity: .4; } }
+
+#tray { display: flex; align-items: center; gap: 12px; margin-top: 12px; min-height: 82px; }
+#home { width: 74px; height: 74px; flex: none; border-radius: 50%; background: rgb(43 22 80 / .1); border: 3px dashed rgb(43 22 80 / .45); }
+#trayText { flex: 1; font-size: 1.125rem; line-height: 1.15; font-weight: 900; }
+#joinBtn { flex: none; height: 54px; padding: 0 18px; border-radius: 18px; background: var(--sky); font-weight: 900; font-size: 1.0625rem; }
+#me { position: absolute; left: 0; top: 0; z-index: 8; cursor: grab; }
+#me:active { cursor: grabbing; }
+
+/* Warm-up rally */
+#rally { margin-top: 18px; height: 196px; overflow: hidden; background: var(--grape); color: var(--cream); touch-action: none; }
+#rally .count { position: absolute; left: 0; right: 0; top: 10px; text-align: center; font-size: 4.75rem; line-height: 1; pointer-events: none; }
+#rally .hint { position: absolute; left: 14px; right: 14px; bottom: 12px; display: flex; justify-content: space-between; font-weight: 800; font-size: .9375rem; pointer-events: none; }
+#rBall { position: absolute; left: 0; top: 0; width: 44px; height: 44px; pointer-events: none; }
+
+nav { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 12px); width: min(448px, calc(100% - 24px)); transform: translateX(-50%); z-index: 9; display: flex; align-items: flex-end; gap: 10px; }
+.tabs { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); height: 70px; padding: 4px; }
+.tabs a { display: grid; place-items: center; align-content: center; gap: 1px; color: var(--ink); text-decoration: none; font-weight: 800; font-size: .75rem; border-radius: 19px; }
+.tabs a[aria-current] { background: var(--sun); }
+.tabs svg { width: 24px; height: 24px; }
+#plus { position: relative; width: 78px; height: 78px; flex: none; border-radius: 50%; background: var(--tomato); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 7px 0 var(--ink); display: grid; place-items: center; touch-action: none; will-change: transform; transform-origin: 50% 100%; }
+
+#balls { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 7; }
+
+#sheet { position: fixed; left: 50%; bottom: 0; width: min(480px, 100%); transform: translate(-50%, 110%); z-index: 11; padding: 18px 18px calc(env(safe-area-inset-bottom) + 18px); border-radius: 30px 30px 0 0; box-shadow: none; }
+#sheet h3 { margin: 0; font-size: 2.25rem; font-weight: 400; line-height: 1; }
+#sheet p { margin: 8px 0 14px; font-size: 1.0625rem; }
+#sheet button { display: block; width: 100%; height: 58px; border-radius: 18px; background: var(--mint); font-weight: 900; font-size: 1.125rem; }
+#scrim { position: fixed; inset: 0; z-index: 10; background: rgb(43 22 80 / .45); display: none; }
+
+.pop { position: fixed; left: 50%; top: 34%; z-index: 12; pointer-events: none; font-size: clamp(4rem, 21vw, 6rem); line-height: .9; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 7px 0 var(--ink); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  #socket::after { animation: none; }
+}
+</style>
+</head>
+<body>
+<main id="page">
+  <header>
+    <div>
+      <h1 class="fat">Hey Aoife!</h1>
+      <div id="streak">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#ff5a3c" stroke="#2b1650" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-4 2-7 2 1 3 2 3 4 1-2 1-6 1-9z"/></svg>
+        3 wins in a row
+      </div>
+    </div>
+    <button class="piece key" id="sound" aria-label="Turn sound off" aria-pressed="true">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4z"/><path id="wave" d="M16.500 9a4.500 4.500 0 0 1 0 6"/></svg>
+    </button>
+  </header>
+
+  <button class="piece key" id="next" aria-label="Your next game, Thursday at Howth">
+    <span class="fat big">2</span>
+    <span class="txt">sleeps till your next game<br>Thursday 20:30 at Howth</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+  </button>
+
+  <section class="piece" id="game" aria-label="Game at Malahide Padel Club">
+    <h2 class="fat">Malahide Padel Club</h2>
+    <p id="say">Tonight 20:30. One spot left!</p>
+    <div id="court">
+      <svg class="lines" viewBox="0 0 320 196" preserveAspectRatio="none" aria-hidden="true" fill="none" stroke="#fff8e6" stroke-width="4" stroke-linecap="round">
+        <path d="M160 6v184" stroke-width="7"/><path d="M70 12v172M250 12v172M70 98h180"/>
+      </svg>
+      <div class="seat" data-s="0"><span class="token" data-f="0"></span></div>
+      <div class="seat" data-s="1"><span class="token" data-f="1"></span></div>
+      <div class="seat" data-s="2"><span class="token" data-f="2"></span></div>
+      <div class="seat" data-s="3" id="seat"><span id="socket"></span></div>
+    </div>
+    <div id="tray">
+      <div id="home" aria-hidden="true"></div>
+      <div id="trayText">Drag your face onto the court</div>
+      <button class="piece key" id="joinBtn">Join</button>
+    </div>
+  </section>
+
+  <section class="piece" id="rally" aria-label="Warm-up mini game. Tap to keep the ball in the air.">
+    <div class="fat count" id="rCount">0</div>
+    <div class="hint"><span id="rHint">Tap to serve</span><span>Best <span id="rBest">0</span></span></div>
+    <svg id="rBall" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="19" fill="#ffcf3f" stroke="#2b1650" stroke-width="3"/><path d="M9 9c8 7 8 19 0 26M35 9c-8 7-8 19 0 26" fill="none" stroke="#fff8e6" stroke-width="3" stroke-linecap="round"/></svg>
+  </section>
+</main>
+
+<span class="token" id="me" data-f="me" role="button" aria-label="Your face. Drag it onto the court, or use the Join button."></span>
+<canvas id="balls" aria-hidden="true"></canvas>
+
+<nav aria-label="Main">
+  <div class="tabs piece">
+    <a href="#" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-6 8 6M6.500 10v9h11v-9"/></svg>Home</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.500 6.500h15v13h-15zM8 4v4M16 4v4M4.500 11h15"/></svg>Games</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.500 6.500h15v10h-9l-4 3.500v-3.500h-2z"/></svg>Chat</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.500-4 4.500-5 8-5s6.500 1 8 5"/></svg>Me</a>
+  </div>
+  <button id="plus" aria-label="Create a game. Hold it longer to fire more balls.">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
+  </button>
+</nav>
+
+<div id="scrim"></div>
+<aside class="piece" id="sheet" role="dialog" aria-modal="true" aria-label="New game">
+  <h3 class="fat">New game?</h3>
+  <p>This is a mockup, so nothing gets created. In the app, this opens the create form.</p>
+  <button class="key" id="closeSheet">Back to the court</button>
+</aside>
+
+<script>
+(function () {
+  var RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+  // ── Touch feedback: haptics and little synth sounds ──────────────────
+  var hapticLabel = document.createElement("label");
+  hapticLabel.style.display = "none";
+  hapticLabel.innerHTML = '<input type="checkbox" switch>';
+  document.body.appendChild(hapticLabel);
+  function haptic() { if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; if (navigator.vibrate) navigator.vibrate(14); else hapticLabel.click(); }
+  var ac = null, soundOn = true;
+  function tone(freq, dur, type, vol, slide) {
+    if (!soundOn) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === "suspended") ac.resume();
+      var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+      o.type = type || "sine"; o.frequency.setValueAtTime(freq, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+      g.gain.setValueAtTime(vol || 0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur);
+    } catch (_) {}
+  }
+  function thock() { tone(190, 0.14, "sine", 0.45, 70); tone(820, 0.03, "square", 0.05); }
+  function pop() { tone(320, 0.11, "sine", 0.35, 780); }
+  function plink(n) { tone(440 * Math.pow(1.0595, Math.min(n, 24) * 2), 0.09, "triangle", 0.22); }
+  function fanfare() { [523, 659, 784, 1047].forEach(function (f, i) { setTimeout(function () { tone(f, 0.18, "triangle", 0.2); }, i * 90); }); }
+  $("#sound").addEventListener("click", function () {
+    soundOn = !soundOn;
+    $("#sound").setAttribute("aria-pressed", soundOn);
+    $("#sound").setAttribute("aria-label", soundOn ? "Turn sound off" : "Turn sound on");
+    $("#wave").style.display = soundOn ? "" : "none";
+    if (soundOn) pop();
+  });
+
+  // ── Faces ────────────────────────────────────────────────────────────
+  var F = {
+    0: ["#ffd9b8", "#3a2418", "#59c6ff", "M13 24c0-12 8-18 19-18s19 6 19 18c-6-5-11-7-19-7s-13 2-19 7z"],
+    1: ["#c98d62", "#14100e", "#ff8fb1", "M11 27c-2-14 8-21 21-21s23 7 21 21c-4-8-8-11-21-11s-17 3-21 11z"],
+    2: ["#ffe2c9", "#c9631c", "#b6a4ff", "M12 25c0-12 8-19 20-19s20 7 20 19c-3-5-7-8-12-8-4 2-12 3-19 1-4 1-7 4-9 7z"],
+    me: ["#ffd5b5", "#7a3417", "#ffcf3f", "M9 46C5 18 16 5 32 5s27 13 23 41c-1-13-4-24-11-28-7 3-17 3-24 1-6 5-10 15-11 27z"]
+  };
+  function face(k) {
+    var f = F[k];
+    return '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="' + f[2] + '" stroke="#2b1650" stroke-width="3"/><circle cx="32" cy="36" r="19" fill="' + f[0] + '"/><path d="' + f[3] + '" fill="' + f[1] + '"/><circle cx="25" cy="35" r="3" fill="#2b1650"/><circle cx="39" cy="35" r="3" fill="#2b1650"/><circle cx="19" cy="42" r="3" fill="#ff8f7a" opacity=".7"/><circle cx="45" cy="42" r="3" fill="#ff8f7a" opacity=".7"/><path d="M25 43c4 5 10 5 14 0" fill="none" stroke="#2b1650" stroke-width="3" stroke-linecap="round"/></svg>';
+  }
+  $$("[data-f]").forEach(function (el) { el.innerHTML = face(el.dataset.f); });
+
+  // A tiny spring: every tactile thing here is one or two of these.
+  function Spring(x, k, c) { this.x = x; this.v = 0; this.t = x; this.k = k; this.c = c; }
+  Spring.prototype.step = function (dt) { this.v += (this.k * (this.t - this.x) - this.c * this.v) * dt; this.x += this.v * dt; };
+  Spring.prototype.rest = function () { return Math.abs(this.t - this.x) < 0.01 && Math.abs(this.v) < 0.05; };
+
+  // ── Balls: real physics you can flick ────────────────────────────────
+  var cv = $("#balls"), ctx = cv.getContext("2d"), W, H, DPR = Math.min(devicePixelRatio || 1, 2);
+  function size() { W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; }
+  size(); addEventListener("resize", size);
+  var balls = [], running = false;
+  var COLORS = ["#ffcf3f", "#ff5a3c", "#2fd6a6", "#59c6ff", "#7a4dff", "#fff8e6"];
+  function spawn(x, y, vx, vy, plain) {
+    if (RM || balls.length > 70) return;
+    balls.push({ x: x, y: y, vx: vx, vy: vy, r: 9 + Math.random() * 9, c: plain ? "#ffcf3f" : COLORS[Math.random() * COLORS.length | 0], a: Math.random() * 6, w: (Math.random() - 0.5) * 12, born: performance.now(), life: 7000 + Math.random() * 2500 });
+    wake();
+  }
+  function burstAt(x, y, n, up) {
+    for (var i = 0; i < n; i++) {
+      var a = up ? -Math.PI / 2 + (Math.random() - 0.5) * 1.3 : Math.random() * 6.283;
+      var s = 260 + Math.random() * 820;
+      spawn(x, y, Math.cos(a) * s, Math.sin(a) * s - (up ? 200 : 120));
+    }
+  }
+  function wake() { if (!running) { running = true; lastT = performance.now(); requestAnimationFrame(tick); } }
+  var lastT = 0;
+  function tick(t) {
+    var dt = Math.min(0.025, (t - lastT) / 1000); lastT = t;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    for (var i = balls.length - 1; i >= 0; i--) {
+      var b = balls[i];
+      b.vy += 1700 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.a += b.w * dt;
+      if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.78; }
+      if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * 0.78; }
+      if (b.y > H - b.r) { b.y = H - b.r; b.vy = -Math.abs(b.vy) * 0.62; b.vx *= 0.97; b.w = b.vx / b.r; if (Math.abs(b.vy) < 26) b.vy = 0; }
+      var age = t - b.born;
+      if (age > b.life) { b.r -= 60 * dt; if (b.r < 1) { balls.splice(i, 1); continue; } }
+    }
+    for (var a = 0; a < balls.length; a++) for (var c = a + 1; c < balls.length; c++) {
+      var p = balls[a], q = balls[c], dx = q.x - p.x, dy = q.y - p.y, d2 = dx * dx + dy * dy, m = p.r + q.r;
+      if (d2 > 0 && d2 < m * m) {
+        var d = Math.sqrt(d2), nx = dx / d, ny = dy / d, o = (m - d) / 2;
+        p.x -= nx * o; p.y -= ny * o; q.x += nx * o; q.y += ny * o;
+        var rel = (q.vx - p.vx) * nx + (q.vy - p.vy) * ny;
+        if (rel < 0) { var imp = -rel * 0.8; p.vx -= nx * imp; p.vy -= ny * imp; q.vx += nx * imp; q.vy += ny * imp; }
+      }
+    }
+    balls.forEach(function (b) {
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.a);
+      ctx.fillStyle = b.c; ctx.strokeStyle = "#2b1650"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, b.r, 0, 6.283); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = "rgb(255 248 230 / .85)"; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.arc(-b.r * 1.1, 0, b.r * 0.8, -0.8, 0.8); ctx.moveTo(b.r * 1.1 - b.r * 0.8 * Math.cos(0.8), -b.r * 0.8 * Math.sin(0.8));
+      ctx.arc(b.r * 1.1, 0, b.r * 0.8, Math.PI + 0.8, Math.PI - 0.8, true); ctx.stroke();
+      ctx.restore();
+    });
+    if (balls.length) requestAnimationFrame(tick);
+    else { running = false; ctx.clearRect(0, 0, W, H); }
+  }
+  // Any finger sweeping through the balls sends them flying.
+  var fx = null, fy = null;
+  addEventListener("pointermove", function (e) {
+    if (fx !== null) {
+      var vx = (e.clientX - fx) * 40, vy = (e.clientY - fy) * 40;
+      balls.forEach(function (b) {
+        var dx = b.x - e.clientX, dy = b.y - e.clientY;
+        if (dx * dx + dy * dy < (b.r + 34) * (b.r + 34)) { b.vx += vx * 0.5 + dx * 12; b.vy += vy * 0.5 + dy * 12 - 200; b.born = performance.now(); }
+      });
+    }
+    fx = e.clientX; fy = e.clientY;
+  }, { passive: true });
+  addEventListener("pointerup", function () { fx = fy = null; }, { passive: true });
+  addEventListener("pointerdown", function (e) {
+    fx = e.clientX; fy = e.clientY;
+    balls.forEach(function (b) {
+      var dx = b.x - e.clientX, dy = b.y - e.clientY;
+      if (dx * dx + dy * dy < (b.r + 26) * (b.r + 26)) { b.vy = -640; b.vx += dx * 16; b.born = performance.now(); }
+    });
+  }, { passive: true });
+
+  // ── Big words that bounce in ─────────────────────────────────────────
+  function shout(text, tilt) {
+    var el = document.createElement("div");
+    el.className = "pop fat"; el.textContent = text; document.body.appendChild(el);
+    var r = tilt || -6;
+    el.animate([
+      { transform: "translate(-50%,-50%) scale(.2) rotate(" + (r - 24) + "deg)", opacity: 0 },
+      { transform: "translate(-50%,-50%) scale(1.22) rotate(" + (r + 4) + "deg)", opacity: 1, offset: 0.2 },
+      { transform: "translate(-50%,-50%) scale(.92) rotate(" + (r - 2) + "deg)", offset: 0.32 },
+      { transform: "translate(-50%,-50%) scale(1.03) rotate(" + r + "deg)", offset: 0.42 },
+      { transform: "translate(-50%,-50%) scale(1) rotate(" + r + "deg)", opacity: 1, offset: 0.82 },
+      { transform: "translate(-50%,-90%) scale(.9) rotate(" + r + "deg)", opacity: 0 }
+    ], { duration: RM ? 1 : 1500, easing: "ease-out" }).onfinish = function () { el.remove(); };
+  }
+
+  // ── Moment one: drag your own face onto the court ────────────────────
+  var me = $("#me"), homeEl = $("#home"), seat = $("#seat"), court = $("#court");
+  var px = new Spring(0, 420, 26), py = new Spring(0, 420, 26), sq = new Spring(0, 240, 12);
+  var wobble = new Spring(0, 200, 7);
+  var dragging = false, joined = false, flying = false, meRaf = 0, prevVX = 0;
+  function pageRect(el) { var r = el.getBoundingClientRect(); return { x: r.left + scrollX + r.width / 2, y: r.top + scrollY + r.height / 2 }; }
+  function place() { me.style.transform = "translate(" + (px.x - 34) + "px," + (py.x - 34) + "px)"; }
+  function snapHome() { var c = joined ? pageRect(seat) : pageRect(homeEl); px.x = px.t = c.x; py.x = py.t = c.y; px.v = py.v = 0; place(); }
+  snapHome();
+  addEventListener("resize", snapHome);
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(snapHome);
+
+  function animateMe() {
+    cancelAnimationFrame(meRaf);
+    var last = performance.now();
+    (function step(t) {
+      var dt = Math.min(0.025, (t - last) / 1000); last = t;
+      px.step(dt); py.step(dt); sq.step(dt); wobble.step(dt);
+      var speed = Math.hypot(px.v, py.v), stretch = Math.min(0.35, speed / 4200);
+      var angle = Math.atan2(py.v, px.v) * 180 / Math.PI;
+      var s = sq.x;
+      me.style.transform = "translate(" + (px.x - 34) + "px," + (py.x - 34) + "px) rotate(" + angle + "deg) scale(" + (1 + stretch) + "," + (1 - stretch) + ") rotate(" + -angle + "deg) scale(" + (1 + s) + "," + (1 - s) + ") rotate(" + (px.v / 90) + "deg)";
+      court.style.transform = "skewX(" + wobble.x * 5 + "deg) scale(" + (1 + wobble.x * 0.04) + "," + (1 - wobble.x * 0.06) + ")";
+      var busy = dragging || flying || !px.rest() || !py.rest() || !sq.rest() || !wobble.rest();
+      if (busy) meRaf = requestAnimationFrame(step);
+      else { court.style.transform = ""; place(); }
+    })(last);
+  }
+  function kickCourt() { wobble.v = 12; animateMe(); }
+
+  var ox = 0, oy = 0;
+  me.addEventListener("pointerdown", function (e) {
+    if (joined) { sq.v = 8; animateMe(); plink(6); return; }
+    me.setPointerCapture(e.pointerId);
+    dragging = true; haptic(); pop();
+    ox = e.pageX - px.x; oy = e.pageY - py.x;
+    sq.t = 0; sq.v = -6; me.style.zIndex = 13; animateMe();
+    px.t = e.pageX - ox; py.t = e.pageY - oy - 16;
+  });
+  me.addEventListener("pointermove", function (e) {
+    if (!dragging) return;
+    var x = e.pageX - ox, y = e.pageY - oy - 16, s = pageRect(seat);
+    var d = Math.hypot(x - s.x, y - s.y);
+    // Near the open spot it starts to pull your face in.
+    if (d < 90) { var pull = 1 - d / 90; x += (s.x - x) * pull * 0.7; y += (s.y - y) * pull * 0.7; }
+    px.t = x; py.t = y;
+  });
+  function release(e) {
+    if (!dragging) return;
+    dragging = false;
+    var s = pageRect(seat), d = Math.hypot(px.t - s.x, py.t - s.y);
+    if (d < 84) land();
+    else {
+      var c = pageRect(homeEl); px.t = c.x; py.t = c.y; sq.v = 5; tone(240, 0.12, "sine", 0.2, 150);
+      $("#trayText").textContent = "So close! Aim for the glowing spot";
+      animateMe();
+    }
+  }
+  me.addEventListener("pointerup", release);
+  me.addEventListener("pointercancel", release);
+
+  function land() {
+    joined = true;
+    var s = pageRect(seat), so = $("#socket");
+    px.t = s.x; py.t = s.y;
+    px.k = py.k = 700; px.c = py.c = 30;
+    so.style.display = "none";
+    me.style.zIndex = 8;
+    setTimeout(function () {
+      thock(); haptic();
+      sq.v = 16; kickCourt();
+      var r = seat.getBoundingClientRect();
+      burstAt(r.left + r.width / 2, r.top + r.height / 2, 34, true);
+      // The other three jump for joy, one after another.
+      $$("#court .token").forEach(function (tk, i) {
+        tk.animate([
+          { transform: "none" }, { transform: "translateY(4px) scale(1.14,.82)", offset: 0.14 },
+          { transform: "translateY(-38px) scale(.92,1.1)", offset: 0.46 },
+          { transform: "translateY(4px) scale(1.12,.84)", offset: 0.74 },
+          { transform: "translateY(-6px) scale(.98,1.02)", offset: 0.88 }, { transform: "none" }
+        ], { duration: RM ? 1 : 620, delay: 120 + i * 90, easing: "ease-out" });
+      });
+      fanfare();
+      shout("You’re in!");
+    }, RM ? 0 : 130);
+    animateMe();
+    $("#say").textContent = "Tonight 20:30. Game on, all four in!";
+    $("#trayText").textContent = "Tap your face to give it a wiggle";
+    $("#home").style.visibility = "hidden";
+    var jb = $("#joinBtn"); jb.textContent = "Leave";
+  }
+  function hop() {
+    // The Join button sends your face over on a big arc.
+    var c = pageRect(homeEl), s = pageRect(seat);
+    me.style.zIndex = 13;
+    if (RM) { px.x = px.t = s.x; py.x = py.t = s.y; place(); land(); return; }
+    flying = true;
+    var dur = 620, start = performance.now();
+    px.x = c.x; py.x = c.y; pop(); animateMe();
+    (function arc(t) {
+      var p = Math.min(1, (t - start) / dur);
+      px.t = c.x + (s.x - c.x) * p;
+      py.t = c.y + (s.y - c.y) * p - Math.sin(p * Math.PI) * 170;
+      px.x = px.t; py.x = py.t; px.v = (s.x - c.x) / dur * 1000; py.v = Math.cos(p * Math.PI) * -900;
+      if (p < 1) requestAnimationFrame(arc); else { flying = false; px.v = py.v = 0; land(); }
+    })(start);
+  }
+  function leave() {
+    joined = false;
+    px.k = py.k = 420; px.c = py.c = 26;
+    $("#socket").style.display = "";
+    $("#home").style.visibility = "";
+    $("#say").textContent = "Tonight 20:30. One spot left!";
+    $("#trayText").textContent = "Drag your face onto the court";
+    $("#joinBtn").textContent = "Join";
+    var c = pageRect(homeEl); px.t = c.x; py.t = c.y; sq.v = 6; animateMe();
+  }
+  $("#joinBtn").addEventListener("click", function () { haptic(); if (joined) leave(); else hop(); });
+
+  // ── Moment two: the + squashes, then fires ───────────────────────────
+  var plus = $("#plus"), pS = new Spring(0, 520, 13), holding = false, holdStart = 0, pRaf = 0;
+  function animPlus() {
+    cancelAnimationFrame(pRaf);
+    var last = performance.now();
+    (function step(t) {
+      var dt = Math.min(0.025, (t - last) / 1000); last = t;
+      if (holding) pS.t = Math.min(0.42, 0.12 + (t - holdStart) / 1000 * 0.42);
+      pS.step(dt);
+      var shake = holding && pS.t > 0.3 ? Math.sin(t / 22) * 2 : 0;
+      plus.style.transform = "translateX(" + shake + "px) scale(" + (1 + pS.x * 0.5) + "," + (1 - pS.x) + ")";
+      if (holding || !pS.rest()) pRaf = requestAnimationFrame(step);
+      else plus.style.transform = "";
+    })(last);
+  }
+  plus.addEventListener("pointerdown", function (e) { plus.setPointerCapture(e.pointerId); holding = true; holdStart = performance.now(); haptic(); tone(120, 0.08, "sine", 0.2); animPlus(); });
+  function fire() {
+    if (!holding) return;
+    holding = false;
+    var held = (performance.now() - holdStart) / 1000;
+    pS.t = 0; pS.v = -7 - held * 7;
+    var r = plus.getBoundingClientRect(), n = 2 + Math.round(Math.min(held, 1.2) * 20);
+    for (var i = 0; i < n; i++) spawn(r.left + r.width / 2, r.top + 10, (Math.random() - 0.62) * (420 + held * 500), -760 - Math.random() * 520 - held * 620);
+    pop(); haptic();
+    setTimeout(openSheet, held > 0.5 ? 900 : 300);
+  }
+  plus.addEventListener("pointerup", fire);
+  plus.addEventListener("pointercancel", function () { holding = false; pS.t = 0; });
+  plus.addEventListener("click", function (e) { if (e.detail === 0) openSheet(); });
+
+  var sheet = $("#sheet"), scrim = $("#scrim");
+  function openSheet() {
+    scrim.style.display = "block";
+    sheet.animate([
+      { transform: "translate(-50%,110%)" }, { transform: "translate(-50%,-5%)", offset: 0.5 },
+      { transform: "translate(-50%,2%)", offset: 0.72 }, { transform: "translate(-50%,-1%)", offset: 0.88 }, { transform: "translate(-50%,0)" }
+    ], { duration: RM ? 1 : 560, easing: "ease-out", fill: "forwards" });
+    $("#closeSheet").focus({ preventScroll: true });
+  }
+  function closeSheet() {
+    scrim.style.display = "none";
+    sheet.animate([{ transform: "translate(-50%,0)" }, { transform: "translate(-50%,110%)" }], { duration: RM ? 1 : 200, easing: "ease-in", fill: "forwards" });
+  }
+  $("#closeSheet").addEventListener("click", closeSheet);
+  scrim.addEventListener("click", closeSheet);
+
+  // ── Moment three: keep it in the air ─────────────────────────────────
+  var rEl = $("#rally"), rb = $("#rBall"), rc = $("#rCount"), rh = $("#rHint");
+  var ball = { x: 0, y: 0, vx: 0, vy: 0, a: 0, live: false }, count = 0, best = 0, rRaf = 0, RW = 0, RH = 0;
+  function rSize() { RW = rEl.clientWidth; RH = rEl.clientHeight; }
+  rSize(); addEventListener("resize", rSize);
+  function restBall() { ball.x = RW / 2 - 22; ball.y = RH - 80; ball.vx = ball.vy = 0; drawBall(); }
+  function drawBall() { rb.style.transform = "translate(" + ball.x + "px," + ball.y + "px) rotate(" + ball.a + "deg)"; }
+  restBall();
+  function rStep(t, last) {
+    var dt = Math.min(0.025, (t - last) / 1000);
+    ball.vy += (620 + Math.min(count, 20) * 26) * dt; ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.a += ball.vx * dt;
+    if (ball.x < 0) { ball.x = 0; ball.vx = Math.abs(ball.vx); tone(300, 0.05, "sine", 0.12); }
+    if (ball.x > RW - 44) { ball.x = RW - 44; ball.vx = -Math.abs(ball.vx); tone(300, 0.05, "sine", 0.12); }
+    if (ball.y < 0) { ball.y = 0; ball.vy = Math.abs(ball.vy) * 0.6; }
+    drawBall();
+    if (ball.y > RH + 10) {
+      ball.live = false;
+      tone(180, 0.28, "sawtooth", 0.1, 60);
+      rEl.animate([{ transform: "translateX(0)" }, { transform: "translateX(-9px)" }, { transform: "translateX(7px)" }, { transform: "translateX(-4px)" }, { transform: "none" }], { duration: 320 });
+      rh.textContent = count ? "Out! Tap to serve again" : "Tap to serve";
+      count = 0; rc.textContent = "0";
+      restBall();
+      return;
+    }
+    rRaf = requestAnimationFrame(function (n) { rStep(n, t); });
+  }
+  rEl.addEventListener("pointerdown", function (e) {
+    var r = rEl.getBoundingClientRect(), tx = e.clientX - r.left;
+    if (!ball.live) {
+      ball.live = true; ball.vy = -400; ball.vx = (Math.random() - 0.5) * 120;
+      rh.textContent = "Tap as it drops"; pop();
+      var now = performance.now(); cancelAnimationFrame(rRaf); rRaf = requestAnimationFrame(function (n) { rStep(n, now); });
+      return;
+    }
+    // A tap only counts when the ball is on its way down in the lower part.
+    if (ball.vy > -60 && ball.y > RH * 0.2) {
+      ball.vy = -(330 + Math.min(count, 20) * 9) - Math.random() * 50;
+      ball.vx = (ball.x + 22 - tx) * 2.2 + (Math.random() - 0.5) * 110;
+      count++;
+      rc.textContent = count;
+      if (count > best) { best = count; $("#rBest").textContent = best; }
+      rc.animate([{ transform: "scale(1.5) rotate(-6deg)" }, { transform: "scale(.94)" }, { transform: "scale(1)" }], { duration: 260, easing: "ease-out" });
+      rb.animate([{ scale: "1.3 .72" }, { scale: "1" }], { duration: 170, easing: "ease-out" });
+      plink(count); haptic();
+      if (count % 5 === 0) {
+        fanfare();
+        burstAt(r.left + r.width / 2, r.top + 30, 24, true);
+        shout(count === 5 ? "Rally!" : count === 10 ? "On fire!" : count + "!", 5);
+        rEl.animate([{ backgroundColor: "#ff5a3c" }, { backgroundColor: "#7a4dff" }], { duration: 560, easing: "ease-out" });
+      }
+    }
+  });
+
+  $$("nav a").forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); }); });
+  $("#next").addEventListener("click", function () { haptic(); pop(); });
+
+  window.__demo = { hop: hop, land: land, burst: burstAt, sheet: openSheet, serve: function () { rEl.dispatchEvent(new PointerEvent("pointerdown", { clientX: 200, bubbles: true })); } };
+})();
+</script>
+</body>
+</html>
