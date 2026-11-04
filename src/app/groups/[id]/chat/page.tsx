@@ -63,7 +63,7 @@ export default function GroupChatPage() {
   const inlineItems: InlineThreadItem[] = groupGames.map((g, i) => ({
     id: `game-${g.id}`,
     createdAt: g.createdAt ?? g.startsAt,
-    content: <GameCard key={`game-${g.id}`} game={g} delay={i * 50} />,
+    content: <GameCard key={`game-${g.id}`} game={g} />,
   }));
 
   return (

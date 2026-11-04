@@ -72,6 +72,24 @@
   /* ── Motion ── one ease for everything; exits simply run faster. */
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-sheet:      cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* ── The redesign experiment ── utilities for the tokens in the block at the
+     end of this file: bg-c-card, text-c-ink and so on. */
+  --color-c-bg: var(--c-bg);
+  --color-c-card: var(--c-card);
+  --color-c-ink: var(--c-ink);
+  --color-c-sub: var(--c-sub);
+  --color-c-line: var(--c-line);
+  --color-c-fill: var(--c-fill);
+  --color-c-accent: var(--c-accent);
+  --color-c-on-accent: var(--c-on-accent);
+  --color-c-tint: var(--c-tint);
+  --color-c-on-tint: var(--c-on-tint);
+  --color-c-amber: var(--c-amber);
+  --color-c-on-amber: var(--c-on-amber);
+  --color-c-danger: var(--c-danger);
+  --color-c-court: var(--c-court);
+  --color-c-court-line: var(--c-court-line);
 }
 
 /* The wall: flat court blue, painted court lines, and a fine halftone dot
@@ -342,4 +360,238 @@ body {
 /* hide the scrollbar on horizontal filter rows (design intent) */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ── The redesign experiment: "Behind the glass" ──────────────────────────
+   A padel court is a glass box, so glass is the sport's own material here.
+   Solid content, with glass only on what floats above it.
+
+   .court       puts the new look on everything inside it. It also re-points the
+                Peña tokens, so shared pieces inside (dialogs, inputs, buttons)
+                follow without the screens outside changing at all.
+   .court-page  also repaints the page behind, for a redesigned screen.         */
+:root {
+  --c-bg: #f3f6f5;
+  --c-card: #ffffff;
+  --c-ink: #12211f;
+  --c-sub: #566461;
+  --c-line: rgb(18 33 31 / 0.1);
+  --c-fill: rgb(18 33 31 / 0.055);
+  --c-accent: #0b5c57;
+  --c-on-accent: #ffffff;
+  --c-tint: #d5eae6;
+  --c-on-tint: #0b3f3b;
+  --c-amber: #f0a63a;
+  --c-on-amber: #12211f;
+  --c-danger: #b3361b;
+  --c-court: #0e6b65;
+  --c-court-line: rgb(255 255 255 / 0.55);
+  --c-glass: rgb(255 255 255 / 0.66);
+  --c-glass-dense: rgb(255 255 255 / 0.86);
+  --c-shadow: 0 1px 2px rgb(18 33 31 / 0.04), 0 8px 24px -12px rgb(18 33 31 / 0.14);
+  --c-font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-bg: #0c1716;
+    --c-card: #15221f;
+    --c-ink: #eaf1ef;
+    --c-sub: #9daeaa;
+    --c-line: rgb(234 241 239 / 0.11);
+    --c-fill: rgb(234 241 239 / 0.075);
+    --c-accent: #4cc7b8;
+    --c-on-accent: #06201d;
+    --c-tint: #1c3e39;
+    --c-on-tint: #bdebe3;
+    --c-danger: #ff8a70;
+    --c-court: #123f3b;
+    --c-court-line: rgb(255 255 255 / 0.4);
+    --c-glass: rgb(21 34 31 / 0.66);
+    --c-glass-dense: rgb(21 34 31 / 0.88);
+    --c-shadow: none;
+  }
+}
+html:has(.court-page),
+body:has(.court-page) {
+  background: var(--c-bg);
+}
+.c-ui {
+  font-family: var(--c-font-ui);
+}
+.court {
+  --color-tinta: var(--c-ink);
+  --color-papel: var(--c-card);
+  --color-lima: var(--c-tint);
+  --color-naranja: var(--c-accent);
+  --color-naranja-d: var(--c-danger);
+  --color-scrim: rgb(6 16 15 / 0.4);
+  --radius-stamp: 8px;
+  --radius-field: 12px;
+  --radius-card: 18px;
+  --shadow-sheet: var(--c-shadow);
+  --shadow-poster: var(--c-shadow);
+  --text-tiny: 0.75rem;
+  --text-micro: 0.8125rem;
+  --text-label: 0.875rem;
+  --text-body: 1rem;
+  --text-title: 1.0625rem;
+  --text-display-xs: 1.125rem;
+  --text-display-sm: 1.5rem;
+  --text-display-md: 2rem;
+  color: var(--c-ink);
+  color-scheme: light dark;
+  font-family: var(--c-font-ui);
+}
+
+/* One type voice for titles and numbers; the phone's own font for the rest. */
+.c-title,
+.court .t-display {
+  font-family: var(--font-schibsted), var(--c-font-ui);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+  letter-spacing: -0.015em;
+}
+.court .t-mono,
+.court .t-eyebrow {
+  font-family: var(--c-font-ui);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Shared pieces, carried over to the new look. */
+.c-card,
+.court .pl-card {
+  background: var(--c-card);
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--c-shadow);
+  color: var(--c-ink);
+}
+.court .pl-surface {
+  background: var(--c-fill);
+  border: 1px solid transparent;
+  color: var(--c-ink);
+}
+.court .border-2 {
+  border-width: 1px;
+}
+.court .border-tinta {
+  border-color: var(--c-line);
+}
+.court .border-dashed {
+  border-style: solid;
+}
+.court .pena-riso {
+  background: var(--c-accent);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--c-on-accent);
+  translate: none;
+}
+.court .pl-rise {
+  animation-name: c-fade;
+  animation-duration: 200ms;
+}
+.court .pl-skeleton {
+  background: var(--c-fill);
+}
+.court .pl-skeleton::after {
+  background: linear-gradient(90deg, transparent, var(--c-fill), transparent);
+}
+.court :focus-visible {
+  outline-color: var(--c-accent);
+}
+.court [role="dialog"] .pl-card {
+  background: var(--c-glass-dense);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+  border-radius: 26px;
+}
+
+/* Glass: Glassy UI's surface with a fill dense enough for text. Only ever on
+   what floats. Goes solid when someone asks for less transparency or more
+   contrast, or the browser can't blur. */
+.c-glass::before {
+  background-color: var(--c-glass);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+}
+.c-glass.c-sheet::before,
+.c-glass.c-menu::before {
+  background-color: var(--c-glass-dense);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  backdrop-filter: blur(28px) saturate(1.5);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .c-glass::before,
+  .c-glass.c-sheet::before,
+  .c-glass.c-menu::before {
+    background-color: var(--c-card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .c-glass::before {
+    background-color: var(--c-card);
+  }
+}
+
+/* The create sheet: nearly full height, with the form scrolling inside it. */
+.c-sheet.lg-sheet-content {
+  --lg-panel-radius: 1.75rem;
+  height: calc(100dvh - 2.5rem);
+  max-width: 28rem;
+  overflow: hidden;
+  padding: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.c-sheet .lg-sheet-handle {
+  margin: 0;
+}
+.c-sheet.lg-sheet-content[data-state="open"] {
+  animation-duration: 300ms;
+  animation-timing-function: var(--ease-sheet);
+}
+.c-sheet.lg-sheet-content[data-state="closed"] {
+  animation-duration: 200ms;
+  animation-timing-function: var(--ease-sheet);
+}
+
+/* Motion: quick, and only where it tells you something. */
+.c-press {
+  transition: transform 120ms var(--ease-out-strong);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .c-press:active {
+    transform: scale(0.98);
+  }
+  .c-spot-in {
+    animation: c-spot-in 240ms var(--ease-out-strong) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .c-sheet.lg-sheet-content[data-state] {
+    animation-name: c-fade;
+  }
+  .c-spot-in {
+    animation: c-fade 200ms ease both;
+  }
+}
+@keyframes c-spot-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+@keyframes c-fade {
+  from {
+    opacity: 0;
+  }
+}
 

@@ -1,13 +1,22 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
-import CreateGameForm from "@/components/CreateGameForm";
+import CreateSheet from "@/components/court/CreateSheet";
 
+// A direct /create link opens the same sheet, already up. Closing it goes back
+// where they came from, or home if this was the first page they opened.
 export default function CreateGamePage() {
+  const router = useRouter();
   return (
-    /* Extra bottom padding clears the pinned create bar as well as the nav. */
-    <main className="px-5 pt-4 pb-32 relative">
-      <CreateGameForm />
+    <main className="court court-page min-h-dvh relative">
+      <CreateSheet
+        open
+        onOpenChange={() => {
+          if (window.history.length > 1) router.back();
+          else router.push("/");
+        }}
+      />
       <BottomNav />
     </main>
   );

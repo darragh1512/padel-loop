@@ -112,7 +112,7 @@ export default function PlayerSearch({
 
       {query.trim() === "" ? (
         emptyHint && (
-          <p className="t-mono text-micro text-papel/70 text-center mt-6">
+          <p className="t-mono text-micro text-tinta/70 text-center mt-6">
             {emptyHint}
           </p>
         )

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Archivo_Black, Space_Mono } from "next/font/google";
+import { Archivo, Archivo_Black, Schibsted_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";
 
 // The three peña fonts, loaded via next/font and exposed as CSS variables
@@ -23,6 +23,17 @@ const spaceMono = Space_Mono({
   weight: ["400", "700"],
   variable: "--font-space-mono",
 });
+
+// Titles and numbers on the redesigned screens. Everything else on them uses
+// the phone's own font.
+const schibsted = Schibsted_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-schibsted",
+});
+
+// Glassy UI needs telling which appearance the phone is in, before the first
+// paint and whenever it changes.
+const GLASS_THEME_SCRIPT = `(function(){var m=matchMedia("(prefers-color-scheme: dark)");function s(){document.documentElement.setAttribute("data-lg-theme",m.matches?"dark":"light")}s();m.addEventListener("change",s)})()`;
 
 export const metadata: Metadata = {
   title: "Padel Loop",
@@ -62,7 +73,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0F1C3F",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F3F6F5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0C1716" },
+  ],
   // WITHOUT THIS, every env(safe-area-inset-*) in the app resolves to 0.
   // The bottom nav already asks for that inset; until viewport-fit is
   // cover it was asking for nothing, and in standalone the nav would sit
@@ -84,9 +98,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${archivo.variable} ${archivoBlack.variable} ${spaceMono.variable}`}
+      data-lg-theme="light"
+      suppressHydrationWarning
+      className={`${archivo.variable} ${archivoBlack.variable} ${spaceMono.variable} ${schibsted.variable}`}
     >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: GLASS_THEME_SCRIPT }} />
         <AppleSplash />
       </head>
       <body className="min-h-dvh antialiased">

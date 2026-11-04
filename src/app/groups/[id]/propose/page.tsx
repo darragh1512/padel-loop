@@ -14,7 +14,7 @@ export default function ProposeGroupGamePage() {
 
   return (
     /* Extra bottom padding clears the pinned create bar as well as the nav. */
-    <main className="px-5 pt-4 pb-32 relative">
+    <main className="court court-page px-5 pt-4 pb-10 relative">
       <CreateGameForm groupId={params.id} />
       <BottomNav />
     </main>

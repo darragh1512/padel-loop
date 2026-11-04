@@ -6,7 +6,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import GameCard from "@/components/GameCard";
-import { ButtonLink, ChipButton, EmptyState, SectionLabel, Skeleton } from "@/components/ui";
+import { GlassSurface } from "@/components/glassyui/glass-surface";
+import { ButtonLink, EmptyState, Skeleton } from "@/components/ui";
 import { CalendarPlus, SearchX } from "lucide-react";
 import { skillTierOf, type Game } from "@/lib/types";
 import { dublinDateKey } from "@/lib/time";
@@ -33,8 +34,28 @@ function matchesTime(game: Game, time: string | null): boolean {
   return start <= weekFromNow;
 }
 
-// One filter chip with a little drop-down of choices. Turns sage when a
-// choice is active; the menu pops in from the chip it belongs to.
+// A filter pill. Filled in when it's doing something.
+function Pill({
+  active = false,
+  className = "",
+  children,
+  ...props
+}: React.ComponentProps<"button"> & { active?: boolean }) {
+  return (
+    <button
+      type="button"
+      className={`c-press inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[0.875rem] font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-c-accent ${
+        active ? "bg-c-accent text-c-on-accent" : "bg-c-card text-c-ink shadow-[var(--c-shadow)]"
+      } ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+// One filter chip with a little drop-down of choices. The glass menu opens from
+// the chip it belongs to.
 function FilterChip({
   label,
   allLabel,
@@ -74,7 +95,7 @@ function FilterChip({
         if (e.key === "Escape" && open) onToggle();
       }}
     >
-      <ChipButton
+      <Pill
         active={active}
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -94,10 +115,10 @@ function FilterChip({
         >
           <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </ChipButton>
+      </Pill>
 
       {open && (
-        <div className="pl-pop absolute z-30 left-0 mt-1.5 min-w-40 rounded-field bg-papel border-2 border-tinta p-1.5 shadow-sheet">
+        <GlassSurface className="c-glass c-menu pl-pop absolute! z-30 left-0 mt-2 min-w-44 max-h-72 overflow-y-auto! rounded-[20px] p-1.5">
           {showSearch && (
             <input
               type="text"
@@ -105,14 +126,14 @@ function FilterChip({
               onChange={(e) => setOptQuery(e.target.value)}
               placeholder={`Search ${label.toLowerCase()}`}
               autoFocus
-              className="pl-surface w-full rounded-field text-label font-medium text-tinta placeholder:text-tinta/45 px-3 py-2 mb-1 focus:outline-none focus:border-naranja"
+              className="w-full rounded-[14px] bg-c-fill text-[1rem] text-c-ink placeholder:text-c-sub px-3 py-2 mb-1 outline-none"
             />
           )}
           <button
             type="button"
             onClick={() => onChange(null)}
-            className={`block w-full text-left text-label rounded-field px-3 py-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja ${
-              value == null ? "font-extrabold text-tinta bg-lima" : "font-medium text-tinta/70 hover:bg-tinta/6"
+            className={`block w-full text-left text-[0.9375rem] rounded-[14px] px-3 py-2.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-c-accent ${
+              value == null ? "font-semibold text-c-on-tint bg-c-tint" : "text-c-ink hover:bg-c-fill"
             }`}
           >
             {allLabel}
@@ -122,17 +143,17 @@ function FilterChip({
               key={o}
               type="button"
               onClick={() => onChange(o)}
-              className={`block w-full text-left text-label rounded-field px-3 py-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja ${
-                value === o ? "font-extrabold text-tinta bg-lima" : "font-medium text-tinta hover:bg-tinta/6"
+              className={`block w-full text-left text-[0.9375rem] rounded-[14px] px-3 py-2.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-c-accent ${
+                value === o ? "font-semibold text-c-on-tint bg-c-tint" : "text-c-ink hover:bg-c-fill"
               }`}
             >
               {o}
             </button>
           ))}
           {showSearch && visibleOptions.length === 0 && (
-            <div className="px-3 py-2 text-label text-tinta/45">No {label.toLowerCase()}s found</div>
+            <div className="px-3 py-2 text-[0.875rem] text-c-sub">No {label.toLowerCase()}s found</div>
           )}
-        </div>
+        </GlassSurface>
       )}
     </div>
   );
@@ -269,15 +290,15 @@ export default function GameFilters({
 
       {greeting && (
         <h1 className="mt-3.5 relative">
-          <span className="t-display text-display-md text-papel">{greeting}</span>
+          <span className="t-display text-display-md">{greeting}</span>
           <br />
-          <span className="text-body font-medium text-papel/85">{headlineText}</span>
+          <span className="text-body text-c-sub">{headlineText}</span>
         </h1>
       )}
 
       <div className="relative mt-4">
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tinta/45 pointer-events-none">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-c-sub pointer-events-none">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
             <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
@@ -287,14 +308,14 @@ export default function GameFilters({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search venue or area"
-          className="pl-surface w-full rounded-pill text-body font-medium text-tinta placeholder:text-tinta/45 pl-10 pr-9 py-2.5 focus:outline-none focus:border-naranja"
+          className="w-full h-11 rounded-full bg-c-fill text-[1rem] text-c-ink placeholder:text-c-sub pl-10 pr-9 outline-none focus:ring-2 focus:ring-c-accent"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
             aria-label="Clear search"
-            className="pl-hit absolute right-3 top-1/2 -translate-y-1/2 text-tinta/45 hover:text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima rounded-pill"
+            className="pl-hit absolute right-3 top-1/2 -translate-y-1/2 text-c-sub hover:text-c-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-c-accent rounded-full"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -342,7 +363,7 @@ export default function GameFilters({
           }}
         />
         {/* Connections-only toggle — a plain on/off chip (no menu). */}
-        <ChipButton
+        <Pill
           active={connectionsOnly}
           aria-pressed={connectionsOnly}
           onClick={() => {
@@ -351,18 +372,18 @@ export default function GameFilters({
           }}
         >
           Connections only
-        </ChipButton>
+        </Pill>
         {anyActive && (
-          <ChipButton onClick={clearAll}>
+          <Pill onClick={clearAll}>
             Clear
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
-          </ChipButton>
+          </Pill>
         )}
       </div>
 
-      <SectionLabel>{sectionLabel}</SectionLabel>
+      <h2 className="c-title text-[1.125rem] mt-7 mb-2.5">{sectionLabel}</h2>
 
       {!exclusionReady ? (
         <div className="space-y-3">
@@ -370,7 +391,7 @@ export default function GameFilters({
           <Skeleton className="rounded-card h-28" />
         </div>
       ) : filtered.length > 0 ? (
-        filtered.map((g, i) => <GameCard key={g.id} game={g} delay={Math.min(i, 6) * 50} />)
+        filtered.map((g) => <GameCard key={g.id} game={g} />)
       ) : (
         <EmptyState
           icon={
@@ -380,17 +401,17 @@ export default function GameFilters({
               <CalendarPlus size={22} strokeWidth={2.2} />
             )
           }
-          title={anyActive ? "Nothing matches — yet." : "The board is empty. ¿Jugamos?"}
+          title={anyActive ? "Nothing matches yet." : "No open games right now."}
           body={
             anyActive
-              ? "Loosen a filter or two and more posters will appear."
-              : "Be the one who pins a game up — the Loop fills the spots."
+              ? "Loosen a filter or two and more games will appear."
+              : "Set one up and the Loop fills the spots."
           }
           action={
             anyActive ? (
-              <ChipButton active onClick={clearAll}>
+              <Pill active onClick={clearAll}>
                 Clear filters
-              </ChipButton>
+              </Pill>
             ) : (
               <ButtonLink href="/create" variant="secondary" size="sm">
                 Create a game

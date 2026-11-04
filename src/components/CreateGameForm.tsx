@@ -8,9 +8,8 @@
 // separate, already-logged bug this form doesn't touch), and a successful
 // create lands back in the group's thread instead of the game's own page.
 //
-// Layout follows the prototype: two numbered sections on the wall, the
-// where-and-when details gathered into one poster, and the create action
-// pinned to the foot of the screen above the navigation.
+// Layout: two short sections of grouped fields, with the create action always
+// in reach at the foot.
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -29,16 +28,13 @@ const LEVELS = ["1.0", "1.5", "2.0", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0"];
 const SLOTS = ["18:30", "19:00", "19:30", "20:00", "20:30", "21:00"];
 
 
-/* The section rule: a tracked-out mono label with an ink hairline. */
-function Rule({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2.5 mx-0.5 mb-2 mt-4.5">
-      <span className="t-mono text-tiny tracking-[0.2em] text-papel/72 whitespace-nowrap">
-        {children}
-      </span>
-      <span className="flex-1 h-0.5 bg-papel/18" />
-    </div>
-  );
+const LABEL = "block text-[0.8125rem] text-c-sub";
+// 16px or more, or iOS zooms the whole page when a field is tapped.
+const FIELD =
+  "w-full bg-transparent text-[1.0625rem] text-c-ink outline-none mt-0.5 placeholder:text-c-sub";
+
+function Section({ children }: { children: React.ReactNode }) {
+  return <h3 className="c-title text-[1.0625rem] text-c-ink mt-6 mb-2 px-0.5">{children}</h3>;
 }
 
 /* A settings row with a switch. The whole row is the target. */
@@ -47,13 +43,11 @@ function ToggleRow({
   desc,
   on,
   onToggle,
-  last = false,
 }: {
   title: string;
   desc: string;
   on: boolean;
   onToggle: () => void;
-  last?: boolean;
 }) {
   return (
     <button
@@ -61,24 +55,20 @@ function ToggleRow({
       role="switch"
       aria-checked={on}
       onClick={onToggle}
-      className={`w-full flex items-center gap-3 px-3.5 py-3 text-left text-tinta focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja ${
-        last ? "" : "border-b-2 border-tinta/15"
-      }`}
+      className="w-full flex items-center gap-3 px-4 py-3 text-left text-c-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-c-accent"
     >
       <span className="flex-1 min-w-0">
-        <span className="t-display block text-[0.875rem]">{title}</span>
-        <span className="block text-label text-tinta/62 mt-0.5 leading-tight">
-          {desc}
-        </span>
+        <span className="block text-[1rem] font-medium">{title}</span>
+        <span className="block text-[0.875rem] text-c-sub mt-0.5 leading-tight">{desc}</span>
       </span>
       <span
-        className={`flex-none w-12 h-6.75 rounded-pill border-2 border-tinta flex items-center p-0.5 transition-colors duration-200 ease-out ${
-          on ? "bg-naranja" : "bg-tinta/14"
+        className={`flex-none w-12.5 h-7.5 rounded-full p-0.5 transition-colors duration-150 ease-out ${
+          on ? "bg-c-accent" : "bg-c-fill"
         }`}
       >
         <span
-          className={`size-4.75 rounded-pill bg-papel border-2 border-tinta transition-transform duration-200 ease-out ${
-            on ? "translate-x-5.25" : "translate-x-0"
+          className={`block size-6.5 rounded-full bg-white shadow-sm transition-transform duration-150 ease-out ${
+            on ? "translate-x-5" : "translate-x-0"
           }`}
         />
       </span>
@@ -86,7 +76,15 @@ function ToggleRow({
   );
 }
 
-export default function CreateGameForm({ groupId }: { groupId?: string }) {
+export default function CreateGameForm({
+  groupId,
+  inSheet = false,
+}: {
+  groupId?: string;
+  // Inside the create sheet the form scrolls itself and the sheet's own close
+  // button is the way out.
+  inSheet?: boolean;
+}) {
   const router = useRouter();
 
   // Who is logged in. Creating a game requires an account, so we send
@@ -203,62 +201,33 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
   }
 
   return (
-    <>
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 pb-1">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="Go back"
-          className="size-9 flex-none rounded-pill border-2 border-papel/35 bg-white/8 hover:bg-white/18 grid place-items-center transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-        >
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
-            <path
-              d="M15 5l-7 7 7 7"
-              stroke="var(--color-papel)"
-              strokeWidth="2.6"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
-        <div className="min-w-0">
-          <div className="t-eyebrow text-tiny text-lima">
-            {groupId ? "For your group" : "Pin it to the board"}
-          </div>
-          <h1 className="t-display text-[clamp(1.375rem,6.5vw,1.6875rem)] leading-none text-white mt-0.5">
-            {groupId ? "Propose a game" : "Create a game"}
-            <span className="text-naranja">.</span>
-          </h1>
-        </div>
-      </div>
-
-      {/* ── 01 · Where & when ────────────────────────────────────────────── */}
-      <Rule>01 · Where &amp; when</Rule>
-
-      <div className="pl-card overflow-hidden">
-        {/* Venue + area, edited in place. */}
-        <div className="flex items-center gap-3 px-3.5 py-3">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden
-            className="flex-none text-tinta"
-          >
-            <path
-              d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            <circle cx="12" cy="10" r="2.6" stroke="currentColor" strokeWidth="2" />
-          </svg>
-          <div className="flex-1 min-w-0">
-            <label
-              htmlFor="cg-venue"
-              className="t-mono block text-[0.5625rem] tracking-[0.18em] text-tinta/50"
+    <div className={inSheet ? "flex flex-col flex-1 min-h-0" : ""}>
+      <div className={inSheet ? "flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-1" : ""}>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-3 pr-11">
+          {!inSheet && (
+            <button
+              type="button"
+              onClick={() => router.back()}
+              aria-label="Go back"
+              className="c-press size-10 flex-none rounded-full bg-c-card text-c-ink shadow-[var(--c-shadow)] grid place-items-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-c-accent"
             >
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+                <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+          <h2 className="c-title text-[1.625rem] leading-tight text-c-ink">
+            {groupId ? "Propose a game" : "Create a game"}
+          </h2>
+        </div>
+
+        {/* ── Where & when ───────────────────────────────────────────────── */}
+        <Section>Where and when</Section>
+
+        <div className="c-card divide-y divide-c-line overflow-hidden">
+          <div className="px-4 py-2.5">
+            <label htmlFor="cg-venue" className={LABEL}>
               Venue
             </label>
             <input
@@ -267,181 +236,164 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
               placeholder="Where are you playing?"
-              className="t-display w-full bg-transparent text-[1rem] text-tinta outline-none mt-0.5 placeholder:text-tinta/35 focus:text-naranja-d"
+              className={FIELD}
             />
+          </div>
+          <div className="px-4 py-2.5">
+            <label htmlFor="cg-area" className={LABEL}>
+              Area
+            </label>
             <input
+              id="cg-area"
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Area"
-              aria-label="Area"
-              className="t-mono w-full bg-transparent text-micro tracking-normal normal-case text-tinta/60 outline-none mt-0.5 placeholder:text-tinta/35 focus:text-naranja-d"
+              className={FIELD}
             />
           </div>
-        </div>
 
-        <div className="h-0.5 bg-tinta/15" />
-
-        {/* Date and time, side by side with an ink rule between. */}
-        <div className="grid grid-cols-[1fr_2px_1fr]">
-          <div className="px-3.5 py-2.75 min-w-0">
-            <label
-              htmlFor="cg-date"
-              className="t-mono block text-[0.5625rem] tracking-[0.18em] text-tinta/50"
-            >
-              Date
-            </label>
-            <input
-              id="cg-date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="t-display w-full bg-transparent text-[1rem] text-tinta outline-none mt-0.75 [color-scheme:light] focus:text-naranja-d"
-            />
-          </div>
-          <div className="bg-tinta/15" />
-          <div className="px-3.5 py-2.75 min-w-0">
-            <label
-              htmlFor="cg-time"
-              className="t-mono block text-[0.5625rem] tracking-[0.18em] text-tinta/50"
-            >
-              Time
-            </label>
-            <input
-              id="cg-time"
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="t-display w-full bg-transparent text-[1rem] text-tinta outline-none mt-0.75 [color-scheme:light] focus:text-naranja-d"
-            />
-          </div>
-        </div>
-
-        {/* Quick kick-off times — these just fill the time field above. */}
-        <div className="flex gap-1.5 px-3.5 pb-3 overflow-x-auto no-scrollbar">
-          {SLOTS.map((s) => {
-            const on = time === s;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setTime(s)}
-                aria-pressed={on}
-                className={`t-mono flex-none rounded-pill px-2.5 py-1.5 text-micro tracking-[0.06em] border-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-naranja ${
-                  on
-                    ? "border-tinta bg-tinta text-lima"
-                    : "border-tinta/30 bg-transparent text-tinta/60 hover:border-tinta/60"
-                }`}
-              >
-                {s}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── 02 · Game setup ──────────────────────────────────────────────── */}
-      <Rule>02 · Game setup</Rule>
-
-      {/* Format — the inset segmented control, lime for the chosen one. */}
-      <div className="flex gap-1.5 bg-[rgb(6_20_58/0.35)] border-2 border-papel/22 rounded-[3px] p-1">
-        {FORMATS.map((f) => (
-          <button
-            key={f}
-            type="button"
-            onClick={() => setFormat(f)}
-            aria-pressed={format === f}
-            className={`t-mono flex-1 py-2.25 px-1 rounded-stamp text-micro transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-lima ${
-              format === f ? "bg-lima text-tinta" : "text-papel/65 hover:text-papel"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {/* Level range — tap two rungs of the ladder to set the band. */}
-      <div className="pl-card px-3.5 pt-3 pb-3.5 mt-3">
-        <div className="flex items-baseline justify-between gap-2.5">
-          <span className="t-mono text-[0.5625rem] tracking-[0.18em] text-tinta/50 whitespace-nowrap">
-            Level range
-          </span>
-          <span className="t-display text-[1rem] text-tinta whitespace-nowrap">
-            {LEVELS[lo]} — {LEVELS[hi]}
-          </span>
-        </div>
-        <div className="flex gap-1 mt-2.5">
-          {LEVELS.map((l, i) => {
-            const inRange = i >= lo && i <= hi;
-            const edge = i === lo || i === hi;
-            return (
-              <button
-                key={l}
-                type="button"
-                onClick={() => pickLevel(i)}
-                aria-pressed={inRange}
-                aria-label={`Level ${l}`}
-                className={`t-mono flex-1 min-w-0 py-2 text-tiny tracking-normal rounded-stamp border-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-naranja ${
-                  edge
-                    ? "border-tinta bg-tinta text-lima"
-                    : inRange
-                      ? "border-transparent bg-lima/85 text-tinta"
-                      : "border-tinta/18 bg-transparent text-tinta/45"
-                }`}
-              >
-                {l}
-              </button>
-            );
-          })}
-        </div>
-        <p className="t-eyebrow text-tiny tracking-normal normal-case text-tinta/55 mt-2.25">
-          Tap two levels to set the range.
-        </p>
-      </div>
-
-      {/* Visibility and repetition. */}
-      <div className="pl-card overflow-hidden mt-3">
-        {groupId ? (
-          // Group games are already off Discover via group_id (see getGames in
-          // lib/data.ts) — the toggle below doesn't apply here, and showing it
-          // would imply it does something, which today it doesn't for anyone
-          // (separate, already-logged bug). A plain note instead.
-          <div className="px-3.5 py-3 border-b-2 border-tinta/15">
-            <div className="t-display text-[0.875rem] text-tinta">
-              Only your group sees this
+          {/* Date and time, side by side. */}
+          <div className="grid grid-cols-2 divide-x divide-c-line">
+            <div className="px-4 py-2.5 min-w-0">
+              <label htmlFor="cg-date" className={LABEL}>
+                Date
+              </label>
+              <input
+                id="cg-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className={FIELD}
+              />
             </div>
-            <div className="text-label text-tinta/62 mt-0.5 leading-tight">
-              Proposed games never appear on Discover.
+            <div className="px-4 py-2.5 min-w-0">
+              <label htmlFor="cg-time" className={LABEL}>
+                Time
+              </label>
+              <input
+                id="cg-time"
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className={FIELD}
+              />
             </div>
           </div>
-        ) : (
+
+          {/* Quick kick-off times — these just fill the time field above. */}
+          <div className="flex gap-1.5 px-4 py-3 overflow-x-auto no-scrollbar">
+            {SLOTS.map((s) => {
+              const on = time === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setTime(s)}
+                  aria-pressed={on}
+                  className={`flex-none h-9 rounded-full px-3 text-[0.875rem] font-medium tabular-nums focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-c-accent ${
+                    on ? "bg-c-accent text-c-on-accent" : "bg-c-fill text-c-ink"
+                  }`}
+                >
+                  {s}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Game setup ─────────────────────────────────────────────────── */}
+        <Section>Game setup</Section>
+
+        {/* Format — a segmented control. */}
+        <div className="flex gap-1 bg-c-fill rounded-[14px] p-1">
+          {FORMATS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFormat(f)}
+              aria-pressed={format === f}
+              className={`flex-1 h-9 px-1 rounded-[11px] text-[0.9375rem] font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-c-accent ${
+                format === f ? "bg-c-card text-c-ink shadow-[var(--c-shadow)]" : "text-c-sub"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* Level range — tap two rungs of the ladder to set the band. */}
+        <div className="c-card px-4 pt-3 pb-3.5 mt-3">
+          <div className="flex items-baseline justify-between gap-2.5">
+            <span className="text-[1rem] font-medium">Level range</span>
+            <span className="c-title text-[1.0625rem] whitespace-nowrap">
+              {LEVELS[lo]} – {LEVELS[hi]}
+            </span>
+          </div>
+          <div className="flex gap-1 mt-2.5">
+            {LEVELS.map((l, i) => {
+              const inRange = i >= lo && i <= hi;
+              const edge = i === lo || i === hi;
+              return (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => pickLevel(i)}
+                  aria-pressed={inRange}
+                  aria-label={`Level ${l}`}
+                  className={`flex-1 min-w-0 h-11 text-[0.75rem] font-medium tabular-nums rounded-[9px] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-c-accent ${
+                    edge
+                      ? "bg-c-accent text-c-on-accent"
+                      : inRange
+                        ? "bg-c-tint text-c-on-tint"
+                        : "bg-c-fill text-c-sub"
+                  }`}
+                >
+                  {l}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[0.8125rem] text-c-sub mt-2">Tap two levels to set the range.</p>
+        </div>
+
+        {/* Visibility and repetition. */}
+        <div className="c-card divide-y divide-c-line overflow-hidden mt-3">
+          {groupId ? (
+            // Group games are already off Discover via group_id (see getGames in
+            // lib/data.ts) — the toggle below doesn't apply here, and showing it
+            // would imply it does something, which today it doesn't for anyone
+            // (separate, already-logged bug). A plain note instead.
+            <div className="px-4 py-3">
+              <div className="text-[1rem] font-medium">Only your group sees this</div>
+              <div className="text-[0.875rem] text-c-sub mt-0.5">
+                Proposed games never appear on Discover.
+              </div>
+            </div>
+          ) : (
+            <ToggleRow
+              title="Open to the Loop"
+              desc="Anyone in range can request a slot"
+              on={openToLoop}
+              onToggle={() => setOpenToLoop(!openToLoop)}
+            />
+          )}
           <ToggleRow
-            title="Open to the Loop"
-            desc="Anyone in range can request a slot"
-            on={openToLoop}
-            onToggle={() => setOpenToLoop(!openToLoop)}
+            title="Repeats weekly"
+            desc="Same day and time — players carry over"
+            on={repeatsWeekly}
+            onToggle={() => setRepeatsWeekly(!repeatsWeekly)}
           />
-        )}
-        <ToggleRow
-          title="Repeats weekly"
-          desc="Same day and time — players carry over"
-          on={repeatsWeekly}
-          onToggle={() => setRepeatsWeekly(!repeatsWeekly)}
-          last
-        />
-      </div>
+        </div>
 
-      {/* Price — what ONE player pays. Optional: left blank, the game simply
-          has no price and no screen shows one. */}
-      <div className="pl-card px-3.5 py-3 mt-3">
-          <label
-            htmlFor="cg-price"
-            className="t-mono block text-[0.5625rem] tracking-[0.18em] text-tinta/50"
-          >
+        {/* Price — what ONE player pays. Optional: left blank, the game simply
+            has no price and no screen shows one. */}
+        <div className="c-card px-4 py-3 mt-3">
+          <label htmlFor="cg-price" className={LABEL}>
             Price per player
           </label>
-          <div className="flex items-baseline gap-1.5 mt-0.5">
-            <span className="t-display text-[1rem] text-tinta/45">€</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[1.0625rem] text-c-sub">€</span>
             <input
               id="cg-price"
               type="number"
@@ -452,50 +404,52 @@ export default function CreateGameForm({ groupId }: { groupId?: string }) {
               onChange={(e) => setPrice(e.target.value)}
               placeholder="Optional"
               aria-invalid={priceError ? true : undefined}
-              className="t-display flex-1 min-w-0 bg-transparent text-[1rem] text-tinta outline-none placeholder:text-tinta/35 focus:text-naranja-d"
+              className={`${FIELD} flex-1 min-w-0 mt-0`}
             />
           </div>
           {priceError ? (
-            <p aria-live="polite" className="text-label font-semibold text-naranja-d mt-1">
+            <p aria-live="polite" className="text-[0.875rem] font-medium text-c-danger mt-1">
               {priceError}
             </p>
           ) : (
-            <p className="t-eyebrow text-tiny tracking-normal normal-case text-tinta/55 mt-1">
+            <p className="text-[0.8125rem] text-c-sub mt-1">
               What each player pays. Leave it blank if there&rsquo;s no set price.
             </p>
           )}
-      </div>
-
-      {error && (
-        <p
-          aria-live="polite"
-          className="text-center text-label font-semibold text-papel bg-naranja-d rounded-field px-3 py-2 mt-3"
-        >
-          Couldn&apos;t create that game. Please try again.
-        </p>
-      )}
-
-      {/* ── The pinned action bar ────────────────────────────────────────── */}
-      {/* Sits just above the bottom navigation, on a fade so the board's
-          content dissolves under it rather than colliding with it. */}
-      <div className="fixed inset-x-0 bottom-19 z-10 pointer-events-none">
-        <div className="mx-auto w-full max-w-md px-5 pt-6.5 pb-3 bg-[linear-gradient(180deg,rgb(26_79_196/0)_0%,rgb(26_79_196/0.92)_26%)] pointer-events-auto">
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={saving}
-            aria-busy={saving || undefined}
-            className="t-mono pena-riso w-full flex items-center justify-center gap-2.5 bg-lima text-tinta border-2 border-tinta rounded-card py-3.5 text-title tracking-[0.16em] disabled:opacity-60 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-papel"
-          >
-            {saving ? "Creating…" : groupId ? "Propose game" : "Create game"}
-            {livePrice && (
-              <span className="t-mono bg-tinta text-lima rounded-stamp px-1.75 py-0.75 text-micro tracking-[0.04em]">
-                {livePrice}
-              </span>
-            )}
-          </button>
         </div>
+
+        {error && (
+          <p
+            aria-live="polite"
+            className="text-center text-[0.875rem] font-medium text-c-danger mt-3"
+          >
+            Couldn&apos;t create that game. Please try again.
+          </p>
+        )}
+        <div className="h-4" />
       </div>
-    </>
+
+      {/* ── The action ───────────────────────────────────────────────────── */}
+      {/* In the sheet it sits below the scrolling form. On a full page it
+          sticks just above the floating tab bar. */}
+      <div
+        className={
+          inSheet
+            ? "flex-none px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]"
+            : "sticky bottom-24 z-10 mt-2"
+        }
+      >
+        <button
+          type="button"
+          onClick={handleCreate}
+          disabled={saving}
+          aria-busy={saving || undefined}
+          className="c-press w-full h-13 flex items-center justify-center gap-2.5 rounded-[16px] bg-c-accent text-c-on-accent text-[1.0625rem] font-semibold disabled:opacity-60 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-c-accent"
+        >
+          {saving ? "Creating…" : groupId ? "Propose game" : "Create game"}
+          {livePrice && <span className="font-medium opacity-85">· {livePrice}</span>}
+        </button>
+      </div>
+    </div>
   );
 }

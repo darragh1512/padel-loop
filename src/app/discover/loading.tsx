@@ -6,27 +6,21 @@ import { Skeleton } from "@/components/ui";
 // fresh games list loads. Never a spinner.
 export default function DiscoverLoading() {
   return (
-    <main className="px-5 pt-6 relative">
-      <p className="t-mono text-micro text-papel/80 mt-2">The board · Dublin</p>
-      <h1 className="t-display text-display-md text-papel mt-1.5">
-        Disc<span className="text-lima">o</span>ver
-      </h1>
-      <p className="text-label font-medium text-papel/85 mt-1.5">
-        Open games near you — pick a poster and jump in.
-      </p>
+    <main className="court court-page px-4 pt-6 relative">
+      <h1 className="c-title text-[2.125rem] leading-tight mt-2">Discover</h1>
+      <p className="text-[0.9375rem] text-c-sub mt-0.5">Open games near you in Dublin.</p>
 
-      <Skeleton className="rounded-pill h-11 mt-4" />
+      <Skeleton className="rounded-full h-11 mt-4" />
       <div className="flex gap-2 mt-3">
-        <Skeleton className="rounded-pill h-8 w-20" />
-        <Skeleton className="rounded-pill h-8 w-20" />
-        <Skeleton className="rounded-pill h-8 w-20" />
-        <Skeleton className="rounded-pill h-8 w-32" />
+        <Skeleton className="rounded-full h-9 w-20" />
+        <Skeleton className="rounded-full h-9 w-20" />
+        <Skeleton className="rounded-full h-9 w-20" />
       </div>
 
-      <div className="mt-11 space-y-3">
-        <Skeleton className="rounded-card h-28" />
-        <Skeleton className="rounded-card h-28" />
-        <Skeleton className="rounded-card h-28" />
+      <div className="mt-7 space-y-3">
+        <Skeleton className="rounded-card h-34" />
+        <Skeleton className="rounded-card h-34" />
+        <Skeleton className="rounded-card h-34" />
       </div>
 
       <BottomNav />

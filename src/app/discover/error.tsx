@@ -25,7 +25,7 @@ export default function RouteError({
   }, [error]);
 
   return (
-    <main className="px-5 pt-6 relative">
+    <main className="court court-page px-4 pt-6 relative">
       <div className="mt-10">
         <ErrorState
           title="Couldn't load the board."

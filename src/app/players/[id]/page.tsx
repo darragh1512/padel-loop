@@ -6,9 +6,9 @@
 // the address), they also get an Edit mode to change their name, skill level,
 // home club and bio, and to upload an avatar photo.
 //
-// Layout follows the prototype: an identity band on the wall (avatar, name,
-// chips, quick actions), one stats poster, and a three-way segmented control
-// — Overview · Badges · Code — over a scrolling body.
+// Layout: who they are (avatar, name, level, quick actions), one row of stats,
+// and a three-way segmented control — Overview · Badges · Code — over a
+// scrolling body.
 //
 // Like the rest of the app this reads the player client-side using the shared
 // Supabase client, so the same auth/env setup applies everywhere.
@@ -16,7 +16,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { Flame, Star, Trophy } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import ScrollHeader from "@/components/court/ScrollHeader";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { publishAvatarChange } from "@/lib/avatarBus";
 import { blockUser, isBlocked, unblockUser } from "../../blocks";
@@ -50,46 +52,38 @@ import {
 } from "../../match-results";
 import { computeBadges, longestWinStreak, type BadgeProgress } from "../../badges";
 
-/* ── Small printed parts, straight from the prototype ─────────────────────*/
+/* ── Small parts ───────────────────────────────────────────────────────────*/
 
-// The section rule: a tracked-out mono label with an ink hairline running to
-// the edge of the board.
+// A section heading.
 function Rule({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2.5 mx-0.5 mb-2.5 mt-4">
-      <span className="t-mono text-tiny tracking-[0.2em] text-papel/72 whitespace-nowrap">
-        {children}
-      </span>
-      <span className="flex-1 h-0.5 bg-papel/18" />
-    </div>
+    <h2 className="c-title text-[1.125rem] mx-0.5 mb-2.5 mt-6">{children}</h2>
   );
 }
 
-// A progress bar: ink-outlined pill, lima fill.
+// A progress bar.
 function Bar({ pct, className = "" }: { pct: number; className?: string }) {
   return (
     <span
-      className={`block border-2 border-tinta rounded-pill overflow-hidden bg-tinta/10 ${className}`}
+      className={`block rounded-full overflow-hidden bg-c-fill ${className}`}
     >
       <span
-        className="block h-full bg-lima"
+        className="block h-full rounded-full bg-c-accent"
         style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
       />
     </span>
   );
 }
 
-// One upcoming game, in the prototype's result-row shape: a coloured rail, a
-// round stamp, the venue in poster caps, and the when/where in printed mono.
+// One upcoming game: the venue, then the when and where.
 function UpcomingGameRow({ game }: { game: Game }) {
   return (
     <Link
       href={`/games/${game.id}`}
-      className="pl-card pl-press relative flex items-center gap-3 py-2.5 pr-3.5 pl-4 overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+      className="pl-card c-press relative flex items-center gap-3 py-3 px-4 overflow-hidden"
     >
-      <span className="absolute left-0 inset-y-0 w-1.5 bg-lima" aria-hidden />
-      <span className="flex-none size-7.5 rounded-pill grid place-items-center border-2 border-tinta bg-lima">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden>
+      <span className="flex-none size-9 rounded-full grid place-items-center bg-c-tint text-c-on-tint">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
           <path
             d="M4.5 6.5h15v13h-15zM8 4v4M16 4v4M4.5 11h15"
             stroke="currentColor"
@@ -99,15 +93,15 @@ function UpcomingGameRow({ game }: { game: Game }) {
         </svg>
       </span>
       <span className="flex-1 min-w-0">
-        <span className="t-display block text-[0.875rem] text-tinta truncate">
+        <span className="block text-[1rem] font-medium truncate">
           {game.venue}
         </span>
-        <span className="t-eyebrow block text-tiny tracking-[0.06em] text-tinta/55 mt-0.5 truncate">
+        <span className="block text-[0.875rem] text-c-sub mt-0.5 truncate">
           {formatGameTime(game.game_time)}
           {game.location ? ` · ${game.location}` : ""}
         </span>
       </span>
-      <span className="t-mono flex-none text-tiny text-tinta bg-lima border-2 border-tinta rounded-stamp px-1.5 py-1">
+      <span className="flex-none text-[0.8125rem] text-c-sub">
         {game.skill_level}
       </span>
     </Link>
@@ -446,7 +440,7 @@ export default function PlayerProfilePage() {
   if (loading) {
     // Skeletons in the shape of the identity band — avatar, name, stats card.
     return (
-      <main className="px-5 pt-4 relative">
+      <main className="court court-page px-4 pt-5 relative">
         <div className="flex items-center gap-3.5">
           <Skeleton className="rounded-pill size-16 flex-none" />
           <div className="flex-1">
@@ -465,7 +459,7 @@ export default function PlayerProfilePage() {
   // not evidence that the player is gone.
   if (failed) {
     return (
-      <main className="px-5 pt-6 relative">
+      <main className="court court-page px-4 pt-6 relative">
         <div className="mt-10">
           <ErrorState
             title="Couldn't load this profile."
@@ -483,16 +477,16 @@ export default function PlayerProfilePage() {
 
   if (!profile) {
     return (
-      <main className="px-5 pt-6 relative">
-        <h1 className="t-display text-display-md text-papel mt-2">
+      <main className="court court-page px-4 pt-6 relative">
+        <h1 className="c-title text-[2rem] leading-tight mt-2">
           Player not found
         </h1>
-        <p className="text-body font-medium text-papel/85 mt-1.5">
+        <p className="text-[1rem] text-c-sub mt-1.5">
           This player doesn&rsquo;t have a profile yet.
         </p>
         <Link
           href="/"
-          className="t-mono inline-block text-lima text-body mt-4 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+          className="inline-block font-medium text-c-accent text-[1rem] mt-4 rounded-field"
         >
           ← Back home
         </Link>
@@ -551,45 +545,38 @@ export default function PlayerProfilePage() {
         : `Reliability needs ${RELIABILITY_MIN_GAMES} recorded games. ${matchStats.reliability.recorded} so far.`;
 
   return (
-    <main className="px-5 pt-4 relative">
-      {/* ── Identity band ────────────────────────────────────────────────── */}
+    <main className="court court-page px-4 pt-5 relative">
+      <ScrollHeader title={displayName} />
+
+      {/* ── Identity ─────────────────────────────────────────────────────── */}
       <header className="flex items-center gap-3.5">
         <PlayerAvatar
           userId={playerId}
           avatarUrl={shownAvatar}
           name={displayName}
-          className="size-16 flex-none border-2 border-tinta shadow-[4px_4px_0_rgb(6_20_58/0.4)]"
+          className="size-18 flex-none"
         />
         <div className="flex-1 min-w-0">
-          <h1 className="t-display text-[clamp(1.5rem,7vw,1.875rem)] leading-[0.95] text-white truncate">
-            {displayName}
-            <span className="text-naranja">.</span>
-          </h1>
-          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-            <span className="t-mono text-[0.5625rem] tracking-[0.14em] bg-tinta text-lima rounded-pill px-2 py-1 whitespace-nowrap">
-              {profile.skill_level || "Unrated"}
-            </span>
-            {profile.home_club && (
-              <span className="t-mono text-[0.5625rem] tracking-[0.14em] border-2 border-papel/40 text-papel/80 rounded-pill px-2 py-0.75 whitespace-nowrap max-w-full truncate">
-                {profile.home_club}
-              </span>
-            )}
+          <h1 className="c-title text-[1.75rem] leading-tight truncate">{displayName}</h1>
+          <div className="text-[0.9375rem] leading-snug text-c-sub mt-0.5">
+            {profile.skill_level || "Unrated"}
+            {profile.home_club && ` · ${profile.home_club}`}
           </div>
         </div>
 
         {/* Quick actions — owner only: edit the profile, or open settings. */}
         {isOwner && !editing && (
-          <div className="flex flex-col gap-1.75 flex-none">
+          <div className="flex gap-2 flex-none">
             <button
               type="button"
               onClick={startEdit}
               aria-label="Edit profile"
-              className="size-8.5 rounded-pill border-2 border-papel/35 bg-white/8 hover:bg-white/18 grid place-items-center transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+              className="c-press size-10 rounded-full bg-c-card text-c-ink shadow-[var(--c-shadow)] grid place-items-center"
             >
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden>
                 <path
                   d="M15.5 5.5l3 3L9 18H6v-3z"
-                  stroke="var(--color-papel)"
+                  stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                 />
@@ -598,13 +585,13 @@ export default function PlayerProfilePage() {
             <Link
               href="/profile"
               aria-label="Settings"
-              className="size-8.5 rounded-pill border-2 border-papel/35 bg-white/8 hover:bg-white/18 grid place-items-center transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+              className="c-press size-10 rounded-full bg-c-card text-c-ink shadow-[var(--c-shadow)] grid place-items-center"
             >
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden>
-                <circle cx="12" cy="12" r="3.2" stroke="var(--color-papel)" strokeWidth="2" />
+                <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="2" />
                 <path
                   d="M12 3v2.4M12 18.6V21M21 12h-2.4M5.4 12H3M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7M18.4 18.4l-1.7-1.7M7.3 7.3L5.6 5.6"
-                  stroke="var(--color-papel)"
+                  stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                 />
@@ -614,31 +601,29 @@ export default function PlayerProfilePage() {
         )}
       </header>
 
-      {/* ── Stats poster ─────────────────────────────────────────────────── */}
-      <div className="pl-card flex mt-3.5 overflow-hidden">
+      {/* ── Stats ────────────────────────────────────────────────────────── */}
+      <div className="pl-card flex mt-4 overflow-hidden">
         {stats.map((s, i) => {
           const inner = (
             <>
               <div
-                className={`t-display text-[1.1875rem] leading-none truncate ${
-                  s.accent ? "text-naranja" : "text-tinta"
-                }`}
+                className="c-title text-[1.25rem] leading-none truncate"
               >
                 {s.value}
               </div>
-              <div className="t-mono text-[0.5625rem] tracking-[0.14em] text-tinta/55 mt-1 whitespace-nowrap">
+              <div className="text-[0.75rem] text-c-sub mt-1 whitespace-nowrap">
                 {s.label}
               </div>
             </>
           );
-          const cell = `flex-1 min-w-0 text-center px-1 py-2.75 ${
-            i ? "border-l-2 border-tinta/15" : ""
+          const cell = `flex-1 min-w-0 text-center px-1 py-3.5 ${
+            i ? "border-l border-c-line" : ""
           }`;
           return s.href ? (
             <Link
               key={s.label}
               href={s.href}
-              className={`${cell} hover:bg-lima/25 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja`}
+              className={`${cell} hover:bg-c-fill`}
             >
               {inner}
             </Link>
@@ -652,7 +637,7 @@ export default function PlayerProfilePage() {
 
       {/* Says in words what the Reliable cell means — always shown, because an
           em dash on its own would read as a bad score rather than no score. */}
-      <p className="text-label font-medium text-papel/75 mt-2 px-0.5">
+      <p className="text-[0.8125rem] text-c-sub mt-2 px-1">
         {reliabilityNote}
       </p>
 
@@ -678,14 +663,14 @@ export default function PlayerProfilePage() {
               blocked ? handleUnblock() : setConfirmingBlock(true)
             }
             disabled={blockBusy}
-            className="t-mono block w-full text-center text-micro tracking-[0.12em] text-papel/60 hover:text-papel/90 underline underline-offset-4 mt-3 rounded-field disabled:opacity-50 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+            className="block w-full text-center text-[0.875rem] text-c-sub h-11 mt-1 rounded-field disabled:opacity-50"
           >
             {blocked ? "Unblock this player" : "Block this player"}
           </button>
           <button
             type="button"
             onClick={() => setReporting(true)}
-            className="t-mono block w-full text-center text-micro tracking-[0.12em] text-papel/60 hover:text-papel/90 underline underline-offset-4 mt-2 rounded-field transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+            className="block w-full text-center text-[0.875rem] text-c-sub h-11 rounded-field"
           >
             Report this player
           </button>
@@ -772,7 +757,7 @@ export default function PlayerProfilePage() {
         <div
           role="tablist"
           aria-label="Profile sections"
-          className="flex gap-1.5 mt-3 bg-[rgb(6_20_58/0.35)] border-2 border-papel/22 rounded-[3px] p-1"
+          className="flex gap-1 mt-4 bg-c-fill rounded-[14px] p-1"
         >
           {(["Overview", "Badges", "Code"] as Tab[])
             // The code panel is the owner's own sharing tool.
@@ -784,8 +769,8 @@ export default function PlayerProfilePage() {
                 role="tab"
                 aria-selected={tab === t}
                 onClick={() => setTab(t)}
-                className={`t-mono flex-1 py-2 px-1 rounded-stamp text-micro transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-lima ${
-                  tab === t ? "bg-papel text-tinta" : "text-papel/65 hover:text-papel"
+                className={`flex-1 h-9 px-1 rounded-[11px] text-[0.9375rem] font-medium ${
+                  tab === t ? "bg-c-card text-c-ink shadow-[var(--c-shadow)]" : "text-c-sub"
                 }`}
               >
                 {t}
@@ -802,7 +787,7 @@ export default function PlayerProfilePage() {
               userId={playerId}
               avatarUrl={fAvatarUrl}
               name={fName || displayName}
-              className="size-14 border-2 border-tinta"
+              className="size-14"
             />
             <div>
               <Button
@@ -823,7 +808,7 @@ export default function PlayerProfilePage() {
                   type="button"
                   onClick={() => setConfirmingRemove(true)}
                   disabled={uploading}
-                  className="t-mono text-micro text-naranja-d underline underline-offset-2 mt-2 rounded-field disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+                  className="text-[0.875rem] text-c-danger mt-2 rounded-field disabled:opacity-50"
                 >
                   Remove photo
                 </button>
@@ -907,14 +892,14 @@ export default function PlayerProfilePage() {
       {/* ── Overview ─────────────────────────────────────────────────────── */}
       {!editing && tab === "Overview" && (
         <>
-          {/* Form — the last eight confirmed results as stamped cells, with
-              the current run called out in riso orange. */}
-          <div className="pl-card px-3.5 py-3.25 mt-3">
+          {/* Form — the last eight confirmed results, with the current run
+              called out. */}
+          <div className="pl-card px-4 py-3.5 mt-3">
             <div className="flex items-baseline justify-between gap-2.5">
-              <span className="t-mono text-tiny tracking-[0.18em] text-tinta/55 whitespace-nowrap">
+              <span className="text-[1rem] font-medium whitespace-nowrap">
                 Form · last {form.length || 8}
               </span>
-              <span className="t-mono text-micro text-naranja whitespace-nowrap">
+              <span className="text-[0.875rem] text-c-sub whitespace-nowrap">
                 {currentStreak > 0 ? `W${currentStreak} streak` : "No streak"}
               </span>
             </div>
@@ -924,8 +909,8 @@ export default function PlayerProfilePage() {
                 {form.map((r, i) => (
                   <span
                     key={i}
-                    className={`t-mono flex-1 text-center py-1.5 rounded-stamp text-micro border-2 border-tinta ${
-                      r.won ? "bg-lima text-tinta" : "bg-transparent text-tinta/45"
+                    className={`flex-1 text-center py-1.5 rounded-stamp text-[0.8125rem] font-medium ${
+                      r.won ? "bg-c-accent text-c-on-accent" : "bg-c-fill text-c-sub"
                     }`}
                   >
                     {r.won ? "W" : "L"}
@@ -933,7 +918,7 @@ export default function PlayerProfilePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-label font-medium text-tinta/55 mt-2.5">
+              <p className="text-[0.875rem] text-c-sub mt-2.5">
                 No confirmed results yet — play a game and log the score.
               </p>
             )}
@@ -941,12 +926,12 @@ export default function PlayerProfilePage() {
             {/* Where this player's earned rating sits inside its 100-point
                 band, with the next hundred as the target. */}
             {profile.rating != null && (
-              <div className="flex items-center gap-2.5 mt-3 pt-2.75 border-t-2 border-dashed border-tinta/22">
-                <span className="t-mono text-micro text-tinta/60 whitespace-nowrap">
+              <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-c-line">
+                <span className="text-[0.8125rem] tabular-nums text-c-sub whitespace-nowrap">
                   {profile.rating}
                 </span>
                 <Bar pct={profile.rating % 100} className="flex-1 h-2" />
-                <span className="t-mono text-micro text-tinta/60 whitespace-nowrap">
+                <span className="text-[0.8125rem] tabular-nums text-c-sub whitespace-nowrap">
                   {Math.floor(profile.rating / 100) * 100 + 100}
                 </span>
               </div>
@@ -961,7 +946,7 @@ export default function PlayerProfilePage() {
               ))}
             </div>
           ) : (
-            <div className="pl-surface rounded-card px-4 py-5 text-center text-body font-medium text-tinta/70">
+            <div className="pl-card px-4 py-5 text-center text-[0.9375rem] text-c-sub">
               {isOwner
                 ? "Nothing coming up — your next game is waiting on Discover."
                 : `${displayName} has no games coming up.`}
@@ -969,15 +954,15 @@ export default function PlayerProfilePage() {
           )}
 
           <Rule>About</Rule>
-          <div className="pl-card p-3.5">
-            <div className="flex items-center gap-2 text-body font-medium text-tinta/70">
+          <div className="pl-card p-4">
+            <div className="flex items-center gap-2 text-[0.9375rem] text-c-sub">
               <svg
                 width="15"
                 height="15"
                 viewBox="0 0 24 24"
                 fill="none"
                 aria-hidden
-                className="shrink-0 text-naranja-d"
+                className="shrink-0"
               >
                 <path
                   d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11Z"
@@ -989,7 +974,7 @@ export default function PlayerProfilePage() {
               <span>{profile.home_club || "No home club set"}</span>
             </div>
             {profile.bio && (
-              <p className="text-body font-medium text-tinta whitespace-pre-line mt-3 pt-3 border-t-2 border-tinta/15">
+              <p className="text-[1rem] whitespace-pre-line mt-3 pt-3 border-t border-c-line">
                 {profile.bio}
               </p>
             )}
@@ -1002,33 +987,35 @@ export default function PlayerProfilePage() {
         <>
           <div className="grid grid-cols-3 gap-2.25 mt-3">
             {badges.flatMap((fam) =>
-              // Every rung of every family: the ones cleared are printed
-              // posters, the rest are dashed outlines waiting to be earned.
+              // Every rung of every family: the ones cleared are solid, the
+              // rest are faint, waiting to be earned.
               [...fam.earned, ...(fam.next ? [fam.next] : [])].map((b) => {
                 const earned = fam.value >= b.threshold;
                 return (
                   <div
                     key={b.id}
                     title={b.blurb}
-                    className={`flex flex-col items-center gap-1.75 px-1.5 py-3 rounded-card border-2 ${
-                      earned
-                        ? "border-solid border-tinta bg-papel shadow-[4px_4px_0_rgb(6_20_58/0.4)]"
-                        : "border-dashed border-papel/35 bg-white/6"
+                    className={`flex flex-col items-center gap-1.75 px-1.5 py-3 rounded-card ${
+                      earned ? "bg-c-card shadow-[var(--c-shadow)]" : "bg-c-fill"
                     }`}
                   >
                     <span
-                      className={`size-9.5 rounded-pill grid place-items-center text-[1.125rem] border-2 ${
-                        earned
-                          ? "border-tinta bg-naranja text-white"
-                          : "border-papel/35 text-papel/45"
+                      className={`size-9.5 rounded-full grid place-items-center ${
+                        earned ? "bg-c-accent text-c-on-accent" : "text-c-sub"
                       }`}
                       aria-hidden
                     >
-                      {b.family === "games" ? "⬢" : b.family === "streak" ? "⚡" : "★"}
+                      {b.family === "games" ? (
+                        <Trophy size={18} />
+                      ) : b.family === "streak" ? (
+                        <Flame size={18} />
+                      ) : (
+                        <Star size={18} />
+                      )}
                     </span>
                     <span
-                      className={`t-mono text-[0.5625rem] tracking-[0.08em] text-center leading-tight ${
-                        earned ? "text-tinta" : "text-papel/55"
+                      className={`text-[0.75rem] text-center leading-tight ${
+                        earned ? "text-c-ink" : "text-c-sub"
                       }`}
                     >
                       {b.title}
@@ -1044,12 +1031,12 @@ export default function PlayerProfilePage() {
             {badges
               .filter((fam) => fam.next)
               .map((fam) => (
-                <div key={fam.family} className="pl-card px-3.5 py-2.75">
+                <div key={fam.family} className="pl-card px-4 py-3">
                   <div className="flex items-baseline justify-between gap-2.5">
-                    <span className="t-display text-[0.875rem] text-tinta truncate">
+                    <span className="text-[1rem] font-medium truncate">
                       {fam.next!.title}
                     </span>
-                    <span className="t-mono text-micro text-tinta/60 whitespace-nowrap">
+                    <span className="text-[0.8125rem] tabular-nums text-c-sub whitespace-nowrap">
                       {fam.value} / {fam.next!.threshold}
                     </span>
                   </div>
@@ -1060,7 +1047,7 @@ export default function PlayerProfilePage() {
                 </div>
               ))}
             {badges.every((fam) => !fam.next) && (
-              <div className="pl-surface rounded-card px-4 py-5 text-center text-body font-medium text-tinta/70">
+              <div className="pl-card px-4 py-5 text-center text-[0.9375rem] text-c-sub">
                 Every badge earned. Nothing left to chase.
               </div>
             )}
@@ -1075,7 +1062,7 @@ export default function PlayerProfilePage() {
             {qrPanel === "code" ? (
               <>
                 {origin && <PlayerQRCode url={`${origin}/players/${playerId}`} />}
-                <div className="t-mono text-tiny tracking-[0.18em] text-tinta/55 mt-3.5">
+                <div className="text-[0.875rem] text-c-sub mt-3.5">
                   Scan to add {displayName}
                 </div>
               </>
@@ -1090,7 +1077,7 @@ export default function PlayerProfilePage() {
                     <button
                       type="button"
                       onClick={retryScan}
-                      className="t-mono text-micro text-tinta/70 underline mt-1.5"
+                      className="text-[0.875rem] text-c-accent mt-1.5"
                     >
                       Scan again
                     </button>
@@ -1107,13 +1094,13 @@ export default function PlayerProfilePage() {
                 setQrPanel(qrPanel === "code" ? "scan" : "code");
                 setScanError(null);
               }}
-              className="t-mono pena-riso flex items-center justify-center gap-2 bg-lima text-tinta border-2 border-tinta rounded-card py-3.25 px-2.5 text-micro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-papel"
+              className="c-press flex items-center justify-center h-12 rounded-[14px] bg-c-accent text-c-on-accent text-[1rem] font-semibold"
             >
               {qrPanel === "code" ? "Scan" : "My code"}
             </button>
             <Link
               href="/search"
-              className="t-mono flex items-center justify-center gap-2 bg-transparent text-papel border-2 border-papel/45 hover:border-lima hover:text-lima rounded-card py-3.25 px-2.5 text-micro transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+              className="c-press flex items-center justify-center h-12 rounded-[14px] bg-c-card text-c-ink shadow-[var(--c-shadow)] text-[1rem] font-medium"
             >
               Find by name
             </Link>
@@ -1121,12 +1108,12 @@ export default function PlayerProfilePage() {
         </>
       )}
 
-      {/* Log out — the one destructive action, kept quiet and dashed. */}
+      {/* Log out — the one destructive action, kept quiet. */}
       {isOwner && !editing && (
         <button
           type="button"
           onClick={handleLogout}
-          className="t-mono w-full mt-4 bg-transparent hover:bg-naranja/12 border-2 border-dashed border-naranja/70 text-naranja rounded-card py-3 text-micro tracking-[0.16em] transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+          className="w-full h-12 mt-6 text-c-danger rounded-[14px] text-[1rem] font-medium hover:bg-c-fill"
         >
           Log out
         </button>

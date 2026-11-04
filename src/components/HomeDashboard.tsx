@@ -1,14 +1,13 @@
 "use client";
 
 // The home dashboard. One job: get the player to their next game fast.
-//   • Top row: the day + greeting as a printed eyebrow, the player's own name
-//     as the poster shout, with the notification disc and their avatar
-//     opposite.
-//   • Hero: the next game as a taped-up match poster with a countdown stub,
-//     or a "Game on?" invitation when the board is empty.
-//   • "Find a game" — THE primary action, the one lima surface (→ /discover).
-//   • Two tiles — Connections and Leaderboard.
-//   • A stats strip along the foot.
+//   • Top row: the day + greeting, the player's own name, with the notification
+//     bell and their avatar opposite.
+//   • Hero: the next game on a deep court-coloured card with a countdown, or an
+//     invitation when nothing is booked. The one bold thing on the screen.
+//   • "Find a game" — the primary action (→ /discover).
+//   • A short list — Connections and Leaderboard.
+//   • Three quiet numbers along the foot.
 // Reuses the existing upcoming-games, connection-count and profile queries;
 // it adds no new data access of its own.
 
@@ -16,6 +15,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import ScrollHeader from "@/components/court/ScrollHeader";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import { getUpcomingGamesFor, type Game } from "@/app/games";
@@ -45,7 +45,7 @@ function ChevronRight({ className = "" }: { className?: string }) {
   );
 }
 
-/* "TUE 21:00" — the poster's date line, on a Dublin clock like everything
+/* "Tue 21:00" — the next game's date line, on a Dublin clock like everything
    else in the app. */
 function posterWhen(iso: string): string {
   const d = new Date(iso);
@@ -55,21 +55,21 @@ function posterWhen(iso: string): string {
   return `${f({ weekday: "short" })} ${f({ hour: "2-digit", minute: "2-digit", hour12: false })}`;
 }
 
-/* The countdown stub: "TODAY", "1d", "5d" … in Dublin calendar days. */
-function countdown(iso: string): { label: string; value: string } {
+/* The countdown: "Today", "Tomorrow", "In 5 days" … in Dublin calendar days. */
+function countdown(iso: string): string {
   const key = dublinDateKey(iso);
   const today = dublinDateKey(new Date());
-  if (!key || !today) return { label: "ON", value: "—" };
+  if (!key || !today) return "";
   const days = Math.round(
     (Date.parse(`${key}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000,
   );
-  if (days <= 0) return { label: "IT'S", value: "Today" };
-  if (days === 1) return { label: "IN", value: "1d" };
-  return { label: "IN", value: `${days}d` };
+  if (days <= 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
 }
 
-/* One of the two square tiles under the primary action. */
-function Tile({
+/* One row of the grouped list under the primary action. */
+function Row({
   href,
   icon,
   title,
@@ -83,11 +83,16 @@ function Tile({
   return (
     <Link
       href={href}
-      className="bg-white/8 hover:bg-white/14 border-2 border-papel/28 rounded-card p-3 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+      className="flex items-center gap-3.5 px-4 py-3 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-c-accent"
     >
-      {icon}
-      <div className="t-display text-display-xs text-papel mt-2.5">{title}</div>
-      <div className="text-label text-papel/65 mt-0.75">{sub}</div>
+      <span className="size-9 flex-none rounded-full bg-c-fill grid place-items-center text-c-ink">
+        {icon}
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[1rem] font-medium">{title}</span>
+        <span className="block text-[0.875rem] text-c-sub truncate">{sub}</span>
+      </span>
+      <ChevronRight className="text-c-sub" />
     </Link>
   );
 }
@@ -185,17 +190,14 @@ export default function HomeDashboard() {
   const firstName = name ? name.trim().split(/\s+/)[0] : null;
   const nextGame = upcoming[0] ?? null;
 
-  // The header band: the greeting eyebrow, the player's name as the shout,
-  // and the two round controls opposite.
+  // The header: the greeting, the player's name, and the two round controls
+  // opposite.
   const header = (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <div className="t-eyebrow text-micro text-lima mb-1.5 min-h-4">
-          {greeting}
-        </div>
-        <h1 className="t-display text-[clamp(2rem,10vw,2.5rem)] leading-[0.92] text-white truncate">
+        <div className="text-[0.875rem] text-c-sub min-h-5">{greeting}</div>
+        <h1 className="c-title text-[2.125rem] leading-tight truncate">
           {firstName ?? "Hello"}
-          <span className="text-naranja">.</span>
         </h1>
       </div>
       <div className="flex items-center gap-2.5 flex-none">
@@ -204,13 +206,13 @@ export default function HomeDashboard() {
           <Link
             href={`/players/${userId}`}
             aria-label="Your profile"
-            className="rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+            className="c-press rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-c-accent"
           >
             <PlayerAvatar
               userId={userId}
               avatarUrl={avatarUrl}
               name={name}
-              className="size-10.5 border-2 border-tinta"
+              className="size-10.5"
             />
           </Link>
         )}
@@ -224,13 +226,10 @@ export default function HomeDashboard() {
     return (
       <>
         {header}
-        <div className="mt-4 flex flex-col gap-3">
-          <Skeleton className="rounded-card h-28" />
+        <div className="mt-5 flex flex-col gap-3">
+          <Skeleton className="rounded-[22px] h-44" />
           <Skeleton className="rounded-card h-18" />
-          <div className="grid grid-cols-2 gap-2.5">
-            <Skeleton className="rounded-card h-24" />
-            <Skeleton className="rounded-card h-24" />
-          </div>
+          <Skeleton className="rounded-card h-32" />
         </div>
       </>
     );
@@ -243,7 +242,7 @@ export default function HomeDashboard() {
     return (
       <>
         {header}
-        <div className="mt-4">
+        <div className="mt-5">
           <ErrorState
             title="Couldn’t load your games."
             body="Your games are still there — this is us failing to fetch them, not an empty Loop."
@@ -257,95 +256,81 @@ export default function HomeDashboard() {
     );
   }
 
-  const stub = nextGame ? countdown(nextGame.game_time) : null;
+  const heroClass =
+    "relative block overflow-hidden rounded-[22px] bg-c-court text-white p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-c-accent";
+
+  // The court's lines, drawn large and faint behind the hero's words.
+  const courtLines = (
+    <svg
+      viewBox="0 0 200 120"
+      aria-hidden
+      className="absolute -right-24 -top-6 w-72 text-white/12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+    >
+      <rect x="4" y="4" width="192" height="112" rx="2" />
+      <path d="M100 4v112M44 4v112M156 4v112M44 60h112" />
+    </svg>
+  );
 
   return (
     <>
+      <ScrollHeader title={firstName ?? "Home"} />
       {header}
 
-      <div className="mt-4 flex flex-col gap-3">
-        {/* ── Hero: the match poster ─────────────────────────────────────── */}
-        {nextGame && stub ? (
-          <Link
-            href={`/games/${nextGame.id}`}
-            className="pl-card pl-press pl-rise shadow-poster relative px-4 pt-3.5 pb-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-          >
-            <span className="pena-tape" aria-hidden />
-            <div className="flex justify-between items-start gap-3">
-              <div className="min-w-0">
-                <div className="t-eyebrow text-tiny text-tinta/55">
-                  Next up · {posterWhen(nextGame.game_time)}
-                </div>
-                <div className="t-display text-display-sm text-tinta mt-1.25">
-                  {nextGame.venue}
-                  {nextGame.location && (
-                    <>
-                      <span className="text-tinta/45"> · </span>
-                      {nextGame.location}
-                    </>
-                  )}
-                </div>
+      <div className="mt-5 flex flex-col gap-3">
+        {/* ── Hero: the next game ────────────────────────────────────────── */}
+        {nextGame ? (
+          <Link href={`/games/${nextGame.id}`} className={`c-press ${heroClass}`}>
+            {courtLines}
+            <div className="relative">
+              <div className="text-[0.875rem] font-medium text-white/85">
+                Your next game · {countdown(nextGame.game_time)}
               </div>
-              <div className="flex-none text-center bg-tinta text-papel rounded-card px-2.5 py-1.5 min-w-13.5">
-                <div className="t-eyebrow text-tiny tracking-[0.12em]">{stub.label}</div>
-                <div className="t-display text-[1.25rem] leading-none mt-0.5">
-                  {stub.value}
-                </div>
+              <div className="c-title text-[1.75rem] leading-[1.1] mt-8">
+                {nextGame.venue}
               </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 mt-3 pt-2.5 border-t-2 border-dashed border-tinta/25">
-              <span className="t-mono text-micro text-tinta">
-                {nextGame.skill_level}
-              </span>
-              <span className="t-mono text-micro text-tinta border-b-2 border-naranja">
-                Details
-              </span>
+              <div className="text-[0.9375rem] text-white/85 mt-1.5">
+                {posterWhen(nextGame.game_time)}
+                {nextGame.location && ` · ${nextGame.location}`}
+                {` · ${nextGame.skill_level}`}
+              </div>
             </div>
           </Link>
         ) : (
-          <div className="pl-card pl-rise relative px-4 pt-4 pb-3.5">
-            <span className="pena-tape" aria-hidden />
-            <div className="t-display text-display-xs text-tinta">
-              Game <span className="text-naranja">on?</span>
-            </div>
-            <div className="text-body text-tinta/70 mt-1">
-              Nothing on the board yet — your next game is a tap away.
+          <div className={heroClass}>
+            {courtLines}
+            <div className="relative">
+              <div className="c-title text-[1.75rem] leading-[1.1]">Nothing booked yet</div>
+              <div className="text-[0.9375rem] text-white/85 mt-1.5">
+                Your next game is a tap away.
+              </div>
             </div>
           </div>
         )}
 
-        {/* ── Find a game — the one loud thing on the screen ──────────────── */}
+        {/* ── Find a game — the primary action ───────────────────────────── */}
         <Link
           href="/discover"
-          className="pena-riso-lg pena-riso pl-rise flex items-center gap-3.5 rounded-card px-3.5 py-3 bg-lima text-tinta border-2 border-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-papel"
-          style={{ animationDelay: "50ms" }}
+          className="c-press flex items-center gap-3.5 rounded-card px-4 py-3.5 bg-c-tint text-c-on-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-c-accent"
         >
-          <span className="pena-pulse relative size-11 flex-none rounded-pill border-2 border-tinta bg-papel grid place-items-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="2.2" />
-              <path
-                d="M16 16l4 4"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden className="flex-none">
+            <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
+            <path d="M16 16l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
           <span className="flex-1 min-w-0">
-            <span className="t-mono block text-title tracking-[0.14em]">
-              Find a game
-            </span>
-            <span className="block text-body text-tinta/70 mt-0.75">
+            <span className="block text-[1.0625rem] font-semibold">Find a game</span>
+            <span className="block text-[0.875rem] opacity-85">
               Open games near you, at your level
             </span>
           </span>
           <ChevronRight />
         </Link>
 
-        {/* ── Two tiles ──────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <Tile
+        {/* ── The short list ─────────────────────────────────────────────── */}
+        <div className="c-card divide-y divide-c-line overflow-hidden">
+          <Row
             href="/connections"
             title="Connections"
             sub={
@@ -354,41 +339,27 @@ export default function HomeDashboard() {
                 : `${connCount} ${connCount === 1 ? "friend" : "friends"} in your loop`
             }
             icon={
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden
-                className="text-lima"
-              >
-                <circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="2" />
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.8" />
                 <path
                   d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5M17 8.5a2.6 2.6 0 0 1 0 5M18 19c0-2.2-.7-3.7-2-4.6"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.8"
                   strokeLinecap="round"
                 />
               </svg>
             }
           />
-          <Tile
+          <Row
             href="/leaderboard"
             title="Leaderboard"
-            sub="Who runs the board?"
+            sub="See who’s on top"
             icon={
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden
-                className="text-naranja"
-              >
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
                   d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M10 20h4M12 13v7"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.8"
                   strokeLinecap="round"
                 />
               </svg>
@@ -396,35 +367,16 @@ export default function HomeDashboard() {
           />
         </div>
 
-        {/* ── The stats strip ────────────────────────────────────────────── */}
-        <div className="flex bg-[rgb(6_20_58/0.35)] border-2 border-papel/20 rounded-card overflow-hidden">
+        {/* ── Three quiet numbers ────────────────────────────────────────── */}
+        <div className="grid grid-cols-3 gap-2 px-1 pt-2">
           {[
-            {
-              value: rating != null ? String(rating) : "—",
-              label: "Rating",
-              tone: "text-lima",
-            },
-            {
-              value: String(upcoming.length),
-              label: "Upcoming",
-              tone: "text-papel",
-            },
-            {
-              value: String(connCount),
-              label: "Mates",
-              tone: "text-naranja",
-            },
-          ].map((s, i) => (
-            <div key={s.label} className="flex-1 min-w-0 flex">
-              {i > 0 && <span className="w-0.5 bg-papel/20 flex-none" />}
-              <div className="flex-1 min-w-0 text-center py-2.5 px-1">
-                <div className={`t-display text-display-sm ${s.tone} truncate`}>
-                  {s.value}
-                </div>
-                <div className="t-mono text-tiny tracking-[0.14em] text-papel/60 mt-0.75">
-                  {s.label}
-                </div>
-              </div>
+            { value: rating != null ? String(rating) : "—", label: "Rating" },
+            { value: String(upcoming.length), label: "Upcoming" },
+            { value: String(connCount), label: "Mates" },
+          ].map((s) => (
+            <div key={s.label} className="min-w-0">
+              <div className="c-title text-[1.375rem] truncate">{s.value}</div>
+              <div className="text-[0.8125rem] text-c-sub">{s.label}</div>
             </div>
           ))}
         </div>

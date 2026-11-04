@@ -1,21 +1,19 @@
 "use client";
 
-// The bottom navigation — a papel strip pinned along the foot of the board.
-// Five equal columns: Home · Games · the create stamp · Chat · Profile.
-//
-// Straight from the prototype: the active tab's icon sits in a filled tinta
-// pill with a lima glyph, its label goes solid tinta, and the create button is
-// an oversized naranja stamp lifted clear of the strip on a hard ink shadow.
+// The bottom navigation: four tabs in a floating glass capsule, with Create as
+// its own round button beside them, because tabs go places and Create does
+// something. Switching tabs doesn't animate: it happens too often to earn it.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import CreateSheet from "@/components/court/CreateSheet";
+import { GlassSurface } from "@/components/glassyui/glass-surface";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { supabase } from "@/lib/supabaseClient";
 import { getProfile } from "@/app/profiles";
 import { onAvatarChange } from "@/lib/avatarBus";
 
-// The prototype's own icon set — thin 2px strokes on a 24px grid.
 const ICONS: Record<string, string[]> = {
   home: ["M4 11l8-6 8 6", "M6.5 10v9h11v-9", "M10 19v-4h4v4"],
   games: ["M4.5 6.5h15v13h-15z", "M8 4v4", "M16 4v4", "M4.5 11h15", "M9 15h2"],
@@ -34,7 +32,7 @@ function NavIcon({ name }: { name: keyof typeof ICONS }) {
       height="22"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
@@ -46,42 +44,17 @@ function NavIcon({ name }: { name: keyof typeof ICONS }) {
   );
 }
 
-/* One tab column. The icon wrapper is the active indicator — a tinta pill
-   behind a lima glyph. Inactive sits at half-strength ink. */
-function TabShell({
-  active,
-  label,
-  badge = false,
-  children,
-}: {
-  active: boolean;
-  label: string;
-  badge?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <>
-      <span
-        className={`grid place-items-center w-8.5 h-7.5 rounded-pill transition-colors duration-150 ease-out ${
-          active ? "bg-tinta text-lima" : "bg-transparent text-tinta/50"
-        }`}
-      >
-        {children}
-      </span>
-      <span
-        className={`t-mono text-nav ${active ? "text-tinta" : "text-tinta/50"}`}
-      >
-        {label}
-      </span>
-      {badge && (
-        <span className="absolute top-0.5 right-1/2 translate-x-4.5 size-2 rounded-pill bg-naranja border-2 border-papel" />
-      )}
-    </>
-  );
-}
-
 const TAB_CLASS =
-  "relative flex flex-col items-center gap-1.5 pt-1 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja";
+  "relative flex flex-col items-center justify-center gap-0.5 h-13 rounded-full text-[0.6875rem] font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-c-accent";
+
+// Only the active icon takes the accent. Labels stay full-strength ink so they
+// hold their contrast over whatever scrolls beneath the glass.
+const tabTone = (active: boolean) =>
+  active ? "bg-c-accent/12 text-c-accent" : "text-c-ink";
+
+function TabLabel({ children }: { children: React.ReactNode }) {
+  return <span className="text-c-ink">{children}</span>;
+}
 
 function NavItem({
   href,
@@ -100,11 +73,13 @@ function NavItem({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={TAB_CLASS}
+      className={`${TAB_CLASS} ${tabTone(active)}`}
     >
-      <TabShell active={active} label={label} badge={badge}>
-        <NavIcon name={icon} />
-      </TabShell>
+      <NavIcon name={icon} />
+      <TabLabel>{label}</TabLabel>
+      {badge && (
+        <span className="absolute top-2 right-1/2 translate-x-4 size-2 rounded-full bg-c-amber" />
+      )}
     </Link>
   );
 }
@@ -157,49 +132,50 @@ function ProfileNavItem() {
     <Link
       href={`/players/${userId}`}
       aria-current={active ? "page" : undefined}
-      className={TAB_CLASS}
+      className={`${TAB_CLASS} ${tabTone(active)}`}
     >
-      <TabShell active={active} label="Profile">
-        <PlayerAvatar
-          userId={userId}
-          avatarUrl={avatarUrl}
-          name={name}
-          className="size-5.5"
-        />
-      </TabShell>
+      <PlayerAvatar
+        userId={userId}
+        avatarUrl={avatarUrl}
+        name={name}
+        className="size-5.5"
+      />
+      <TabLabel>Profile</TabLabel>
     </Link>
   );
 }
 
 export default function BottomNav() {
+  const [creating, setCreating] = useState(false);
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-20">
-      <div className="mx-auto w-full max-w-md bg-papel border-t-2 border-tinta grid grid-cols-5 items-end px-3 pt-2 pb-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
-        <NavItem href="/" label="Home" icon="home" />
-        <NavItem href="/my-games" label="Games" icon="games" />
+    <nav className="c-ui fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] inset-x-0 z-20 px-3">
+      <div className="mx-auto max-w-md flex items-center gap-2">
+        <GlassSurface className="c-glass flex-1 min-w-0 rounded-full p-1">
+          <div className="grid grid-cols-4">
+            <NavItem href="/" label="Home" icon="home" />
+            <NavItem href="/my-games" label="Games" icon="games" />
+            <NavItem href="/chat" label="Chat" icon="chat" />
+            <ProfileNavItem />
+          </div>
+        </GlassSurface>
 
-        {/* The create stamp — lifted clear of the strip, standing on a hard
-            ink shadow rather than a blur. */}
-        <div className="flex justify-center">
-          <Link
-            href="/create"
-            aria-label="Create game"
-            className="-translate-y-6.5 size-15 rounded-pill bg-naranja text-white border-[3px] border-tinta grid place-items-center shadow-[0_5px_0_var(--color-tinta)] active:shadow-[0_2px_0_var(--color-tinta)] active:translate-y-[-1.375rem] transition-[box-shadow,translate,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-          >
-            <svg viewBox="0 0 24 24" fill="none" className="size-6.5" aria-hidden>
-              <path
-                d="M12 5v14M5 12h14"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-            </svg>
-          </Link>
-        </div>
-
-        <NavItem href="/chat" label="Chat" icon="chat" />
-        <ProfileNavItem />
+        {/* Still a real link, so it behaves if opened any other way; a normal
+            tap opens the sheet over the screen you're on. */}
+        <Link
+          href="/create"
+          aria-label="Create game"
+          onClick={(e) => {
+            e.preventDefault();
+            setCreating(true);
+          }}
+          className="c-press flex-none size-15 rounded-full bg-c-accent text-c-on-accent grid place-items-center shadow-[0_8px_20px_-8px_rgb(6_32_29/0.5)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-c-accent"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden>
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
+        </Link>
       </div>
+      <CreateSheet open={creating} onOpenChange={setCreating} />
     </nav>
   );
 }

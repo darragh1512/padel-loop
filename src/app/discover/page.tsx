@@ -1,7 +1,7 @@
 import BottomNav from "@/components/BottomNav";
+import ScrollHeader from "@/components/court/ScrollHeader";
 import GameFilters from "@/components/GameFilters";
 import PlayerSearch from "@/components/PlayerSearch";
-import { SectionLabel } from "@/components/ui";
 import { getGames } from "@/lib/data";
 
 // Always read fresh data on each request. The player count ("spots open") is
@@ -17,19 +17,15 @@ export default async function DiscoverPage() {
   const games = await getGames();
 
   return (
-    <main className="px-5 pt-6 relative">
-      <p className="t-mono text-micro text-papel/80 mt-2">The board · Dublin</p>
-      <h1 className="t-display text-display-md text-papel mt-1.5">
-        Disc<span className="text-lima">o</span>ver
-      </h1>
-      <p className="text-label font-medium text-papel/85 mt-1.5">
-        Open games near you — pick a poster and jump in.
-      </p>
-
-      <SectionLabel>Find a player</SectionLabel>
-      <PlayerSearch placeholder="Search players by name" />
+    <main className="court court-page px-4 pt-6 relative">
+      <ScrollHeader title="Discover" />
+      <h1 className="c-title text-[2.125rem] leading-tight mt-2">Discover</h1>
+      <p className="text-[0.9375rem] text-c-sub mt-0.5">Open games near you in Dublin.</p>
 
       <GameFilters games={games} sectionLabel="Games near you" excludeOwnGames />
+
+      <h2 className="c-title text-[1.125rem] mt-8 mb-2.5">Find a player</h2>
+      <PlayerSearch placeholder="Search players by name" />
 
       <BottomNav />
     </main>

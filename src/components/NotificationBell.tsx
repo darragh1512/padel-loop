@@ -31,9 +31,9 @@ export default function NotificationBell() {
     <Link
       href="/notifications"
       aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
-      /* The prototype's outlined disc on the wall — a plain naranja dot marks
-         unread rather than a counted badge. */
-      className="relative size-10.5 rounded-pill border-2 border-papel/35 bg-white/8 hover:bg-white/18 grid place-items-center text-papel transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+      /* A quiet disc — a plain amber dot marks unread rather than a counted
+         badge. */
+      className="c-press relative size-10.5 rounded-full bg-c-card text-c-ink grid place-items-center shadow-[var(--c-shadow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-c-accent"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path
@@ -53,7 +53,7 @@ export default function NotificationBell() {
       {count > 0 && (
         <span
           aria-hidden
-          className="absolute top-1.5 right-1.5 size-2.25 rounded-pill bg-naranja border-2 border-pista"
+          className="absolute top-2 right-2 size-2.25 rounded-full bg-c-amber ring-2 ring-c-card"
         />
       )}
     </Link>
