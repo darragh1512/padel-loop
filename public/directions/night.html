@@ -336,13 +336,13 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
       <span data-face="me" style="display:block;width:100%;height:100%"></span>
       <input type="file" id="photo" accept="image/*">
     </label>
-    <span class="name">Buenas, Aoife</span>
-    <button class="chip mono" id="lights" aria-label="Switch the floodlights off and on">Luces</button>
-    <button class="chip mono" aria-label="Notifications, 2 new">Avisos <b>2</b></button>
+    <span class="name">Evening, Aoife</span>
+    <button class="chip mono" id="lights" aria-label="Switch the floodlights off and on">Lights</button>
+    <button class="chip mono" aria-label="Notifications, 2 new">Alerts <b>2</b></button>
   </div>
 
-  <h1><span class="l1" id="line1">Esta noche</span><span class="l2">20:30</span></h1>
-  <p class="sub" id="sub">Falta uno at Malahide. + you?</p>
+  <h1><span class="l1" id="line1">Tonight</span><span class="l2">20:30</span></h1>
+  <p class="sub" id="sub">One short at Malahide. + you?</p>
 
   <div class="grow"></div>
 
@@ -351,22 +351,22 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
       <div class="ticket">
         <div class="main">
           <div class="venue">Malahide Padel Club</div>
-          <div class="meta"><span>Nivel 3.0-4.0</span><span>€12 each</span></div>
+          <div class="meta"><span>Level 3.0-4.0</span><span>€12 each</span></div>
           <div class="faces">
             <span data-face="cian"></span><span data-face="sadhbh"></span><span data-face="tomas"></span>
             <span class="gap" id="gap">+ you?</span>
           </div>
         </div>
         <div class="stub">
-          <span class="day mono">Jue 5 Nov</span>
+          <span class="day mono">Thu 5 Nov</span>
           <span class="time">20:30</span>
-          <span class="court mono">Pista 2</span>
-          <div class="stamp mono" id="stamp">Completo</div>
+          <span class="court mono">Court 2</span>
+          <div class="stamp mono" id="stamp">Game full</div>
         </div>
       </div>
       <div class="pane" aria-hidden="true"></div>
     </div>
-    <button id="join" class="mono"><span id="joinLabel">Hold to play. ¿Jugamos?</span><span class="fill" aria-hidden="true">Count me in</span></button>
+    <button id="join" class="mono"><span id="joinLabel">Hold to play. Game on?</span><span class="fill" aria-hidden="true">Count me in</span></button>
     <div id="after">
       <button id="leave" class="mono">I'm out</button>
       <button id="win" class="mono">Demo: full time</button>
@@ -375,22 +375,22 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
 
   <nav aria-label="Main">
     <div class="tabs glass">
-      <a href="#" class="mono" aria-current="page">La Peña</a>
-      <a href="#" class="mono">Partidos</a>
+      <a href="#" class="mono" aria-current="page">Home</a>
+      <a href="#" class="mono">Games</a>
       <a href="#" class="mono">Chat</a>
-      <a href="#" class="mono">Tú</a>
+      <a href="#" class="mono">You</a>
     </div>
     <button id="plus" aria-label="Create a game"></button>
   </nav>
 
   <div id="ft" role="dialog" aria-label="Full time. You won." aria-modal="true">
-    <h2>¡Ganamos!</h2>
+    <h2>We won!</h2>
     <div class="glass" id="board">
-      <div class="row"><em>Aoife y Cian</em><span class="flap" data-v="6"></span><span class="flap" data-v="6"></span></div>
-      <div class="row"><em>Sadhbh y Tomás</em><span class="flap" data-v="4"></span><span class="flap" data-v="3"></span></div>
+      <div class="row"><em>Aoife and Cian</em><span class="flap" data-v="6"></span><span class="flap" data-v="6"></span></div>
+      <div class="row"><em>Sadhbh and Tomás</em><span class="flap" data-v="4"></span><span class="flap" data-v="3"></span></div>
     </div>
     <div id="rating"><span>Rating</span><span id="rate">1184</span><span id="delta"></span></div>
-    <button id="close" class="mono">Back to La Peña</button>
+    <button id="close" class="mono">Back to Home</button>
   </div>
 </main>
 
@@ -541,7 +541,7 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
   function join() {
     if (joined || joining) return;
     joining = true;
-    $("#joinLabel").textContent = "¡Vamos!";
+    $("#joinLabel").textContent = "Let's go!";
     var target = openSpotOnScreen();
     var me = $("#me"), shadow = $("#meShadow"), ring = $("#ring");
     var LAND = RM ? 0 : 900;
@@ -594,8 +594,8 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
     beams.forEach(function (b) { b.animate([{ opacity: 0.18 }, { opacity: 0.75 }], { duration: 700, fill: "forwards", easing: "ease-out" }); });
     $("#follow").getAnimations().forEach(function (a) { a.cancel(); });
     $("#follow").animate([{ opacity: 0.85 }, { opacity: 0 }], { duration: 600, easing: "ease-out" });
-    swap($("#line1"), "¡Dentro!");
-    $("#sub").textContent = "Pista 2, Malahide. Nos vemos allí.";
+    swap($("#line1"), "You're in!");
+    $("#sub").textContent = "Court 2, Malahide. See you there.";
     var gap = $("#gap");
     gap.classList.add("taken"); gap.innerHTML = avatar("me");
     gap.firstChild.animate([{ transform: "scale(.6)", opacity: 0 }, { transform: "scale(1.15)", opacity: 1 }, { transform: "scale(1)" }], { duration: 380, easing: "ease-out" });
@@ -619,12 +619,12 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
     $("#meShadow").getAnimations().forEach(function (a) { a.cancel(); });
     $("#meShadow").style.opacity = 0;
     var ring = $("#ring"); ring.getAnimations().forEach(function (a) { a.cancel(); }); ring.style.animation = "";
-    swap($("#line1"), "Esta noche");
-    $("#sub").textContent = "Falta uno at Malahide. + you?";
+    swap($("#line1"), "Tonight");
+    $("#sub").textContent = "One short at Malahide. + you?";
     var gap = $("#gap");
     gap.classList.remove("taken"); gap.textContent = "+ you?";
     $("#stamp").style.display = "none";
-    $("#joinLabel").textContent = "Hold to play. ¿Jugamos?";
+    $("#joinLabel").textContent = "Hold to play. Game on?";
     joinBtn.style.display = ""; $("#after").style.display = "none";
   });
 
