@@ -28,6 +28,7 @@ from the top.
 | File | What it adds | Depends on |
 |---|---|---|
 | `20261012010000_delete_account_storage_api.sql` | FIXES account deletion (was failing for everyone with `42501: Direct deletion from storage tables is not allowed`). `delete_my_account()` no longer deletes from `storage.objects`; it logs any surviving avatar files to the new `avatar_cleanup` table instead. The app now deletes the files through the Storage API first. | `20260914` (supersedes its `delete_my_account()`). No pre-flight. Safe in either order relative to the app deploy. |
+| `20261105210000_game_length_and_court.sql` | Adds optional `duration_mins` and `court_number` to `games`, and makes weekly games copy both, plus their price, to next week's game. Older games stay empty and show neither. | `20260811` (supersedes its `roll_recurring_games()`). No pre-flight. Safe in either order relative to the app deploy. |
 
 ## Applied
 

@@ -26,6 +26,28 @@ export function gameWhen(iso: string, now: Date = new Date()): string {
   return `${date}, ${time}`;
 }
 
+/* "18:30" */
+export function clockTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return fmt(d, { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+/* The hour of day on the Dublin clock, 0 to 23. */
+export function dublinHour(iso: string): number {
+  return Number(clockTime(iso).slice(0, 2));
+}
+
+/* A day's heading in a list: "Today" · "Tomorrow" · "Saturday 7 November". */
+export function dayHeading(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const key = dublinDateKey(d);
+  if (key === dublinDateKey(now)) return "Today";
+  if (key === dublinDateKey(new Date(now.getTime() + DAY_MS))) return "Tomorrow";
+  return longDate(d);
+}
+
 /* "Thursday 5 November" */
 export function longDate(now: Date = new Date()): string {
   return `${fmt(now, { weekday: "long" })} ${fmt(now, { day: "numeric" })} ${fmt(now, { month: "long" })}`;

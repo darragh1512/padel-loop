@@ -1,17 +1,14 @@
 "use client";
 
 // A player-name search box with live results underneath, linking straight to
-// each match's profile — the shared "find a player" widget behind /search,
-// and embedded on /discover and /connections. Debounced (~300ms) so it
-// doesn't hit the database on every keystroke; excludes the signed-in user
-// from their own results.
+// each match's profile — the shared "find a player" widget behind /search and
+// embedded on /connections.
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import PlayerResultRow from "@/components/PlayerResultRow";
 import { EmptyState, ErrorState } from "@/components/ui";
 import { UserSearch } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
-import { searchProfiles, type ProfileSearchResult } from "@/app/profiles";
+import { usePlayerSearch } from "@/lib/usePlayerSearch";
 
 export default function PlayerSearch({
   placeholder = "Search by name",
@@ -25,59 +22,7 @@ export default function PlayerSearch({
   emptyHint?: ReactNode;
 }) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<ProfileSearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [searched, setSearched] = useState(false); // a search has completed for the current text
-
-  // Who's logged in (so we can exclude them). A ref, since it's only read
-  // inside the debounced search and shouldn't itself re-trigger anything.
-  const currentUserId = useRef<string | null>(null);
-  // Bumped on every query change so a slow, stale request can't overwrite
-  // newer results once it finally resolves.
-  const reqId = useRef(0);
-  // A failed search must not say "no players found" — that is a claim
-  // about the world, and we did not get an answer about the world.
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      currentUserId.current = data.user?.id ?? null;
-    });
-  }, []);
-
-  useEffect(() => {
-    reqId.current += 1;
-    const id = reqId.current;
-    const term = query.trim();
-
-    if (term === "") {
-      setResults([]);
-      setSearching(false);
-      setSearched(false);
-      return;
-    }
-
-    setSearching(true);
-    const handle = setTimeout(async () => {
-      let found;
-      try {
-        found = await searchProfiles(term, currentUserId.current);
-      } catch {
-        if (id !== reqId.current) return;
-        setFailed(true);
-        setResults([]);
-        setSearching(false);
-        return;
-      }
-      if (id !== reqId.current) return; // a newer query has superseded this one
-      setFailed(false);
-      setResults(found.filter((p) => p.id !== currentUserId.current));
-      setSearching(false);
-      setSearched(true);
-    }, 300);
-
-    return () => clearTimeout(handle);
-  }, [query]);
+  const { results, searching, searched, failed, retry } = usePlayerSearch(query);
 
   return (
     <div>
@@ -130,7 +75,7 @@ export default function PlayerSearch({
             <ErrorState
               title="Search didn't work."
               body="That's a connection problem, not an empty Loop. Try again."
-              onRetry={() => setQuery((q) => q)}
+              onRetry={retry}
             />
           ) : searched ? (
             <EmptyState

@@ -17,7 +17,8 @@ export type Game = {
   area?: string;             // the location/neighbourhood, e.g. "Malahide" (used for filtering)
   distanceKm?: number;       // computed client/server side from user location
   startsAt: string;          // ISO timestamp
-  durationMins: number;
+  durationMins: number | null; // how long it runs; null = not set (older games)
+  courtNumber: string | null; // e.g. "3"; null = not set (older games)
   levelMin: number;
   levelMax: number;
   format: "doubles" | "singles" | "open";
@@ -64,7 +65,7 @@ export const isFull = (g: Game) => slotsLeft(g) <= 0;
 // price_per_player is what ONE player pays. It is NULLABLE and null means
 // "the organiser hasn't set a price" — which is NOT the same as free. Null
 // must render as nothing at all: no €0.00, no "Free", no bare euro sign.
-// A genuinely free game is 0, and that DOES render (as €0.00).
+// A genuinely free game is 0, and that DOES render (as €0).
 //
 // Everything that reads a price goes through these helpers so that rule is
 // enforced in one place rather than re-decided at each call site.
@@ -116,7 +117,8 @@ export function parsePriceInput(raw: string): { value: number | null } | { error
    render the result only when it isn't null, so "no price" renders nothing. */
 export function formatPrice(value: number | null | undefined): string | null {
   const n = readPrice(value);
-  return n == null ? null : `€${n.toFixed(2)}`;
+  if (n == null) return null;
+  return Number.isInteger(n) ? `€${n}` : `€${n.toFixed(2)}`; // "€12", "€12.50"
 }
 
 
@@ -129,12 +131,36 @@ export const skillTierOf = (g: Game): "Beginner" | "Intermediate" | "Advanced" =
   return "Intermediate";
 };
 
+// A player's own level, in the three bands games are listed under.
+export function tierOfPlayer(skill?: string | null): "Beginner" | "Intermediate" | "Advanced" | null {
+  switch ((skill ?? "").trim().toLowerCase()) {
+    case "beginner":
+    case "improver":
+      return "Beginner";
+    case "intermediate":
+      return "Intermediate";
+    case "advanced":
+    case "pro":
+      return "Advanced";
+    default:
+      return null;
+  }
+}
+
+// Game length from the database. A missing column (before the migration runs)
+// or an empty value reads as "not set", which renders nothing.
+export function readDuration(value: unknown): number | null {
+  const n = typeof value === "number" ? value : Number(value ?? NaN);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 // Times render pinned to Europe/Dublin (see src/lib/time.ts) — stored values
 // are true UTC instants, and every screen shows the same Dublin clock
 // whatever device the viewer is on.
 export const formatTimeRange = (g: Game) => {
   const start = new Date(g.startsAt);
-  const end = new Date(start.getTime() + g.durationMins * 60_000);
+  // With no stored length there is no end time to state, so show the start only.
+  const end = g.durationMins == null ? null : new Date(start.getTime() + g.durationMins * 60_000);
   const fmt = (d: Date) =>
     d.toLocaleTimeString("en-IE", {
       timeZone: APP_TIME_ZONE,
@@ -142,7 +168,7 @@ export const formatTimeRange = (g: Game) => {
       minute: "2-digit",
       hour12: false,
     });
-  return `${fmt(start)} – ${fmt(end)}`;
+  return end ? `${fmt(start)} – ${fmt(end)}` : fmt(start);
 };
 
 export const formatDay = (g: Game) => {

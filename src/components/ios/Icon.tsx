@@ -3,7 +3,19 @@
 
 import { useId } from "react";
 
-export type IconName = "house" | "search" | "chat" | "person" | "bell" | "plus" | "directions";
+export type IconName =
+  | "house"
+  | "search"
+  | "chat"
+  | "person"
+  | "bell"
+  | "plus"
+  | "directions"
+  | "mic"
+  | "chevron-down"
+  | "chevron-right"
+  | "check"
+  | "clear";
 
 export default function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
   const maskId = useId();
@@ -54,6 +66,46 @@ export default function Icon({ name, size = 18 }: { name: IconName; size?: numbe
       return (
         <svg {...common} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
           <path d="M12 4v16M4 12h16" />
+        </svg>
+      );
+    case "mic":
+      return (
+        <svg {...common}>
+          <rect x="8.2" y="1.8" width="7.6" height="13.4" rx="3.8" fill="currentColor" />
+          <path
+            d="M4.9 11.2c0 4.1 3.1 7.1 7.1 7.1s7.1-3 7.1-7.1M12 18.3v3.4M8.7 21.8h6.6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "chevron-down":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 8.5l8 8 8-8" />
+        </svg>
+      );
+    case "chevron-right":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8.5 4l8 8-8 8" />
+        </svg>
+      );
+    case "check":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 12.5l5.5 5.5L20 6.5" />
+        </svg>
+      );
+    case "clear":
+      return (
+        <svg {...common} fill="currentColor">
+          <path
+            fillRule="evenodd"
+            d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM8.6 7.4 12 10.8l3.4-3.4 1.2 1.2-3.4 3.4 3.4 3.4-1.2 1.2-3.4-3.4-3.4 3.4-1.2-1.2 3.4-3.4-3.4-3.4z"
+          />
         </svg>
       );
     case "directions":

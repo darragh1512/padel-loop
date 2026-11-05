@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { dublinDateKey } from "@/lib/time";
-import { isCancelled, readPrice, type Game, type Player } from "./types";
+import { isCancelled, readDuration, readPrice, type Game, type Player } from "./types";
 
 /* ── Games data for the redesigned UI ───────────────────────────
    Reuses the existing Supabase client (src/lib/supabaseClient.ts), so the
@@ -162,7 +162,8 @@ function rowToGame(row: any, players: Player[] = []): Game {
     area: row.location ?? undefined, // same location, kept separate for the Area filter
     distanceKm: undefined, // no distance/location coordinates in our schema yet
     startsAt: row.game_time, // our timestamp column
-    durationMins: 90, // not stored yet — default
+    durationMins: readDuration(row.duration_mins), // null = not set (older games)
+    courtNumber: row.court_number ?? null, // null = not set (older games)
     levelMin,
     levelMax,
     format: "doubles", // not stored yet — default
@@ -208,7 +209,9 @@ export function isToday(game: Game): boolean {
   return key !== "" && key === dublinDateKey(new Date());
 }
 
-export async function getGames(): Promise<Game[]> {
+// For screens that can tell "no games" apart from "couldn't load": a failed
+// read throws, so it never claims there are no games when it doesn't know.
+export async function loadGames(): Promise<Game[]> {
   const { data, error } = await supabase
     .from("games")
     .select("*")
@@ -217,7 +220,8 @@ export async function getGames(): Promise<Game[]> {
     // only — never on the public Discover list.
     .order("game_time", { ascending: true }) // soonest first
     .limit(20);
-  if (error || !data || data.length === 0) return [];
+  if (error) throw error;
+  if (!data || data.length === 0) return [];
 
   // Load the real joined players for ALL these games in one batch, then build
   // each game WITH its players so "slots left" on every card is accurate.
@@ -231,6 +235,11 @@ export async function getGames(): Promise<Game[]> {
   return games
     .filter((g) => isUpcoming(g) && !isCancelled(g))
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+}
+
+// The same list for callers that treat a failed read as "no games".
+export async function getGames(): Promise<Game[]> {
+  return loadGames().catch(() => []);
 }
 
 export async function getGame(id: string): Promise<Game | null> {

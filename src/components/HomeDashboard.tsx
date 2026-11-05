@@ -2,9 +2,9 @@
 
 // Home. Two questions: when is my next game, and what can I join near me?
 //
-// Only real data appears here. The mockup also shows drive time, court number
-// and duration, but the app doesn't store those yet, so they're left out rather
-// than guessed.
+// Only real data appears here. The mockup also shows drive time, which the app
+// doesn't store yet, so it's left out rather than guessed. Court number and game
+// length appear on games that have them.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -14,29 +14,13 @@ import Icon from "@/components/ios/Icon";
 import JoinPill from "@/components/ios/JoinPill";
 import NotificationBell from "@/components/NotificationBell";
 import { supabase } from "@/lib/supabaseClient";
-import { getGame, getGames, initialsFrom } from "@/lib/data";
-import { isFull, slotsLeft, skillTierOf, type Game } from "@/lib/types";
+import { getGame, initialsFrom, loadGames } from "@/lib/data";
+import { isFull, slotsLeft, skillTierOf, tierOfPlayer, type Game } from "@/lib/types";
 import { gameWhen, longDate, spotsOpenText } from "@/lib/when";
 import { getJoinedOrCreatedGameIds, getUpcomingGamesFor } from "@/app/games";
 import { getProfile, type Profile } from "@/app/profiles";
 
 const NEARBY_ROWS = 3;
-
-// A player's own level, in the three bands games are listed under.
-function tierOfPlayer(skill?: string | null): "Beginner" | "Intermediate" | "Advanced" | null {
-  switch ((skill ?? "").trim().toLowerCase()) {
-    case "beginner":
-    case "improver":
-      return "Beginner";
-    case "intermediate":
-      return "Intermediate";
-    case "advanced":
-    case "pro":
-      return "Advanced";
-    default:
-      return null;
-  }
-}
 
 /* Games the player can really take a spot in: not theirs already, not full and
    not closed. Their own level comes first, and each group is soonest first. */
@@ -104,6 +88,8 @@ function NextGameCard({ game, userId }: { game: Game; userId: string | null }) {
             ) : (
               <span className="ios-sec">Full</span>
             )}
+            {game.courtNumber && <span className="ios-sec"> · Court {game.courtNumber}</span>}
+            {game.durationMins != null && <span className="ios-sec"> · {game.durationMins} min</span>}
           </div>
         </div>
       </Link>
@@ -238,7 +224,7 @@ export default function HomeDashboard() {
       setToday(longDate());
       try {
         const [games, next, me, own] = await Promise.all([
-          getGames(),
+          loadGames(),
           uid ? loadNextGame(uid) : Promise.resolve(null),
           uid ? getProfile(uid) : Promise.resolve(null),
           uid ? getJoinedOrCreatedGameIds(uid) : Promise.resolve([] as string[]),
