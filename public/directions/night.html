@@ -4,32 +4,40 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#03050d">
-<title>Padel Loop: Night Session</title>
+<title>Padel Loop: Floodlight</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
+/* Mockup with fake data. Peña tokens from src/app/globals.css, on the Floodlight night base. */
 :root {
-  --night: #03050d;
-  --court: #1647e6;
-  --court-deep: #0b2aa0;
-  --light: #fff1cc;
-  --ink: #f6f7ff;
-  --sub: #b9c0dc;
-  --gold: #ffc247;
+  --noche: #03050d;
+  --pista: #1a4fc4;
+  --pista-d: #0f1c3f;
+  --papel: #f4eee0;
+  --tinta: #10214a;
+  --naranja: #ff5a1f;
+  --naranja-d: #c93e0f;
+  --lima: #c6e63f;
+  --lima-rgb: 198 230 63;
+  --naranja-rgb: 255 90 31;
+  --papel-rgb: 244 238 224;
+  --display: "Archivo Black", "Arial Black", system-ui, sans-serif;
+  --mono: "Space Mono", "Courier New", monospace;
+  --ease: cubic-bezier(.23, 1, .32, 1);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; height: 100%; background: var(--night); }
+html, body { margin: 0; height: 100%; background: var(--noche); }
 body {
-  color: var(--ink);
-  font-family: Figtree, -apple-system, system-ui, sans-serif;
+  color: var(--papel);
+  font-family: Archivo, Helvetica, system-ui, sans-serif;
   overscroll-behavior: none;
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
 }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-:focus-visible { outline: 2px solid var(--light); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--lima); outline-offset: 2px; }
 
 #app {
   position: relative;
@@ -42,14 +50,21 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 12px);
 }
 
+/* The label voice: Space Mono caps, tracked. */
+.mono { font-family: var(--mono); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+
+/* Avatars: the real photo, or initials on a solid peña circle. Nothing drawn. */
+.av { display: grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; box-shadow: inset 0 0 0 2px var(--tinta); font-family: var(--mono); font-weight: 700; letter-spacing: .02em; line-height: 1; }
+.av img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
 /* ── The stage: court, lamps, beams, dust ─────────────────────────────── */
 #stage { position: absolute; inset: 0; overflow: hidden; }
 #stage::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(120% 60% at 50% 44%, #10215f 0%, #060a20 55%, var(--night) 100%);
-  opacity: var(--power, 0);
+  background: var(--pista-d);
+  opacity: calc(var(--power, 0) * .4);
   transition: opacity 900ms ease;
 }
 .scene { position: absolute; left: 50%; top: calc(env(safe-area-inset-top) + 225px); width: 270px; height: 390px; margin-left: -135px; perspective: 640px; perspective-origin: 50% 0%; }
@@ -59,21 +74,21 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transform-style: preserve-3d;
   transform: rotateX(62deg) translateZ(-40px);
 }
-#dim { position: absolute; inset: 0; background: var(--night); opacity: calc(0.92 - var(--power, 0) * 0.92); transition: opacity 900ms ease; pointer-events: none; }
+#dim { position: absolute; inset: 0; background: var(--noche); opacity: calc(0.92 - var(--power, 0) * 0.92); transition: opacity 900ms ease; pointer-events: none; }
 .plane {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
   background:
-    linear-gradient(90deg, transparent 49.6%, rgb(255 255 255 / .85) 49.6% 50.4%, transparent 50.4%) 0 22% / 100% 56% no-repeat,
-    linear-gradient(transparent calc(22% - 2px), rgb(255 255 255 / .85) calc(22% - 2px) 22%, transparent 22%),
-    linear-gradient(transparent calc(78% - 2px), rgb(255 255 255 / .85) calc(78% - 2px) 78%, transparent 78%),
-    radial-gradient(70% 50% at 50% 55%, #2a62ff 0%, var(--court) 55%, var(--court-deep) 100%);
-  box-shadow: inset 0 0 0 3px rgb(255 255 255 / .9), 0 0 90px 20px rgb(22 71 230 / .45);
+    linear-gradient(90deg, transparent 49.6%, rgb(var(--papel-rgb) / .85) 49.6% 50.4%, transparent 50.4%) 0 22% / 100% 56% no-repeat,
+    linear-gradient(transparent calc(22% - 2px), rgb(var(--papel-rgb) / .85) calc(22% - 2px) 22%, transparent 22%),
+    linear-gradient(transparent calc(78% - 2px), rgb(var(--papel-rgb) / .85) calc(78% - 2px) 78%, transparent 78%),
+    var(--pista);
+  box-shadow: inset 0 0 0 3px rgb(var(--papel-rgb) / .9);
 }
-.net { position: absolute; left: -8px; right: -8px; top: 50%; height: 34px; margin-top: -34px; transform-origin: bottom; transform: rotateX(-90deg);
-  background: repeating-linear-gradient(90deg, rgb(255 255 255 / .55) 0 1px, transparent 1px 7px), repeating-linear-gradient(0deg, rgb(255 255 255 / .35) 0 1px, transparent 1px 7px); border-top: 3px solid #fff; }
-.wall { position: absolute; background: linear-gradient(180deg, rgb(255 255 255 / .05), rgb(190 215 255 / .2)); border: 1px solid rgb(255 255 255 / .34); }
+.net { position: absolute; left: -8px; right: -8px; top: 50%; height: 34px; margin-top: -34px; transform-origin: bottom; transform: rotateX(-90deg); border-top: 3px solid var(--papel);
+  background-image: linear-gradient(90deg, rgb(var(--papel-rgb) / .55) 1px, transparent 1px), linear-gradient(rgb(var(--papel-rgb) / .35) 1px, transparent 1px); background-size: 7px 7px; }
+.wall { position: absolute; background: rgb(var(--papel-rgb) / .07); border: 1px solid rgb(var(--papel-rgb) / .34); }
 .wall.back { left: 0; right: 0; top: 0; height: 120px; margin-top: -120px; transform-origin: bottom; transform: rotateX(-90deg); }
 .wall.left { top: 0; bottom: 0; left: 0; width: 120px; margin-left: -120px; transform-origin: right; transform: rotateY(90deg); }
 .wall.right { top: 0; bottom: 0; right: 0; width: 120px; margin-right: -120px; transform-origin: left; transform: rotateY(-90deg); }
@@ -83,24 +98,24 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .spot[data-p="1"] { left: 74%; top: 24%; }
 .spot[data-p="2"] { left: 26%; top: 70%; }
 .spot[data-p="3"] { left: 74%; top: 70%; }
-.shadow { position: absolute; width: 58px; height: 58px; margin: -29px; border-radius: 50%; background: radial-gradient(circle, rgb(0 0 20 / .7), transparent 68%); }
-.player { position: absolute; width: 56px; height: 56px; margin: -56px -28px 0; transform: rotateX(-62deg); transform-origin: bottom; }
-.player svg { display: block; width: 100%; height: 100%; filter: drop-shadow(0 4px 10px rgb(0 0 30 / .6)); }
-.open-ring { position: absolute; width: 62px; height: 62px; margin: -31px; border-radius: 50%; border: 3px solid var(--light); box-shadow: 0 0 28px var(--light), inset 0 0 22px rgb(255 241 204 / .6); animation: pulse 1.6s ease-in-out infinite; }
+.shadow { position: absolute; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: rgb(var(--noche-rgb, 3 5 13) / .45); }
+.player { position: absolute; width: 56px; height: 56px; margin: -56px -28px 0; transform: rotateX(-62deg); transform-origin: bottom; font-size: 1.0625rem; }
+.open-ring { position: absolute; width: 62px; height: 62px; margin: -31px; border-radius: 50%; border: 3px solid var(--lima); animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse { 50% { transform: scale(1.14); opacity: .55; } }
-.shock { position: absolute; width: 90px; height: 90px; margin: -45px; border-radius: 50%; border: 4px solid var(--light); opacity: 0; }
+.shock { position: absolute; width: 90px; height: 90px; margin: -45px; border-radius: 50%; border: 4px solid var(--lima); opacity: 0; }
 #me { opacity: 0; }
 
-.lamp { position: absolute; top: 7%; width: 26px; height: 9px; border-radius: 3px; background: #2a2d3d; }
-.lamp i { position: absolute; inset: -46px; border-radius: 50%; background: radial-gradient(circle, #fff 0 8%, rgb(255 241 204 / .85) 14%, rgb(255 241 204 / .18) 36%, transparent 62%); opacity: 0; mix-blend-mode: screen; pointer-events: none; }
+/* A lamp is a hard lit bar on a dark housing: its light is the beam, not a halo. */
+.lamp { position: absolute; top: calc(env(safe-area-inset-top) + 1px); width: 30px; height: 7px; background: var(--tinta); }
+.lamp i { position: absolute; inset: 0; background: rgb(var(--c)); opacity: 0; pointer-events: none; }
 .beam {
   position: absolute;
-  top: 7.6%;
+  top: calc(env(safe-area-inset-top) + 8px);
   left: var(--x);
   width: 760px;
-  height: 92%;
+  height: 96%;
   margin-left: -380px;
-  background: conic-gradient(from calc(180deg + var(--a) - 13deg) at 50% 0, transparent 0, rgb(255 241 204 / .34) 7deg, rgb(255 241 204 / .5) 13deg, rgb(255 241 204 / .34) 19deg, transparent 26deg);
+  background: conic-gradient(from calc(180deg + var(--a) - 13deg) at 50% 0, transparent 0, rgb(var(--c) / .4) 7deg, rgb(var(--c) / .6) 13deg, rgb(var(--c) / .4) 19deg, transparent 26deg);
   -webkit-mask-image: linear-gradient(#000 0%, rgb(0 0 0 / .5) 55%, transparent 96%);
   mask-image: linear-gradient(#000 0%, rgb(0 0 0 / .5) 55%, transparent 96%);
   mix-blend-mode: screen;
@@ -115,7 +130,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   height: 104%;
   margin-left: -380px;
   transform-origin: 50% 0;
-  background: conic-gradient(from 172deg at 50% 0, transparent 0, rgb(255 250 230 / .9) 6deg, rgb(255 250 230 / .9) 10deg, transparent 16deg);
+  background: conic-gradient(from 172deg at 50% 0, transparent 0, rgb(var(--lima-rgb) / .85) 6deg, rgb(var(--lima-rgb) / .85) 10deg, transparent 16deg);
   -webkit-mask-image: linear-gradient(#000 40%, rgb(0 0 0 / .45) 75%, transparent 98%);
   mask-image: linear-gradient(#000 40%, rgb(0 0 0 / .45) 75%, transparent 98%);
   mix-blend-mode: screen;
@@ -123,62 +138,109 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   pointer-events: none;
 }
 #dust { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-#flash { position: absolute; inset: 0; background: var(--light); opacity: 0; mix-blend-mode: screen; pointer-events: none; }
+#flash { position: absolute; inset: 0; background: var(--lima); opacity: 0; mix-blend-mode: screen; pointer-events: none; }
 
 /* ── Foreground ───────────────────────────────────────────────────────── */
-.top { position: relative; display: flex; align-items: center; gap: 10px; }
-.top .name { flex: 1; font-weight: 600; font-size: 1rem; }
-.round { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / .1); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .18); transition: transform 140ms cubic-bezier(.23,1,.32,1); }
-.round:active { transform: scale(.9); }
-.face-mini { width: 44px; height: 44px; }
+.top { position: relative; display: flex; align-items: center; gap: 8px; }
+.top .name { flex: 1; min-width: 0; font-weight: 600; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip { flex: none; height: 44px; padding: 0 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; font-size: .6875rem; background: rgb(var(--papel-rgb) / .1); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: inset 0 0 0 1px rgb(var(--papel-rgb) / .28); transition: transform 140ms var(--ease); }
+.chip:active { transform: scale(.94); }
+.chip b { display: inline-grid; place-items: center; min-width: 18px; height: 18px; border-radius: 2px; background: var(--naranja); color: var(--tinta); font-weight: 700; letter-spacing: 0; }
+.me-btn { position: relative; flex: none; display: block; width: 44px; height: 44px; font-size: .875rem; cursor: pointer; }
+.me-btn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.me-btn:focus-within { outline: 3px solid var(--lima); outline-offset: 2px; border-radius: 50%; }
 
-h1 { position: relative; margin: 14px 0 0; font-family: "Big Shoulders Display", Impact, sans-serif; font-weight: 900; text-transform: uppercase; line-height: .82; letter-spacing: -.005em; pointer-events: none; }
+h1 { position: relative; margin: 14px 0 0; font-family: var(--display); font-weight: 400; text-transform: uppercase; line-height: .9; letter-spacing: -.02em; pointer-events: none; }
 h1 span { display: block; }
-.l1 { font-size: clamp(3.4rem, 19vw, 5.6rem); }
-.l2 { font-size: clamp(6.4rem, 37vw, 11rem); }
-h1 .lit { color: #fff; text-shadow: 0 0 34px rgb(255 241 204 / .55), 0 4px 22px rgb(0 0 20 / .6); }
-.sub { position: relative; margin: 8px 0 0; font-size: 1.0625rem; font-weight: 500; color: #e7eaff; text-shadow: 0 1px 12px rgb(0 0 0 / .7); }
+.l1 { font-size: clamp(2.5rem, 12.6vw, 3.75rem); }
+.l2 { font-size: clamp(5rem, 28.5vw, 8.5rem); color: var(--lima); }
+.sub { position: relative; margin: 8px 0 0; font-size: 1.0625rem; font-weight: 500; color: var(--papel); }
 
 .grow { flex: 1; min-height: 120px; }
 
+/* Floodlight glass: blur and a hairline, nothing else. */
 .glass {
   position: relative;
-  border-radius: 28px;
-  background: linear-gradient(160deg, rgb(255 255 255 / .17), rgb(120 150 255 / .08) 45%, rgb(10 16 50 / .45));
-  -webkit-backdrop-filter: blur(26px) saturate(1.8);
-  backdrop-filter: blur(26px) saturate(1.8);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .2), inset 0 1px 0 rgb(255 255 255 / .35), 0 24px 60px -18px rgb(0 0 30 / .9);
-  overflow: hidden;
+  border-radius: 8px;
+  background: rgb(var(--papel-rgb) / .1);
+  -webkit-backdrop-filter: blur(24px) saturate(1.35);
+  backdrop-filter: blur(24px) saturate(1.35);
+  box-shadow: inset 0 0 0 1px rgb(var(--papel-rgb) / .28);
 }
-.glass::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(240px 140px at var(--mx, 20%) var(--my, 0%), rgb(255 255 255 / .22), transparent 70%);
+#card { padding: 8px; }
+
+/* The ticket stub, same perforation as the peña landing page. */
+.ticket-wrap { position: relative; }
+.ticket { display: flex; color: var(--tinta); }
+.ticket .main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px 12px 12px;
+  background: var(--papel);
+  border-radius: 4px 0 0 4px;
+  -webkit-mask: radial-gradient(circle 4px at right, transparent 96%, #000) right/12px 16px repeat-y, linear-gradient(#000, #000) left/calc(100% - 6px) 100% no-repeat;
+          mask: radial-gradient(circle 4px at right, transparent 96%, #000) right/12px 16px repeat-y, linear-gradient(#000, #000) left/calc(100% - 6px) 100% no-repeat;
 }
-#card { padding: 16px 16px 14px; }
-.venue { font-family: "Big Shoulders Display", Impact, sans-serif; font-weight: 800; font-size: 2.125rem; line-height: 1; text-transform: uppercase; }
-.meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px; color: #dfe3f8; font-size: .9375rem; }
-.faces { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
-.faces svg { width: 34px; height: 34px; }
-.faces .gap { width: 34px; height: 34px; border-radius: 50%; border: 2px dashed var(--light); }
-.faces b { margin-left: 6px; font-weight: 600; font-size: .9375rem; color: var(--light); }
+.ticket .stub {
+  flex: none;
+  width: 98px;
+  padding: 12px 6px 12px 10px;
+  background: var(--lima);
+  border-radius: 0 4px 4px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  -webkit-mask: radial-gradient(circle 4px at left, transparent 96%, #000) left/12px 16px repeat-y, linear-gradient(#000, #000) right/calc(100% - 6px) 100% no-repeat;
+          mask: radial-gradient(circle 4px at left, transparent 96%, #000) left/12px 16px repeat-y, linear-gradient(#000, #000) right/calc(100% - 6px) 100% no-repeat;
+}
+.stub .day, .stub .court { font-size: .6875rem; letter-spacing: .06em; }
+.stub .time { font-family: var(--mono); font-weight: 700; font-size: 1.5rem; line-height: 1; letter-spacing: -.02em; }
+.venue { font-family: var(--display); font-size: 1.25rem; line-height: 1.02; letter-spacing: -.02em; text-transform: uppercase; }
+.meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; margin-top: 7px; font-family: var(--mono); font-size: .75rem; }
+.faces { display: grid; grid-template-columns: repeat(4, minmax(0, 44px)); gap: 5px; margin-top: 10px; }
+.faces > span { aspect-ratio: 1; font-size: .875rem; }
+.faces .gap { display: grid; place-items: center; border-radius: 50%; border: 2px dashed var(--naranja-d); color: var(--naranja-d); font-family: var(--mono); font-weight: 700; font-size: .625rem; letter-spacing: -.01em; }
+.faces .gap.taken { border: 0; font-size: inherit; }
+.faces .gap.taken .av { font-size: .8125rem; letter-spacing: .02em; }
+.stub { position: relative; }
+.stamp { width: 100%; margin-top: 2px; padding: 2px 0 1px; border: 2px solid var(--tinta); border-radius: 2px; color: var(--tinta); font-size: .625rem; letter-spacing: .04em; text-align: center; transform: rotate(-5deg); display: none; }
+/* Short screens (Safari with its toolbars): the open court spot must stay clear of the ticket. */
+@media (max-height: 740px) {
+  .ticket .main { padding-top: 10px; padding-bottom: 10px; }
+  .venue { font-size: 1.125rem; }
+  .meta { margin-top: 5px; }
+  .faces { grid-template-columns: repeat(4, minmax(0, 38px)); margin-top: 8px; }
+  .faces > span { font-size: .8125rem; }
+  .faces .gap { font-size: .5625rem; letter-spacing: -.04em; }
+  #join { height: 50px; }
+}
+@media (max-width: 359px) {
+  .ticket .stub { width: 84px; }
+  .stub .time { font-size: 1.25rem; }
+  .faces > span { font-size: .75rem; }
+  .faces .gap { font-size: .5rem; }
+}
+/* The pane over the paper: a flat tint with one hard-edged reflection across it. */
+.pane { position: absolute; inset: 0; border-radius: 4px; background: rgb(15 28 63 / .08); pointer-events: none; overflow: hidden; }
+.pane::before { content: ""; position: absolute; inset: 0; background: rgb(var(--papel-rgb) / .16); clip-path: polygon(72% 0, 86% 0, 74% 100%, 60% 100%); }
 
 #join {
   position: relative;
   display: block;
   width: 100%;
-  height: 60px;
-  margin-top: 12px;
-  border-radius: 18px;
+  height: 56px;
+  margin-top: 8px;
+  border-radius: 4px;
   overflow: hidden;
-  background: rgb(255 255 255 / .12);
-  box-shadow: inset 0 0 0 1px rgb(255 241 204 / .55);
-  font-weight: 700;
-  font-size: 1.0625rem;
+  background: var(--lima);
+  color: var(--tinta);
+  font-size: .875rem;
   touch-action: none;
-  transition: transform 160ms cubic-bezier(.23,1,.32,1);
+  transition: transform 160ms var(--ease);
 }
 #join:active { transform: scale(.985); }
 #join .fill {
@@ -186,43 +248,47 @@ h1 .lit { color: #fff; text-shadow: 0 0 34px rgb(255 241 204 / .55), 0 4px 22px 
   inset: 0;
   display: grid;
   place-items: center;
-  background: var(--light);
-  color: #1a1404;
+  background: var(--naranja);
+  color: var(--tinta);
   clip-path: inset(0 100% 0 0);
   transition: clip-path 200ms ease-out;
 }
 #join.holding .fill { clip-path: inset(0 0 0 0); transition: clip-path 750ms linear; }
 
-#after { display: none; margin-top: 12px; gap: 8px; }
-#after button { flex: 1; height: 52px; border-radius: 16px; font-weight: 600; font-size: 1rem; background: rgb(255 255 255 / .12); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .25); transition: transform 140ms cubic-bezier(.23,1,.32,1); }
+#after { display: none; margin-top: 8px; gap: 8px; }
+#after button { flex: 1; height: 52px; border-radius: 4px; font-size: .75rem; box-shadow: inset 0 0 0 2px rgb(var(--papel-rgb) / .5); transition: transform 140ms var(--ease); }
 #after button:active { transform: scale(.96); }
-#after #win { flex: 1.5; background: var(--gold); color: #1d1300; box-shadow: none; font-weight: 700; }
+#after #win { flex: 1.5; background: var(--lima); color: var(--tinta); box-shadow: none; }
 
 nav { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.tabs { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); height: 62px; border-radius: 31px; padding: 4px; }
-.tabs a { display: grid; place-items: center; align-content: center; gap: 1px; border-radius: 27px; color: var(--ink); font-size: .6875rem; font-weight: 600; text-decoration: none; }
-.tabs a[aria-current] { background: rgb(255 255 255 / .16); }
-.tabs svg { width: 22px; height: 22px; }
-#plus { position: relative; width: 62px; height: 62px; flex: none; border-radius: 50%; background: var(--light); color: #1a1404; display: grid; place-items: center; box-shadow: 0 0 34px rgb(255 241 204 / .55); transition: transform 240ms cubic-bezier(.34,1.56,.64,1); }
-#plus:active { transform: scale(.86); transition-duration: 90ms; }
-#plus svg { transition: transform 320ms cubic-bezier(.34,1.56,.64,1); }
-#plus:active svg { transform: rotate(90deg); }
+.tabs { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; height: 56px; padding: 4px; }
+.tabs a { display: grid; place-items: center; min-width: 0; border-radius: 4px; color: var(--papel); font-size: clamp(.5625rem, 2.7vw, .6875rem); letter-spacing: .02em; text-decoration: none; }
+.tabs a[aria-current] { background: var(--tinta); color: var(--lima); }
+#plus { position: relative; width: 60px; height: 60px; flex: none; border-radius: 50%; background: var(--naranja); border: 3px solid var(--tinta); box-shadow: 0 4px 0 var(--tinta); transition: transform 240ms cubic-bezier(.34,1.56,.64,1); }
+#plus:active { transform: translateY(3px) scale(.92); transition-duration: 90ms; }
+#plus::before, #plus::after { content: ""; position: absolute; left: 50%; top: 50%; background: var(--tinta); }
+#plus::before { width: 22px; height: 5px; margin: -2.5px 0 0 -11px; }
+#plus::after { width: 5px; height: 22px; margin: -11px 0 0 -2.5px; }
 
 /* ── Full time ────────────────────────────────────────────────────────── */
 #ft { position: absolute; inset: 0; z-index: 5; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; background: rgb(3 5 13 / .95); }
-#ft h2 { margin: 0; font-family: "Big Shoulders Display", Impact, sans-serif; font-weight: 900; font-size: clamp(5rem, 28vw, 8rem); line-height: .85; text-transform: uppercase; color: var(--gold); text-shadow: 0 0 44px rgb(255 194 71 / .6); text-align: center; }
+#app.ft-open > :not(#ft):not(#stage) { visibility: hidden; }
+#ft h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2.75rem, 14.5vw, 4.5rem); line-height: .95; letter-spacing: -.02em; text-transform: uppercase; color: var(--lima); text-align: center; }
 #board { margin-top: 18px; padding: 16px; width: 100%; max-width: 360px; }
 .row { display: flex; align-items: center; gap: 8px; }
 .row + .row { margin-top: 8px; }
-.row em { flex: 1; font-style: normal; font-weight: 600; font-size: 1.0625rem; }
-.flap { position: relative; width: 58px; height: 74px; perspective: 300px; font-family: "Big Shoulders Display", Impact, sans-serif; font-weight: 900; font-size: 3.5rem; }
-.flap b { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 10px; background: linear-gradient(#1a1f3c 49.5%, #000 49.5% 50.5%, #141830 50.5%); color: #fff; font-weight: 900; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .14); backface-visibility: hidden; }
-#rating { margin-top: 14px; font-size: 1.125rem; font-weight: 600; text-align: center; }
-#rating b { color: var(--gold); font-variant-numeric: tabular-nums; }
-#close { margin-top: 18px; height: 52px; padding: 0 26px; border-radius: 16px; font-weight: 600; background: rgb(255 255 255 / .14); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .28); }
+.row em { flex: 1; min-width: 0; font-style: normal; font-weight: 600; font-size: 1.0625rem; }
+.flap { position: relative; flex: none; width: 58px; height: 74px; perspective: 300px; font-family: var(--mono); font-weight: 700; font-size: 3rem; }
+.flap b { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 4px; background: linear-gradient(var(--tinta) 49.5%, var(--noche) 49.5% 50.5%, var(--tinta) 50.5%); color: var(--papel); font-weight: 700; backface-visibility: hidden; }
+.row:first-child .flap b { color: var(--lima); }
+#rating { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin-top: 16px; font-family: var(--mono); font-weight: 700; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+#rate { font-family: var(--display); font-weight: 400; font-size: 2.75rem; line-height: 1; letter-spacing: -.02em; color: var(--papel); }
+#delta { min-width: 3.5ch; color: var(--lima); font-size: .9375rem; letter-spacing: 0; }
+#close { margin-top: 18px; height: 52px; padding: 0 22px; border-radius: 4px; font-size: .75rem; background: var(--papel); color: var(--tinta); }
 
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .glass, .round { background: #141a38; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .glass, .chip { background: var(--pista-d); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .pane { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .open-ring { animation: none; }
@@ -239,9 +305,9 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
           <div class="wall left"></div>
           <div class="wall right"></div>
           <div class="net"></div>
-          <div class="spot" data-p="0"><div class="shadow"></div><div class="player" data-f="0"></div></div>
-          <div class="spot" data-p="1"><div class="shadow"></div><div class="player" data-f="1"></div></div>
-          <div class="spot" data-p="2"><div class="shadow"></div><div class="player" data-f="2"></div></div>
+          <div class="spot" data-p="0"><div class="shadow"></div><div class="player" data-f="cian"></div></div>
+          <div class="spot" data-p="1"><div class="shadow"></div><div class="player" data-f="sadhbh"></div></div>
+          <div class="spot" data-p="2"><div class="shadow"></div><div class="player" data-f="tomas"></div></div>
           <div class="spot" data-p="3" id="open">
             <div class="open-ring" id="ring"></div>
             <div class="shock" id="shock"></div>
@@ -252,70 +318,79 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
       </div>
     </div>
     <div id="dim"></div>
-    <div class="beam" style="--x:6%;--a:24deg"></div>
-    <div class="beam" style="--x:94%;--a:-24deg"></div>
-    <div class="beam" style="--x:30%;--a:8deg"></div>
-    <div class="beam" style="--x:70%;--a:-8deg"></div>
-    <div class="lamp" style="left:calc(6% - 13px)"><i></i></div>
-    <div class="lamp" style="left:calc(94% - 13px)"><i></i></div>
-    <div class="lamp" style="left:calc(30% - 13px)"><i></i></div>
-    <div class="lamp" style="left:calc(70% - 13px)"><i></i></div>
+    <div class="beam" style="--x:6%;--a:24deg;--c:var(--lima-rgb)"></div>
+    <div class="beam" style="--x:94%;--a:-24deg;--c:var(--naranja-rgb)"></div>
+    <div class="beam" style="--x:30%;--a:8deg;--c:var(--naranja-rgb)"></div>
+    <div class="beam" style="--x:70%;--a:-8deg;--c:var(--lima-rgb)"></div>
+    <div class="lamp" style="left:calc(6% - 15px);--c:var(--lima-rgb)"><i></i></div>
+    <div class="lamp" style="left:calc(94% - 15px);--c:var(--naranja-rgb)"><i></i></div>
+    <div class="lamp" style="left:calc(30% - 15px);--c:var(--naranja-rgb)"><i></i></div>
+    <div class="lamp" style="left:calc(70% - 15px);--c:var(--lima-rgb)"><i></i></div>
     <div id="follow"></div>
     <canvas id="dust"></canvas>
     <div id="flash"></div>
   </div>
 
   <div class="top">
-    <span class="face-mini" data-face="me"></span>
-    <span class="name">Evening, Aoife</span>
-    <button class="round" id="lights" aria-label="Switch the floodlights off and on">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg>
-    </button>
-    <button class="round" aria-label="Notifications">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 6-2 8-2 8h16s-2-2-2-8M10 20h4"/></svg>
-    </button>
+    <label class="me-btn" aria-label="Your profile photo: tap to try one from this phone">
+      <span data-face="me" style="display:block;width:100%;height:100%"></span>
+      <input type="file" id="photo" accept="image/*">
+    </label>
+    <span class="name">Buenas, Aoife</span>
+    <button class="chip mono" id="lights" aria-label="Switch the floodlights off and on">Luces</button>
+    <button class="chip mono" aria-label="Notifications, 2 new">Avisos <b>2</b></button>
   </div>
 
-  <h1><span class="l1 lit" id="line1">Tonight</span><span class="l2 lit">20:30</span></h1>
-  <p class="sub" id="sub">One spot left at Malahide. It could be yours.</p>
+  <h1><span class="l1" id="line1">Esta noche</span><span class="l2">20:30</span></h1>
+  <p class="sub" id="sub">Falta uno at Malahide. + you?</p>
 
   <div class="grow"></div>
 
   <section class="glass" id="card" aria-label="Game at Malahide Padel Club">
-    <div class="venue">Malahide Padel Club</div>
-    <div class="meta"><span>Level 3.0 to 4.0</span><span>€12 each</span></div>
-    <div class="faces">
-      <span data-face="0"></span><span data-face="1"></span><span data-face="2"></span>
-      <span class="gap" id="gap"></span>
-      <b id="left">1 spot open</b>
+    <div class="ticket-wrap">
+      <div class="ticket">
+        <div class="main">
+          <div class="venue">Malahide Padel Club</div>
+          <div class="meta"><span>Nivel 3.0-4.0</span><span>€12 each</span></div>
+          <div class="faces">
+            <span data-face="cian"></span><span data-face="sadhbh"></span><span data-face="tomas"></span>
+            <span class="gap" id="gap">+ you?</span>
+          </div>
+        </div>
+        <div class="stub">
+          <span class="day mono">Jue 5 Nov</span>
+          <span class="time">20:30</span>
+          <span class="court mono">Pista 2</span>
+          <div class="stamp mono" id="stamp">Completo</div>
+        </div>
+      </div>
+      <div class="pane" aria-hidden="true"></div>
     </div>
-    <button id="join"><span id="joinLabel">Hold to take the spot</span><span class="fill" aria-hidden="true">Keep holding</span></button>
+    <button id="join" class="mono"><span id="joinLabel">Hold to play. ¿Jugamos?</span><span class="fill" aria-hidden="true">Count me in</span></button>
     <div id="after">
-      <button id="leave">Leave</button>
-      <button id="win">Skip to full time</button>
+      <button id="leave" class="mono">I'm out</button>
+      <button id="win" class="mono">Demo: full time</button>
     </div>
   </section>
 
   <nav aria-label="Main">
     <div class="tabs glass">
-      <a href="#" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-6 8 6M6.5 10v9h11v-9"/></svg>Home</a>
-      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6.5h15v13h-15zM8 4v4M16 4v4M4.5 11h15"/></svg>Games</a>
-      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6.5h15v10h-9l-4 3.5v-3.5h-2z"/></svg>Chat</a>
-      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-5 8-5s6.500 1 8 5"/></svg>Profile</a>
+      <a href="#" class="mono" aria-current="page">La Peña</a>
+      <a href="#" class="mono">Partidos</a>
+      <a href="#" class="mono">Chat</a>
+      <a href="#" class="mono">Tú</a>
     </div>
-    <button id="plus" aria-label="Create a game">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-    </button>
+    <button id="plus" aria-label="Create a game"></button>
   </nav>
 
-  <div id="ft" role="dialog" aria-label="Full time" aria-modal="true">
-    <h2>You won</h2>
+  <div id="ft" role="dialog" aria-label="Full time. You won." aria-modal="true">
+    <h2>¡Ganamos!</h2>
     <div class="glass" id="board">
-      <div class="row"><em>Aoife and Cian</em><span class="flap" data-v="6"></span><span class="flap" data-v="6"></span></div>
-      <div class="row"><em>Sadhbh and Tomás</em><span class="flap" data-v="4"></span><span class="flap" data-v="3"></span></div>
+      <div class="row"><em>Aoife y Cian</em><span class="flap" data-v="6"></span><span class="flap" data-v="6"></span></div>
+      <div class="row"><em>Sadhbh y Tomás</em><span class="flap" data-v="4"></span><span class="flap" data-v="3"></span></div>
     </div>
-    <div id="rating">Rating <b id="rate">1184</b></div>
-    <button id="close">Back to Home</button>
+    <div id="rating"><span>Rating</span><span id="rate">1184</span><span id="delta"></span></div>
+    <button id="close" class="mono">Back to La Peña</button>
   </div>
 </main>
 
@@ -333,22 +408,31 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
   document.body.appendChild(hapticLabel);
   function haptic() { if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; if (navigator.vibrate) navigator.vibrate(12); else hapticLabel.click(); }
 
-  // Small illustrated faces.
-  var FACES = {
-    0: ["#f2c5a0", "#3a2418", "M12 22c0-12 8-16 20-16s20 5 20 16c-6-5-11-6-20-6s-14 1-20 6z", "#e54b6a"],
-    1: ["#c98d62", "#14100e", "M11 26c-1-14 8-20 21-20s22 6 21 20c-4-8-8-10-21-10s-17 2-21 10z", "#2bb6a3"],
-    2: ["#f6d7bd", "#c76d2c", "M12 24c0-11 8-18 20-18s20 7 20 18c-3-4-6-7-11-7-4 2-13 3-20 1-4 1-7 3-9 6z", "#7f6bff"],
-    me: ["#f5d0b3", "#7a3417", "M10 44C6 18 16 6 32 6s26 12 22 38c-1-12-4-22-10-26-7 3-17 3-24 1-6 5-9 14-10 25z", "#ffc247"]
+  // Fake players. A real profile photo wins; otherwise initials on a solid peña colour.
+  var PLAYERS = {
+    me:     { initials: "AB", bg: "var(--naranja)", fg: "var(--tinta)", photo: null },
+    cian:   { initials: "CD", bg: "var(--lima)",    fg: "var(--tinta)", photo: null },
+    sadhbh: { initials: "SK", bg: "var(--papel)",   fg: "var(--tinta)", photo: null },
+    tomas:  { initials: "TR", bg: "var(--pista)",   fg: "var(--papel)", photo: null }
   };
-  function face(k) {
-    var f = FACES[k];
-    return '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="31" fill="' + f[3] + '"/>' +
-      '<circle cx="32" cy="35" r="19" fill="' + f[0] + '"/><path d="' + f[2] + '" fill="' + f[1] + '"/>' +
-      '<circle cx="25" cy="35" r="2.300" fill="#1a1020"/><circle cx="39" cy="35" r="2.300" fill="#1a1020"/>' +
-      '<path d="M25 43c4 4 10 4 14 0" fill="none" stroke="#1a1020" stroke-width="2.400" stroke-linecap="round"/></svg>';
+  function avatar(k) {
+    var p = PLAYERS[k];
+    if (p.photo) return '<span class="av"><img alt="" src="' + p.photo + '"></span>';
+    return '<span class="av" style="background:' + p.bg + ";color:" + p.fg + '">' + p.initials + "</span>";
   }
-  $$("[data-f]").forEach(function (el) { el.innerHTML = face(el.dataset.f); });
-  $$("[data-face]").forEach(function (el) { el.innerHTML = face(el.dataset.face); });
+  function paintAvatars() {
+    $$("[data-f]").forEach(function (el) { el.innerHTML = avatar(el.dataset.f); });
+    $$("[data-face]").forEach(function (el) { el.innerHTML = avatar(el.dataset.face); });
+    if (joined) $("#gap").innerHTML = avatar("me");
+  }
+  // Try the photo path with a picture from this phone. It stays in this tab; nothing is uploaded.
+  $("#photo").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    if (PLAYERS.me.photo) URL.revokeObjectURL(PLAYERS.me.photo);
+    PLAYERS.me.photo = URL.createObjectURL(f);
+    paintAvatars();
+  });
 
   // ── Dust in the beams, and sparks when something lands ───────────────
   var cv = $("#dust"), ctx = cv.getContext("2d"), W = 0, H = 0, DPR = Math.min(devicePixelRatio || 1, 2);
@@ -361,7 +445,7 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
     for (var i = 0; i < n; i++) {
       var a = up ? -Math.PI / 2 + (Math.random() - 0.5) * 1.5 : Math.random() * 6.28;
       var sp = (up ? 300 : 90) + Math.random() * (up ? 620 : 300);
-      sparks.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, d: 0.5 + Math.random() * 0.9, s: 1 + Math.random() * 2.4, gold: Math.random() < 0.7 });
+      sparks.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, d: 0.5 + Math.random() * 0.9, s: 1 + Math.random() * 2.4, lima: Math.random() < 0.55 });
     }
   }
   var last = performance.now();
@@ -375,7 +459,7 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
       d.y -= d.v * dt * 1000; d.p += dt * 0.7;
       if (d.y < 0) d.y = 0.8;
       ctx.globalAlpha = power * (0.16 + 0.22 * Math.abs(Math.sin(d.p)));
-      ctx.fillStyle = "#fff1cc";
+      ctx.fillStyle = "#f4eee0";
       ctx.beginPath(); ctx.arc(d.x * W + Math.sin(d.p) * 8, d.y * H, d.s, 0, 6.28); ctx.fill();
     }
     for (var j = sparks.length - 1; j >= 0; j--) {
@@ -383,7 +467,7 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
       s.vy += 720 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt / s.d;
       if (s.life <= 0) { sparks.splice(j, 1); continue; }
       ctx.globalAlpha = Math.min(1, s.life * 1.4);
-      ctx.strokeStyle = s.gold ? "#ffc247" : "#fff";
+      ctx.strokeStyle = s.lima ? "#c6e63f" : "#ff5a1f";
       ctx.lineWidth = s.s; ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * 0.022, s.y - s.vy * 0.022); ctx.stroke();
     }
@@ -407,7 +491,7 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
     });
     var title = $$("h1 span");
     title.forEach(function (el, n) {
-      el.animate([{ opacity: 0, transform: "translateY(26px) scale(1.06)", filter: "blur(10px)" }, { opacity: 1, transform: "none", filter: "blur(0)" }], { duration: 760, delay: 1000 + n * 120, easing: "cubic-bezier(.16,1,.3,1)", fill: "backwards" });
+      el.animate([{ opacity: 0, transform: "translateY(26px) scale(1.06)" }, { opacity: 1, transform: "none" }], { duration: 760, delay: 1000 + n * 120, easing: "cubic-bezier(.16,1,.3,1)", fill: "backwards" });
     });
     return new Promise(function (r) { setTimeout(r, 1500); });
   }
@@ -421,10 +505,11 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
     lightsBusy = true; haptic(); lightsOff();
     setTimeout(function () { lightsOn().then(function () { lightsBusy = false; }); }, 520);
   });
-  lightsOn();
 
-  // ── Moment two: hold, the follow-spot finds the gap, your face drops ──
+  // ── Moment two: hold, the follow-spot finds the gap, your avatar drops ──
   var joinBtn = $("#join"), holdTimer = null, joined = false, joining = false;
+  paintAvatars();
+  lightsOn();
   function startHold() {
     if (joined || joining) return;
     joinBtn.classList.add("holding"); haptic();
@@ -456,7 +541,7 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
   function join() {
     if (joined || joining) return;
     joining = true;
-    $("#joinLabel").textContent = "Finding your spot";
+    $("#joinLabel").textContent = "¡Vamos!";
     var target = openSpotOnScreen();
     var me = $("#me"), shadow = $("#meShadow"), ring = $("#ring");
     var LAND = RM ? 0 : 900;
@@ -509,19 +594,22 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
     beams.forEach(function (b) { b.animate([{ opacity: 0.18 }, { opacity: 0.75 }], { duration: 700, fill: "forwards", easing: "ease-out" }); });
     $("#follow").getAnimations().forEach(function (a) { a.cancel(); });
     $("#follow").animate([{ opacity: 0.85 }, { opacity: 0 }], { duration: 600, easing: "ease-out" });
-    swap($("#line1"), "You’re on");
-    $("#sub").textContent = "Court 2 at Malahide. See you under the lights.";
-    $("#gap").innerHTML = face("me"); $("#gap").style.border = "0";
-    $("#gap").querySelector("svg").animate([{ transform: "scale(0)" }, { transform: "scale(1.2)" }, { transform: "scale(1)" }], { duration: 380, easing: "ease-out" });
-    $("#left").textContent = "Game full";
+    swap($("#line1"), "¡Dentro!");
+    $("#sub").textContent = "Pista 2, Malahide. Nos vemos allí.";
+    var gap = $("#gap");
+    gap.classList.add("taken"); gap.innerHTML = avatar("me");
+    gap.firstChild.animate([{ transform: "scale(.6)", opacity: 0 }, { transform: "scale(1.15)", opacity: 1 }, { transform: "scale(1)" }], { duration: 380, easing: "ease-out" });
+    var stamp = $("#stamp");
+    stamp.style.display = "block";
+    if (!RM) stamp.animate([{ opacity: 0, transform: "rotate(-7deg) scale(1.7)" }, { opacity: 1, transform: "rotate(-7deg) scale(1)" }], { duration: 200, delay: 240, easing: "cubic-bezier(.55,0,1,.45)", fill: "backwards" });
     joinBtn.style.display = "none";
     $("#after").style.display = "flex";
   }
   function swap(el, text) {
     if (RM) { el.textContent = text; return; }
-    el.animate([{ opacity: 1, transform: "none", filter: "blur(0)" }, { opacity: 0, transform: "translateY(-16px)", filter: "blur(8px)" }], { duration: 180, easing: "ease-in" }).onfinish = function () {
+    el.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-16px)" }], { duration: 180, easing: "ease-in" }).onfinish = function () {
       el.textContent = text;
-      el.animate([{ opacity: 0, transform: "translateY(22px)", filter: "blur(8px)" }, { opacity: 1, transform: "none", filter: "blur(0)" }], { duration: 480, easing: "cubic-bezier(.16,1,.3,1)" });
+      el.animate([{ opacity: 0, transform: "translateY(22px)" }, { opacity: 1, transform: "none" }], { duration: 480, easing: "cubic-bezier(.16,1,.3,1)" });
     };
   }
   $("#leave").addEventListener("click", function () {
@@ -531,11 +619,12 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
     $("#meShadow").getAnimations().forEach(function (a) { a.cancel(); });
     $("#meShadow").style.opacity = 0;
     var ring = $("#ring"); ring.getAnimations().forEach(function (a) { a.cancel(); }); ring.style.animation = "";
-    swap($("#line1"), "Tonight");
-    $("#sub").textContent = "One spot left at Malahide. It could be yours.";
-    $("#gap").innerHTML = ""; $("#gap").style.border = "";
-    $("#left").textContent = "1 spot open";
-    $("#joinLabel").textContent = "Hold to take the spot";
+    swap($("#line1"), "Esta noche");
+    $("#sub").textContent = "Falta uno at Malahide. + you?";
+    var gap = $("#gap");
+    gap.classList.remove("taken"); gap.textContent = "+ you?";
+    $("#stamp").style.display = "none";
+    $("#joinLabel").textContent = "Hold to play. ¿Jugamos?";
     joinBtn.style.display = ""; $("#after").style.display = "none";
   });
 
@@ -543,6 +632,7 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
   var flaps = $$(".flap");
   function win() {
     var ft = $("#ft"); ft.style.display = "flex";
+    $("#app").classList.add("ft-open");
     flaps.forEach(function (fl, n) {
       var v = +fl.dataset.v, seq = [];
       for (var i = 0; i <= v; i++) seq.push(i);
@@ -558,35 +648,32 @@ nav { position: relative; display: flex; align-items: center; gap: 8px; margin-t
       });
     });
     if (!RM) {
-      $("#ft h2").animate([{ opacity: 0, transform: "scale(2.6)", filter: "blur(16px)" }, { opacity: 1, transform: "scale(.96)", filter: "blur(0)", offset: 0.7 }, { transform: "scale(1)" }], { duration: 520, easing: "cubic-bezier(.16,1,.3,1)" });
+      $("#ft h2").animate([{ opacity: 0, transform: "scale(2.6)" }, { opacity: 1, transform: "scale(.96)", offset: 0.7 }, { transform: "scale(1)" }], { duration: 520, easing: "cubic-bezier(.16,1,.3,1)" });
+      var flash = $("#flash");
+      // Lima and naranja strobes, spaced to stay under three flashes a second.
       for (var k = 0; k < 7; k++) (function (k) {
         setTimeout(function () {
-          $("#flash").animate([{ opacity: 0.8 }, { opacity: 0 }], { duration: 170, easing: "ease-out" });
+          flash.style.background = k % 2 ? "var(--naranja)" : "var(--lima)";
+          flash.animate([{ opacity: 0.8 }, { opacity: 0 }], { duration: 170, easing: "ease-out" });
           burst(W * (0.15 + Math.random() * 0.7), H * 0.95, 34, true);
           haptic();
-        }, 240 + k * 300);
+        }, 240 + k * 340);
       })(k);
     }
     var from = 1184, to = 1202, st = performance.now();
+    $("#delta").textContent = "";
     (function tick(t) {
       var p = Math.min(1, (t - st - 1100) / 900);
       if (p < 0) { $("#rate").textContent = from; requestAnimationFrame(tick); return; }
-      $("#rate").textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3))) + (p >= 1 ? "  (+18)" : "");
+      $("#rate").textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+      if (p >= 1) $("#delta").textContent = "+18";
       if (p < 1) requestAnimationFrame(tick);
     })(st);
     $("#close").focus();
   }
   $("#win").addEventListener("click", win);
-  $("#close").addEventListener("click", function () { $("#ft").style.display = "none"; });
+  $("#close").addEventListener("click", function () { $("#ft").style.display = "none"; $("#app").classList.remove("ft-open"); });
 
-  // The glass catches the light where your finger is.
-  $$(".glass").forEach(function (g) {
-    g.addEventListener("pointermove", function (e) {
-      var r = g.getBoundingClientRect();
-      g.style.setProperty("--mx", (e.clientX - r.left) + "px");
-      g.style.setProperty("--my", (e.clientY - r.top) + "px");
-    });
-  });
   $$("nav a").forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); }); });
 
   window.__demo = { join: join, win: win };
