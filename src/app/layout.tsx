@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Archivo_Black, Space_Mono } from "next/font/google";
 import "./globals.css";
+import "./ios.css";
 
 // The three peña fonts, loaded via next/font and exposed as CSS variables
 // that globals.css references (--font-archivo → font-sans,
@@ -55,14 +56,18 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true, // launches without Safari chrome once added
     title: "Padel Loop",
-    // The status bar sits ON the app, tinted to match — which is why the
-    // top of every screen needs safe-area padding (see globals.css).
-    statusBarStyle: "black-translucent",
+    // "default" gives dark status bar text on light screens and light text on
+    // dark ones. "black-translucent" would force white text, which disappears
+    // on the light screens.
+    statusBarStyle: "default",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0F1C3F",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F2F2F7" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
   // WITHOUT THIS, every env(safe-area-inset-*) in the app resolves to 0.
   // The bottom nav already asks for that inset; until viewport-fit is
   // cover it was asking for nothing, and in standalone the nav would sit

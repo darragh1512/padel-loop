@@ -1,0 +1,238 @@
+/* ── Padel Loop design system ─────────────────────────────────────────────
+   The native iPhone look. The mockups in /mockups are the source of truth, so
+   every size, weight and tracking value below comes from them.
+
+   Type: the device's own system font (San Francisco on iPhone), at Apple's
+   Dynamic Type "Large" sizes with Apple's published tracking.
+   Colour: one accent, padel-court blue. Light, dark and increased-contrast
+   values all live here, and dark mode follows the phone's setting.          */
+
+:root {
+  --ios-accent: #1262a8;
+  --ios-accent-tint: #e4eef7;
+  --ios-court: #1262a8;
+  --ios-court-surround: #0b4a82;
+  --ios-on-accent: #ffffff;
+  --ios-label: #000000;
+  --ios-secondary: #66666b;
+  --ios-sep: rgb(60 60 67 / 0.18);
+  --ios-bg: #f2f2f7;
+  --ios-card: #ffffff;
+  --ios-chip: #ffffff;
+  --ios-fill: rgb(120 120 128 / 0.14);
+  --ios-tab-on: rgb(120 120 128 / 0.14);
+  --ios-tab-label: #1c1c1e;
+  --ios-chevron: rgb(60 60 67 / 0.35);
+  --ios-monogram: #6e6e73;
+  --ios-badge: #ff3b30;
+  --ios-glass: rgb(255 255 255 / 0.58);
+  --ios-glass-edge:
+    inset 0 0.5px 0 rgb(255 255 255 / 0.95), inset 0 0 0 0.5px rgb(255 255 255 / 0.55),
+    inset 0 -0.5px 0 rgb(255 255 255 / 0.3), 0 8px 28px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.05);
+  --ios-edge-from: rgb(242 242 247 / 0.55);
+  --ios-edge-to: rgb(242 242 247 / 0);
+  --ios-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Space between the status bar and a screen's first line. An installed app
+     sits directly under the status bar; in a browser tab it needs more air. */
+  --ios-top-gap: 12px;
+}
+@media (display-mode: standalone) {
+  :root { --ios-top-gap: 1px; }
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ios-accent: #64b0f5;
+    --ios-accent-tint: #16324f;
+    --ios-court: #1b6fc2;
+    --ios-court-surround: #0f4a85;
+    --ios-label: #ffffff;
+    --ios-secondary: #98989f;
+    --ios-sep: rgb(84 84 88 / 0.65);
+    --ios-bg: #000000;
+    --ios-card: #1c1c1e;
+    --ios-chip: #2c2c2e;
+    --ios-fill: rgb(120 120 128 / 0.32);
+    --ios-tab-on: rgb(120 120 128 / 0.3);
+    --ios-tab-label: #f2f2f7;
+    --ios-chevron: rgb(235 235 245 / 0.3);
+    --ios-glass: rgb(44 44 46 / 0.58);
+    --ios-glass-edge:
+      inset 0 0.5px 0 rgb(255 255 255 / 0.28), inset 0 0 0 0.5px rgb(255 255 255 / 0.12),
+      0 8px 28px rgb(0 0 0 / 0.5);
+    --ios-edge-from: rgb(0 0 0 / 0.55);
+    --ios-edge-to: rgb(0 0 0 / 0);
+  }
+}
+/* Increase Contrast. */
+@media (prefers-contrast: more) {
+  :root {
+    --ios-accent: #0b4f8c;
+    --ios-court: #0b4f8c;
+    --ios-secondary: #48484c;
+    --ios-sep: rgb(60 60 67 / 0.45);
+  }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root {
+    --ios-accent: #8cc5f8;
+    --ios-court: #155fa8;
+    --ios-secondary: #c2c2c8;
+    --ios-sep: rgb(235 235 245 / 0.5);
+  }
+}
+
+/* A screen in the new look. */
+html:has(.ios),
+body:has(.ios) {
+  background: var(--ios-bg);
+  color: var(--ios-label);
+}
+.ios {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-optical-sizing: auto;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  background: var(--ios-bg);
+  color: var(--ios-label);
+  min-height: 100dvh;
+  position: relative;
+}
+.ios ::selection { background: var(--ios-accent-tint); color: var(--ios-label); }
+.ios :focus-visible,
+.ios-tabbar :focus-visible { outline: 3px solid var(--ios-accent); outline-offset: 2px; }
+
+/* ── Text styles ── */
+.ios-lt { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: 0.4px; }
+.ios-t1 { font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: 0.38px; }
+.ios-t2 { font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.26px; }
+.ios-t3 { font-size: 20px; line-height: 25px; font-weight: 700; letter-spacing: -0.45px; }
+.ios-hl { font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.43px; }
+.ios-bd { font-size: 17px; line-height: 22px; font-weight: 400; letter-spacing: -0.43px; }
+.ios-cl { font-size: 16px; line-height: 21px; font-weight: 400; letter-spacing: -0.31px; }
+.ios-sh { font-size: 15px; line-height: 20px; font-weight: 400; letter-spacing: -0.23px; }
+.ios-fn { font-size: 13px; line-height: 18px; font-weight: 400; letter-spacing: -0.08px; }
+.ios-eyebrow {
+  font-size: 13px; line-height: 18px; font-weight: 600; letter-spacing: -0.08px;
+  color: var(--ios-secondary); text-transform: uppercase; min-height: 18px;
+}
+.ios-link { color: inherit; text-decoration: none; }
+.ios-sec { color: var(--ios-secondary); }
+.ios-acc { color: var(--ios-accent); }
+.ios-sb { font-weight: 600; }
+.ios-md { font-weight: 500; }
+.ios-clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Layout ── */
+.ios-nav {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding: var(--ios-top-gap) 16px 0 20px;
+}
+.ios-sect {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 0 20px; margin-bottom: 8px;
+}
+.ios-card { background: var(--ios-card); border-radius: 26px; margin: 0 16px; }
+.ios-list { background: var(--ios-card); border-radius: 26px; margin: 0 16px; overflow: hidden; }
+.ios-row {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; min-height: 52px;
+}
+.ios-row + .ios-row::before {
+  content: ""; position: absolute; top: 0; right: 0; left: var(--ios-inset, 16px);
+  height: 0.5px; background: var(--ios-sep);
+}
+.ios-grow { flex: 1; min-width: 0; }
+
+/* ── Press feedback ── */
+.ios-press { transition: transform 120ms var(--ios-ease-out); }
+.ios-press:active { transform: scale(0.97); }
+
+/* ── Controls in the content layer ── */
+.ios-pill {
+  height: 44px; border-radius: 22px; background: var(--ios-fill); color: var(--ios-label);
+  display: flex; align-items: center; justify-content: center; gap: 7px; flex: 1;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.23px; text-decoration: none;
+}
+.ios-join {
+  position: relative; flex: none; height: 34px; border: 0; cursor: pointer;
+  border-radius: 17px; background: var(--ios-accent-tint); color: var(--ios-accent);
+  font-size: 15px; font-weight: 600; letter-spacing: -0.23px;
+  transition: transform 120ms var(--ios-ease-out), width 200ms var(--ios-ease-out);
+}
+.ios-join:active { transform: scale(0.97); }
+.ios-join:disabled { cursor: default; }
+.ios-join-face {
+  display: flex; align-items: center; justify-content: center; gap: 4px; height: 100%;
+  padding: 0 16px; white-space: nowrap;
+  transition: opacity 200ms var(--ios-ease-out), filter 200ms var(--ios-ease-out);
+}
+.ios-join-face + .ios-join-face { position: absolute; inset: 0; }
+.ios-join-face[data-on="false"] { opacity: 0; filter: blur(2px); }
+
+/* ── Liquid Glass: floating controls only, never content ── */
+.ios-glass {
+  background: var(--ios-glass);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  backdrop-filter: blur(22px) saturate(1.6);
+  box-shadow: var(--ios-glass-edge);
+}
+.ios-gcap { height: 44px; border-radius: 22px; display: flex; align-items: center; flex: none; color: var(--ios-label); }
+.ios-gcap-i {
+  position: relative; width: 44px; height: 44px; border-radius: 22px; flex: none;
+  display: flex; align-items: center; justify-content: center; color: inherit;
+}
+.ios-badge {
+  position: absolute; top: 9px; right: 10px; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--ios-badge);
+}
+
+/* ── Tab bar and the scroll edge beneath it ── */
+.ios-edge {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 150px; z-index: 20; pointer-events: none;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  -webkit-mask-image: linear-gradient(to top, #000 45%, transparent);
+  mask-image: linear-gradient(to top, #000 45%, transparent);
+  background: linear-gradient(to top, var(--ios-edge-from), var(--ios-edge-to));
+}
+.ios-tabbar {
+  position: fixed; bottom: 21px; left: 50%; transform: translateX(-50%); z-index: 30;
+  width: min(100% - 42px, 406px); height: 62px; border-radius: 31px; padding: 4px; display: flex;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.ios-tab {
+  flex: 1; min-width: 0; border-radius: 27px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+  color: var(--ios-tab-label); text-decoration: none;
+}
+.ios-tab-i { height: 25px; display: flex; align-items: center; justify-content: center; }
+.ios-tab-l { font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: 0.1px; }
+.ios-tab[aria-current="page"] { background: var(--ios-tab-on); color: var(--ios-accent); }
+
+/* ── Court ── */
+.ios-court { display: block; flex: none; width: 100%; height: auto; }
+.ios-court-spot {
+  transform-box: fill-box; transform-origin: center;
+  transition: opacity 200ms var(--ios-ease-out), transform 200ms var(--ios-ease-out);
+}
+.ios-court-spot[data-on="false"] { opacity: 0; transform: scale(0.9); }
+
+/* ── Loading placeholders ── */
+.ios-skel { background: var(--ios-fill); border-radius: 26px; animation: ios-pulse 1.4s ease-in-out infinite; }
+@keyframes ios-pulse { 50% { opacity: 0.55; } }
+
+/* ── Reduce Motion: fades stay, nothing scales, slides or blurs ── */
+@media (prefers-reduced-motion: reduce) {
+  .ios-press, .ios-press:active, .ios-join, .ios-join:active { transform: none; transition: none; }
+  .ios-join-face { transition: opacity 200ms linear; }
+  .ios-join-face[data-on="false"] { filter: none; }
+  .ios-court-spot { transition: opacity 200ms linear; }
+  .ios-court-spot[data-on="false"] { transform: none; }
+  .ios-skel { animation: none; }
+}
+
+/* ── Reduce Transparency: solid surfaces instead of glass ── */
+@media (prefers-reduced-transparency: reduce) {
+  .ios-glass { background: var(--ios-card); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .ios-edge { display: none; }
+}

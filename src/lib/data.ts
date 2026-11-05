@@ -1,13 +1,12 @@
 import { supabase } from "@/lib/supabaseClient";
-import { dublinDateKey, dublinToUtc } from "@/lib/time";
+import { dublinDateKey } from "@/lib/time";
 import { isCancelled, readPrice, type Game, type Player } from "./types";
 
 /* ── Games data for the redesigned UI ───────────────────────────
    Reuses the existing Supabase client (src/lib/supabaseClient.ts), so the
    same env vars and auth setup apply — nothing here changes them.
-   `rowToGame` maps OUR real `games` columns to the UI `Game` type. If the
-   query fails or returns nothing, we fall back to MOCK_GAMES so the screens
-   still render.                                                              */
+   `rowToGame` maps OUR real `games` columns to the UI `Game` type. Real data
+   only: a failed or empty query returns nothing, never example games.                                                              */
 
 // Our `games` table stores skill_level as text (Beginner/Intermediate/
 // Advanced), but the design shows a numeric level range. Map each level to a
@@ -48,7 +47,7 @@ function courtFeeFor(skill?: string | null): number {
 }
 
 // First letters of a name → up to two initials (e.g. "Jonny K." → "JK").
-function initialsFrom(name?: string | null): string {
+export function initialsFrom(name?: string | null): string {
   const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "P";
   const letters = (parts[0][0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : parts[0][1] ?? "");
@@ -218,19 +217,7 @@ export async function getGames(): Promise<Game[]> {
     // only — never on the public Discover list.
     .order("game_time", { ascending: true }) // soonest first
     .limit(20);
-  // DEVELOPMENT ONLY: if the query failed or returned nothing, fall back to
-  // the mock games so screens render while building. NEVER in production —
-  // mock games look joinable but their ids don't exist in the database, so
-  // every join fails on the game_players foreign key ("Couldn't take that
-  // spot"). A genuinely empty board must show the real EmptyState instead.
-  if (error || !data || data.length === 0) {
-    if (process.env.NODE_ENV !== "production") {
-      return MOCK_GAMES
-        .filter(isUpcoming)
-        .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
-    }
-    return [];
-  }
+  if (error || !data || data.length === 0) return [];
 
   // Load the real joined players for ALL these games in one batch, then build
   // each game WITH its players so "slots left" on every card is accurate.
@@ -256,12 +243,6 @@ export async function getGame(id: string): Promise<Game | null> {
     const players = await getPlayersForGame(String(data.id), data.created_by);
     return rowToGame(data, players);
   }
-  // DEVELOPMENT ONLY: let the mock discover cards open their mock detail
-  // pages. In production an unknown game is simply not found (the page shows
-  // its 404), never a fake game a visitor could try to join.
-  if (process.env.NODE_ENV !== "production") {
-    return MOCK_GAMES.find((g) => g.id === id) ?? null;
-  }
   return null;
 }
 
@@ -269,8 +250,7 @@ export async function getGame(id: string): Promise<Game | null> {
 // same batched player-loading, just filtered by group_id instead of
 // "upcoming and off Discover". Ordered oldest-proposed first so the group
 // thread page can interleave them into the message stream by createdAt.
-// No mock fallback (unlike getGames/getGame): an empty group simply has no
-// proposals yet, which is a normal, real state, not a failure to paper over.
+// An empty group simply has no proposals yet, which is a normal, real state.
 export async function getGamesForGroup(groupId: string): Promise<Game[]> {
   const { data, error } = await supabase
     .from("games")
@@ -285,129 +265,3 @@ export async function getGamesForGroup(groupId: string): Promise<Game[]> {
     rowToGame(row, playersByGame.get(String(row.id)) ?? []),
   );
 }
-
-/* ── Mock data (DEVELOPMENT ONLY — never served in production) ───────
-   Used by the dev-gated fallbacks above when the games query fails or is
-   empty, so screens render while building. These mirror the seed rows in
-   supabase/seed.sql. Levels and per-head prices come from the skill tier
-   (see levelRange / courtFeeFor above), exactly as the real rows do.       */
-
-// Build an ISO timestamp `days` from now at the given DUBLIN time-of-day —
-// the app shows game times pinned to Europe/Dublin (see src/lib/time.ts), so
-// 19:30 here appears as 19:30 on screen year-round.
-const inDays = (days: number, h: number, m = 0) => {
-  const d = new Date(Date.now() + days * 86_400_000);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return dublinToUtc(dublinDateKey(d), `${pad(h)}:${pad(m)}`);
-};
-
-export const MOCK_GAMES: Game[] = [
-  {
-    id: "1",
-    venue: "Malahide Padel Club",
-    area: "Malahide",
-    courtLabel: "Court 2 · Outdoor panoramic",
-    distanceKm: 1.2,
-    startsAt: inDays(0, 19, 30), // tonight, 7:30 pm
-    durationMins: 90,
-    levelMin: 2.5,
-    levelMax: 3.5,
-    format: "doubles",
-    maxPlayers: 4,
-    courtFee: 52, // Intermediate → €13 / head
-    players: [
-      { id: "p1", name: "Cian O'Brien", initials: "CO", level: 3.1, gamesPlayed: 38, isOrganiser: true },
-      { id: "p2", name: "Aoife Walsh", initials: "AW", level: 2.9, gamesPlayed: 14 },
-      { id: "p3", name: "Niamh Byrne", initials: "NB", level: 3.3, gamesPlayed: 22 },
-    ],
-  },
-  {
-    id: "2",
-    venue: "Swords Padel Arena",
-    area: "Swords",
-    courtLabel: "Court 1 · Indoor",
-    distanceKm: 4.1,
-    startsAt: inDays(1, 10, 0), // tomorrow, 10:00 am
-    durationMins: 90,
-    levelMin: 1.0,
-    levelMax: 2.5,
-    format: "doubles",
-    maxPlayers: 4,
-    courtFee: 40, // Beginner → €10 / head
-    players: [
-      { id: "p4", name: "Darragh Kelly", initials: "DK", level: 2.0, gamesPlayed: 6, isOrganiser: true },
-    ],
-  },
-  {
-    id: "3",
-    venue: "The Padel Yard",
-    area: "Dublin City Centre",
-    courtLabel: "Court 4 · Indoor premium",
-    distanceKm: 14.5,
-    startsAt: inDays(1, 18, 30), // tomorrow, 6:30 pm
-    durationMins: 90,
-    levelMin: 3.5,
-    levelMax: 5.0,
-    format: "doubles",
-    maxPlayers: 4,
-    courtFee: 64, // Advanced → €16 / head
-    players: [
-      { id: "p5", name: "Seán Murphy", initials: "SM", level: 4.2, gamesPlayed: 73, isOrganiser: true },
-      { id: "p6", name: "Emma Doyle", initials: "ED", level: 3.8, gamesPlayed: 51 },
-    ],
-  },
-  {
-    id: "4",
-    venue: "Dún Laoghaire Padel Club",
-    area: "Dún Laoghaire",
-    courtLabel: "Court 3 · Outdoor",
-    distanceKm: 24.8,
-    startsAt: inDays(2, 11, 0), // 11:00 am
-    durationMins: 90,
-    levelMin: 2.5,
-    levelMax: 3.5,
-    format: "doubles",
-    maxPlayers: 4,
-    courtFee: 52, // Intermediate → €13 / head
-    players: [
-      { id: "p7", name: "Lorcan Fitzgerald", initials: "LF", level: 3.0, gamesPlayed: 29, isOrganiser: true },
-      { id: "p8", name: "Rachel Nolan", initials: "RN", level: 3.2, gamesPlayed: 18 },
-    ],
-  },
-  {
-    id: "5",
-    venue: "Clontarf Padel Centre",
-    area: "Clontarf",
-    courtLabel: "Court 1 · Outdoor",
-    distanceKm: 9.7,
-    startsAt: inDays(4, 19, 0), // 7:00 pm
-    durationMins: 90,
-    levelMin: 1.0,
-    levelMax: 2.5,
-    format: "doubles",
-    maxPlayers: 4,
-    courtFee: 40, // Beginner → €10 / head
-    players: [
-      { id: "p9", name: "Mark Hughes", initials: "MH", level: 1.8, gamesPlayed: 9, isOrganiser: true },
-    ],
-  },
-  {
-    id: "6",
-    venue: "Sandyford Padel Club",
-    area: "Sandyford",
-    courtLabel: "Court 5 · Indoor",
-    distanceKm: 21.6,
-    startsAt: inDays(6, 20, 0), // 8:00 pm
-    durationMins: 90,
-    levelMin: 3.5,
-    levelMax: 5.0,
-    format: "doubles",
-    maxPlayers: 4,
-    courtFee: 64, // Advanced → €16 / head
-    players: [
-      { id: "p10", name: "Conor Reilly", initials: "CR", level: 4.0, gamesPlayed: 64, isOrganiser: true },
-      { id: "p11", name: "Eoin Gallagher", initials: "EG", level: 3.9, gamesPlayed: 47 },
-      { id: "p12", name: "Sarah Lynch", initials: "SL", level: 3.7, gamesPlayed: 33 },
-    ],
-  },
-];

@@ -1,122 +1,232 @@
 "use client";
 
-// The home dashboard. One job: get the player to their next game fast.
-//   • Top row: the day + greeting as a printed eyebrow, the player's own name
-//     as the poster shout, with the notification disc and their avatar
-//     opposite.
-//   • Hero: the next game as a taped-up match poster with a countdown stub,
-//     or a "Game on?" invitation when the board is empty.
-//   • "Find a game" — THE primary action, the one lima surface (→ /discover).
-//   • Two tiles — Connections and Leaderboard.
-//   • A stats strip along the foot.
-// Reuses the existing upcoming-games, connection-count and profile queries;
-// it adds no new data access of its own.
+// Home. Two questions: when is my next game, and what can I join near me?
+//
+// Only real data appears here. The mockup also shows drive time, court number
+// and duration, but the app doesn't store those yet, so they're left out rather
+// than guessed.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import NotificationBell from "@/components/NotificationBell";
-import PlayerAvatar from "@/components/PlayerAvatar";
-import { ErrorState, Skeleton } from "@/components/ui";
-import { supabase } from "@/lib/supabaseClient";
-import { getUpcomingGamesFor, type Game } from "@/app/games";
-import { getConnectionCount } from "@/app/connections";
-import { getProfile } from "@/app/profiles";
-import { onAvatarChange } from "@/lib/avatarBus";
 import { useRouter } from "next/navigation";
-import { APP_TIME_ZONE, dublinDateKey } from "@/lib/time";
+import Court, { spotsFor } from "@/components/ios/Court";
+import Icon from "@/components/ios/Icon";
+import JoinPill from "@/components/ios/JoinPill";
+import NotificationBell from "@/components/NotificationBell";
+import { supabase } from "@/lib/supabaseClient";
+import { getGame, getGames, initialsFrom } from "@/lib/data";
+import { isFull, slotsLeft, skillTierOf, type Game } from "@/lib/types";
+import { gameWhen, longDate, spotsOpenText } from "@/lib/when";
+import { getJoinedOrCreatedGameIds, getUpcomingGamesFor } from "@/app/games";
+import { getProfile, type Profile } from "@/app/profiles";
 
-function ChevronRight({ className = "" }: { className?: string }) {
+const NEARBY_ROWS = 3;
+
+// A player's own level, in the three bands games are listed under.
+function tierOfPlayer(skill?: string | null): "Beginner" | "Intermediate" | "Advanced" | null {
+  switch ((skill ?? "").trim().toLowerCase()) {
+    case "beginner":
+    case "improver":
+      return "Beginner";
+    case "intermediate":
+      return "Intermediate";
+    case "advanced":
+    case "pro":
+      return "Advanced";
+    default:
+      return null;
+  }
+}
+
+/* Games the player can really take a spot in: not theirs already, not full and
+   not closed. Their own level comes first, and each group is soonest first. */
+function pickNearby(games: Game[], excluded: Set<string>, skill?: string | null): Game[] {
+  const tier = tierOfPlayer(skill);
+  return games
+    .filter((g) => !excluded.has(g.id) && !isFull(g) && !g.isManuallyClosed)
+    .map((game, order) => ({ game, order, rank: tier && skillTierOf(game) === tier ? 0 : 1 }))
+    .sort((a, b) => a.rank - b.rank || a.order - b.order)
+    .slice(0, NEARBY_ROWS)
+    .map((x) => x.game);
+}
+
+// Opens the phone's own maps app on iPhone and Mac, and Google Maps elsewhere.
+function openDirections(query: string) {
+  const q = encodeURIComponent(query);
+  const apple = /iPhone|iPad|Macintosh/.test(navigator.userAgent);
+  window.open(
+    apple ? `https://maps.apple.com/?q=${q}` : `https://www.google.com/maps/search/?api=1&query=${q}`,
+    "_blank",
+    "noopener",
+  );
+}
+
+function place(game: Game): string {
+  return game.area ? `${game.venue}, ${game.area}` : game.venue;
+}
+
+function courtLabel(game: Game): string {
+  const open = slotsLeft(game);
+  return `Court with ${game.players.length} of ${game.maxPlayers} players in, ${spotsOpenText(open)}`;
+}
+
+function SectionTitle({ title, seeAllHref }: { title: string; seeAllHref?: string }) {
   return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden
-      className={`shrink-0 ${className}`}
-    >
-      <path
-        d="M9 5l7 7-7 7"
-        stroke="currentColor"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-      />
-    </svg>
+    <div className="ios-sect">
+      <h2 className="ios-t3">{title}</h2>
+      {seeAllHref && (
+        <Link href={seeAllHref} className="ios-cl ios-acc ios-md ios-link">
+          See All
+        </Link>
+      )}
+    </div>
   );
 }
 
-/* "TUE 21:00" — the poster's date line, on a Dublin clock like everything
-   else in the app. */
-function posterWhen(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const f = (o: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("en-IE", { timeZone: APP_TIME_ZONE, ...o }).format(d);
-  return `${f({ weekday: "short" })} ${f({ hour: "2-digit", minute: "2-digit", hour12: false })}`;
-}
-
-/* The countdown stub: "TODAY", "1d", "5d" … in Dublin calendar days. */
-function countdown(iso: string): { label: string; value: string } {
-  const key = dublinDateKey(iso);
-  const today = dublinDateKey(new Date());
-  if (!key || !today) return { label: "ON", value: "—" };
-  const days = Math.round(
-    (Date.parse(`${key}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000,
+function NextGameCard({ game, userId }: { game: Game; userId: string | null }) {
+  const open = slotsLeft(game);
+  return (
+    <div className="ios-card" style={{ padding: "10px 10px 12px" }}>
+      <Link href={`/games/${game.id}`} className="ios-link ios-press" style={{ display: "block" }}>
+        <Court spots={spotsFor(game.players, game.maxPlayers, userId)} big radius={8.5} label={courtLabel(game)} />
+        <div style={{ padding: "12px 6px 0" }}>
+          <div className="ios-t2">{gameWhen(game.startsAt)}</div>
+          <div className="ios-sh ios-sec" style={{ marginTop: 2 }}>
+            {place(game)}
+          </div>
+          <div className="ios-sh" style={{ marginTop: 2 }}>
+            <span className="ios-sb">You’re in</span>
+            <span className="ios-sec"> · </span>
+            {game.isManuallyClosed ? (
+              <span className="ios-sec">Closed</span>
+            ) : open > 0 ? (
+              <span className="ios-sb ios-acc">{spotsOpenText(open)}</span>
+            ) : (
+              <span className="ios-sec">Full</span>
+            )}
+          </div>
+        </div>
+      </Link>
+      <div style={{ display: "flex", gap: 8, margin: "12px 6px 0" }}>
+        <button
+          type="button"
+          className="ios-pill ios-press"
+          style={{ border: 0, cursor: "pointer" }}
+          onClick={() => openDirections(place(game))}
+        >
+          <Icon name="directions" size={22} />
+          Directions
+        </button>
+        <Link href={`/games/${game.id}/chat`} className="ios-pill ios-press">
+          <Icon name="chat" size={21} />
+          Chat
+        </Link>
+      </div>
+    </div>
   );
-  if (days <= 0) return { label: "IT'S", value: "Today" };
-  if (days === 1) return { label: "IN", value: "1d" };
-  return { label: "IN", value: `${days}d` };
 }
 
-/* One of the two square tiles under the primary action. */
-function Tile({
-  href,
-  icon,
-  title,
-  sub,
+function NoGameCard() {
+  return (
+    <div className="ios-card" style={{ padding: "10px 10px 12px" }}>
+      <Court spots={[null, null, null, null]} big radius={8.5} label="Empty court, no game booked" />
+      <div style={{ padding: "12px 6px 0" }}>
+        <div className="ios-t2">No Game Yet</div>
+        <div className="ios-sh ios-sec" style={{ marginTop: 2 }}>
+          Join a game below, or start your own.
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, margin: "12px 6px 0" }}>
+        <Link href="/create" className="ios-pill ios-press">
+          <Icon name="plus" size={15} />
+          New Game
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function NearbyRow({
+  game,
+  userId,
+  viewerInitials,
+  priced,
+  onJoined,
 }: {
-  href: string;
-  icon: React.ReactNode;
-  title: string;
-  sub: string;
+  game: Game;
+  userId: string | null;
+  viewerInitials: string;
+  priced: boolean;
+  onJoined: () => void;
 }) {
+  const [joined, setJoined] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const players = useMemo(
+    () => (joined && userId ? [...game.players, { id: userId, initials: viewerInitials }] : game.players),
+    [joined, game.players, userId, viewerInitials],
+  );
+  const open = game.maxPlayers - players.length;
+  const when = gameWhen(game.startsAt);
   return (
-    <Link
-      href={href}
-      className="bg-white/8 hover:bg-white/14 border-2 border-papel/28 rounded-card p-3 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-    >
-      {icon}
-      <div className="t-display text-display-xs text-papel mt-2.5">{title}</div>
-      <div className="text-label text-papel/65 mt-0.75">{sub}</div>
-    </Link>
+    <div className="ios-row" style={{ "--ios-inset": "112px" } as React.CSSProperties}>
+      <Link
+        href={`/games/${game.id}`}
+        className="ios-link ios-grow ios-press"
+        style={{ display: "flex", alignItems: "center", gap: 12 }}
+      >
+        <div style={{ width: 84, flex: "none" }}>
+          <Court
+            spots={spotsFor(players, game.maxPlayers, null)}
+            label={`Court with ${players.length} of ${game.maxPlayers} players in, ${spotsOpenText(open)}`}
+          />
+        </div>
+        <div className="ios-grow">
+          <div className="ios-hl ios-clip">{when}</div>
+          <div className="ios-fn ios-sec">{place(game)}</div>
+          {failed ? (
+            <div className="ios-fn ios-sec" role="status">
+              Couldn’t join. Try again.
+            </div>
+          ) : (
+            <div className="ios-fn ios-sb ios-acc" aria-live="polite">
+              {open > 0 ? spotsOpenText(open) : "Full"}
+            </div>
+          )}
+        </div>
+      </Link>
+      <JoinPill
+        gameId={game.id}
+        gameLabel={`${when} at ${game.venue}`}
+        userId={userId}
+        priced={priced}
+        onFailed={() => setFailed(true)}
+        onJoined={() => {
+          setFailed(false);
+          setJoined(true);
+          onJoined();
+        }}
+      />
+    </div>
   );
 }
 
 export default function HomeDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  // Home is the screen a brand-new person meets, so getting this wrong is
-  // the costliest place to do it: "nothing on the board yet" on a failed
-  // load tells somebody the Loop is dead on their first visit.
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
-  const [upcoming, setUpcoming] = useState<Game[]>([]);
-  const [connCount, setConnCount] = useState(0);
-  const [name, setName] = useState<string | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [rating, setRating] = useState<number | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [nextGame, setNextGame] = useState<Game | null>(null);
+  const [nearby, setNearby] = useState<Game[]>([]);
+  // Set after mounting, so the date is always the viewer's current day and
+  // never one left over from when the page was built.
+  const [today, setToday] = useState("");
 
-  // Day + time-of-day word for the greeting. Set in an effect (client only)
-  // from the user's own local time, so it's their morning/afternoon/evening —
-  // and so it never mismatches the server-rendered HTML during hydration.
-  const [greeting, setGreeting] = useState<string | null>(null);
-  useEffect(() => {
-    const now = new Date();
-    const h = now.getHours();
-    const period = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-    const day = new Intl.DateTimeFormat("en-IE", { weekday: "long" }).format(now);
-    setGreeting(`${day} · ${period}`);
+  const loadNextGame = useCallback(async (uid: string) => {
+    const upcoming = await getUpcomingGamesFor(uid); // soonest first
+    const first = upcoming[0];
+    return first ? await getGame(String(first.id)) : null;
   }, []);
 
   useEffect(() => {
@@ -124,311 +234,126 @@ export default function HomeDashboard() {
     (async () => {
       const { data } = await supabase.auth.getUser();
       const uid = data.user?.id ?? null;
-      if (uid) {
-        let games, count, profile;
-        try {
-          [games, count, profile] = await Promise.all([
-            getUpcomingGamesFor(uid),
-            getConnectionCount(uid),
-            getProfile(uid),
-          ]);
-        } catch {
-          if (!active) return;
-          setFailed(true);
-          setLoading(false);
-          return;
-        }
+      if (!active) return;
+      setToday(longDate());
+      try {
+        const [games, next, me, own] = await Promise.all([
+          getGames(),
+          uid ? loadNextGame(uid) : Promise.resolve(null),
+          uid ? getProfile(uid) : Promise.resolve(null),
+          uid ? getJoinedOrCreatedGameIds(uid) : Promise.resolve([] as string[]),
+        ]);
         if (!active) return;
-        setFailed(false);
-        setUserId(uid);
-        setUpcoming(games); // soonest first — [0] is the next game
-        setConnCount(count);
-        // FIRST RUN. This is the ONLY place that sends anyone to /welcome,
-        // and that is deliberate: it is what keeps a shared game link out of
-        // onboarding. Somebody arriving on /games/[id] from WhatsApp goes
-        // sign-up → back to that game → join without ever touching home, so
-        // this never fires on them mid-intent. They get set up later, on
-        // their first visit here, by which point they are already in a game.
-        //
-        // onboarded_at is set when they finish OR skip, so this cannot fire
-        // twice — and being a column rather than a browser flag, it holds on
-        // a second device too.
-        if (profile && !profile.onboarded_at) {
+        // First run: the one place that sends a new player to set-up. A shared
+        // game link never lands here, so it can't interrupt someone joining.
+        if (me && !me.onboarded_at) {
           router.replace("/welcome");
           return;
         }
-
-        setName(profile?.name ?? null);
-        setAvatarUrl(profile?.avatar_url ?? null);
-        setRating(profile?.rating ?? null);
+        setUserId(uid);
+        setProfile(me);
+        setNextGame(next);
+        setNearby(pickNearby(games, new Set(own), me?.skill_level));
+        setFailed(false);
+      } catch {
+        if (!active) return;
+        setFailed(true);
       }
-      if (!active) return;
       setLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, [router, attempt]);
+  }, [router, attempt, loadNextGame]);
 
-  // The avatar can be changed or removed from the profile screen, which
-  // lives in a different tree and so cannot update this state directly.
-  // Listen for the broadcast so the picture here changes straight away
-  // instead of waiting for the next navigation to remount us.
-  useEffect(
-    () =>
-      onAvatarChange((change) => {
-        if (change.userId === userId) setAvatarUrl(change.avatarUrl);
-      }),
-    [userId],
-  );
-
-  const firstName = name ? name.trim().split(/\s+/)[0] : null;
-  const nextGame = upcoming[0] ?? null;
-
-  // The header band: the greeting eyebrow, the player's name as the shout,
-  // and the two round controls opposite.
   const header = (
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <div className="t-eyebrow text-micro text-lima mb-1.5 min-h-4">
-          {greeting}
-        </div>
-        <h1 className="t-display text-[clamp(2rem,10vw,2.5rem)] leading-[0.92] text-white truncate">
-          {firstName ?? "Hello"}
-          <span className="text-naranja">.</span>
-        </h1>
+    <header className="ios-nav">
+      <div>
+        <div className="ios-eyebrow">{today}</div>
+        <h1 className="ios-lt">Home</h1>
       </div>
-      <div className="flex items-center gap-2.5 flex-none">
+      <div className="ios-gcap ios-glass">
         <NotificationBell />
-        {userId && (
-          <Link
-            href={`/players/${userId}`}
-            aria-label="Your profile"
-            className="rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-          >
-            <PlayerAvatar
-              userId={userId}
-              avatarUrl={avatarUrl}
-              name={name}
-              className="size-10.5 border-2 border-tinta"
-            />
-          </Link>
-        )}
+        <Link href="/create" aria-label="New game" className="ios-gcap-i ios-press">
+          <Icon name="plus" size={21} />
+        </Link>
       </div>
-    </div>
+    </header>
   );
 
-  // Hold the dashboard's space while loading so nothing jumps when it
-  // resolves. Skeletons mirror the real layout.
   if (loading) {
     return (
       <>
         {header}
-        <div className="mt-4 flex flex-col gap-3">
-          <Skeleton className="rounded-card h-28" />
-          <Skeleton className="rounded-card h-18" />
-          <div className="grid grid-cols-2 gap-2.5">
-            <Skeleton className="rounded-card h-24" />
-            <Skeleton className="rounded-card h-24" />
-          </div>
+        <div aria-hidden style={{ marginTop: 13 }}>
+          <div className="ios-skel" style={{ height: 340, margin: "0 16px" }} />
+          <div className="ios-skel" style={{ height: 200, margin: "20px 16px 0" }} />
         </div>
       </>
     );
   }
 
-  // Failed, not empty. Everything below this point assumes real data, so the
-  // whole dashboard stands aside rather than drawing a wall of zeroes that
-  // reads as an accurate picture of an account with nothing in it.
   if (failed) {
     return (
       <>
         {header}
-        <div className="mt-4">
-          <ErrorState
-            title="Couldn’t load your games."
-            body="Your games are still there — this is us failing to fetch them, not an empty Loop."
-            onRetry={() => {
-              setLoading(true);
-              setAttempt((n) => n + 1);
-            }}
-          />
+        <div className="ios-card" style={{ marginTop: 13, padding: 20 }} role="alert">
+          <div className="ios-t3">Couldn’t Load Your Games</div>
+          <div className="ios-sh ios-sec" style={{ marginTop: 4 }}>
+            Your games are safe. Check your connection and try again.
+          </div>
+          <div style={{ display: "flex", marginTop: 14 }}>
+            <button
+              type="button"
+              className="ios-pill ios-press"
+              style={{ border: 0, cursor: "pointer" }}
+              onClick={() => {
+                setLoading(true);
+                setAttempt((n) => n + 1);
+              }}
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </>
     );
   }
 
-  const stub = nextGame ? countdown(nextGame.game_time) : null;
-
   return (
     <>
       {header}
-
-      <div className="mt-4 flex flex-col gap-3">
-        {/* ── Hero: the match poster ─────────────────────────────────────── */}
-        {nextGame && stub ? (
-          <Link
-            href={`/games/${nextGame.id}`}
-            className="pl-card pl-press pl-rise shadow-poster relative px-4 pt-3.5 pb-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-          >
-            <span className="pena-tape" aria-hidden />
-            <div className="flex justify-between items-start gap-3">
-              <div className="min-w-0">
-                <div className="t-eyebrow text-tiny text-tinta/55">
-                  Next up · {posterWhen(nextGame.game_time)}
-                </div>
-                <div className="t-display text-display-sm text-tinta mt-1.25">
-                  {nextGame.venue}
-                  {nextGame.location && (
-                    <>
-                      <span className="text-tinta/45"> · </span>
-                      {nextGame.location}
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="flex-none text-center bg-tinta text-papel rounded-card px-2.5 py-1.5 min-w-13.5">
-                <div className="t-eyebrow text-tiny tracking-[0.12em]">{stub.label}</div>
-                <div className="t-display text-[1.25rem] leading-none mt-0.5">
-                  {stub.value}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 mt-3 pt-2.5 border-t-2 border-dashed border-tinta/25">
-              <span className="t-mono text-micro text-tinta">
-                {nextGame.skill_level}
-              </span>
-              <span className="t-mono text-micro text-tinta border-b-2 border-naranja">
-                Details
-              </span>
-            </div>
-          </Link>
+      <section style={{ marginTop: 13 }}>
+        <SectionTitle title="Your Next Game" />
+        {nextGame ? <NextGameCard game={nextGame} userId={userId} /> : <NoGameCard />}
+      </section>
+      <section style={{ marginTop: 20 }}>
+        <SectionTitle title="Games Near You" seeAllHref="/discover" />
+        {nearby.length > 0 ? (
+          <div className="ios-list">
+            {nearby.map((game) => (
+              <NearbyRow
+                key={game.id}
+                game={game}
+                userId={userId}
+                viewerInitials={initialsFrom(profile?.name)}
+                priced={game.pricePerPlayer != null}
+                onJoined={() => {
+                  // The game they just joined may now be their next game.
+                  if (userId) loadNextGame(userId).then(setNextGame, () => {});
+                }}
+              />
+            ))}
+          </div>
         ) : (
-          <div className="pl-card pl-rise relative px-4 pt-4 pb-3.5">
-            <span className="pena-tape" aria-hidden />
-            <div className="t-display text-display-xs text-tinta">
-              Game <span className="text-naranja">on?</span>
-            </div>
-            <div className="text-body text-tinta/70 mt-1">
-              Nothing on the board yet — your next game is a tap away.
+          <div className="ios-card" style={{ padding: 20 }}>
+            <div className="ios-hl">No Open Games Right Now</div>
+            <div className="ios-sh ios-sec" style={{ marginTop: 2 }}>
+              New games appear here as soon as they’re posted.
             </div>
           </div>
         )}
-
-        {/* ── Find a game — the one loud thing on the screen ──────────────── */}
-        <Link
-          href="/discover"
-          className="pena-riso-lg pena-riso pl-rise flex items-center gap-3.5 rounded-card px-3.5 py-3 bg-lima text-tinta border-2 border-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-papel"
-          style={{ animationDelay: "50ms" }}
-        >
-          <span className="pena-pulse relative size-11 flex-none rounded-pill border-2 border-tinta bg-papel grid place-items-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="2.2" />
-              <path
-                d="M16 16l4 4"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="t-mono block text-title tracking-[0.14em]">
-              Find a game
-            </span>
-            <span className="block text-body text-tinta/70 mt-0.75">
-              Open games near you, at your level
-            </span>
-          </span>
-          <ChevronRight />
-        </Link>
-
-        {/* ── Two tiles ──────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <Tile
-            href="/connections"
-            title="Connections"
-            sub={
-              connCount === 0
-                ? "Build your circle"
-                : `${connCount} ${connCount === 1 ? "friend" : "friends"} in your loop`
-            }
-            icon={
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden
-                className="text-lima"
-              >
-                <circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="2" />
-                <path
-                  d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5M17 8.5a2.6 2.6 0 0 1 0 5M18 19c0-2.2-.7-3.7-2-4.6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            }
-          />
-          <Tile
-            href="/leaderboard"
-            title="Leaderboard"
-            sub="Who runs the board?"
-            icon={
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden
-                className="text-naranja"
-              >
-                <path
-                  d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M10 20h4M12 13v7"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            }
-          />
-        </div>
-
-        {/* ── The stats strip ────────────────────────────────────────────── */}
-        <div className="flex bg-[rgb(6_20_58/0.35)] border-2 border-papel/20 rounded-card overflow-hidden">
-          {[
-            {
-              value: rating != null ? String(rating) : "—",
-              label: "Rating",
-              tone: "text-lima",
-            },
-            {
-              value: String(upcoming.length),
-              label: "Upcoming",
-              tone: "text-papel",
-            },
-            {
-              value: String(connCount),
-              label: "Mates",
-              tone: "text-naranja",
-            },
-          ].map((s, i) => (
-            <div key={s.label} className="flex-1 min-w-0 flex">
-              {i > 0 && <span className="w-0.5 bg-papel/20 flex-none" />}
-              <div className="flex-1 min-w-0 text-center py-2.5 px-1">
-                <div className={`t-display text-display-sm ${s.tone} truncate`}>
-                  {s.value}
-                </div>
-                <div className="t-mono text-tiny tracking-[0.14em] text-papel/60 mt-0.75">
-                  {s.label}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      </section>
     </>
   );
 }
