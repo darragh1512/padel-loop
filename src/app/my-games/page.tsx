@@ -1,156 +1,61 @@
 "use client";
-// The "My Games" screen: every game the logged-in player is in — the ones they
-// CREATED and the ones they've JOINED — filterable between the two. Cancelled
-// games aren't hidden here (unlike the browse lists); they keep their place
-// with the title struck through and an orange rail.
-//
-// Layout follows the prototype: a filter control under the title, then games
-// grouped by when they happen, each one a ticket with a torn date stub.
-//
-// It reads the player client-side (same Supabase auth the rest of the app
-// uses) and sends logged-out visitors to the login page.
+// My Games: every game the signed-in player is in — the ones they CREATED and the
+// ones they've JOINED — filterable between the two, upcoming first and past games
+// below. Cancelled games aren't hidden here (unlike the browse lists); they keep
+// their place, marked Cancelled.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
-import { ButtonLink, EmptyState, Skeleton } from "@/components/ui";
-import { CalendarPlus, CalendarSearch } from "lucide-react";
+import GameRow from "@/components/ios/GameRow";
+import Icon from "@/components/ios/Icon";
+import PageTitle from "@/components/ios/PageTitle";
+import { getGamesByIds } from "@/lib/data";
 import { supabase } from "@/lib/supabaseClient";
-import { APP_TIME_ZONE } from "@/lib/time";
-import { getGamesCreatedBy, getGamesJoinedBy, type Game } from "../games";
-
-// A game is cancelled only when its status is literally "cancelled"; a blank
-// status on older rows is treated as a normal, active game.
-const isCancelled = (g: Game) =>
-  (g.status ?? "").trim().toLowerCase() === "cancelled";
-
-// A game plus which side of the screen it belongs to.
-type MyGame = Game & { hosting: boolean };
+import { dublinDateKey } from "@/lib/time";
+import type { Game } from "@/lib/types";
+import { getGamesCreatedBy, getGamesJoinedBy } from "../games";
 
 type Filter = "All" | "Hosting" | "Joined";
 
-/* The date stub: day-of-week, date, month — always on a Dublin clock, like
-   every other time in the app. */
-function stubParts(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return { dow: "—", day: "—", mon: "" };
-  const fmt = (opts: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("en-IE", { timeZone: APP_TIME_ZONE, ...opts }).format(d);
-  return {
-    dow: fmt({ weekday: "short" }).toUpperCase(),
-    day: fmt({ day: "2-digit" }),
-    mon: fmt({ month: "short" }).toUpperCase(),
-  };
-}
-
-function clockTime(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return new Intl.DateTimeFormat("en-IE", {
-    timeZone: APP_TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(d);
-}
-
-/* Is this game inside the current Dublin calendar month? */
-function isThisMonth(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return false;
-  const key = (x: Date) =>
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: APP_TIME_ZONE,
-      year: "numeric",
-      month: "2-digit",
-    }).format(x);
-  return key(d) === key(new Date());
-}
-
-/* The section rule, with the group's count on the right. */
-function Rule({ title, count }: { title: string; count: number }) {
+function Section({
+  title,
+  games,
+  hosting,
+  past = false,
+}: {
+  title: string;
+  games: Game[];
+  hosting: Set<string>;
+  past?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-2.5 mx-0.5 mb-2.5">
-      <span className="t-mono text-micro tracking-[0.2em] text-papel/72 whitespace-nowrap">
-        {title}
-      </span>
-      <span className="flex-1 h-0.5 bg-papel/18" />
-      <span className="t-eyebrow text-micro tracking-normal normal-case text-papel/50 whitespace-nowrap">
-        {count} {count === 1 ? "game" : "games"}
-      </span>
-    </div>
-  );
-}
-
-/* One game ticket: a coloured rail for its kind, a torn date stub, then the
-   details. The whole ticket is the tap target. */
-function GameTicket({ game }: { game: MyGame }) {
-  const cancelled = isCancelled(game);
-  const { dow, day, mon } = stubParts(game.game_time);
-
-  return (
-    <Link
-      href={`/games/${game.id}`}
-      className={`pl-card pl-press relative flex items-stretch overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima ${
-        cancelled ? "opacity-75" : ""
-      }`}
-    >
-      <span
-        aria-hidden
-        className={`absolute left-0 inset-y-0 w-1.5 ${
-          cancelled ? "bg-naranja" : game.hosting ? "bg-lima" : "bg-tinta/25"
-        }`}
-      />
-
-      {/* The stub, torn off along a dashed perforation. */}
-      <div className="flex-none w-13 text-center py-2.5 border-r-2 border-dashed border-tinta/20">
-        <div className="t-mono text-tiny tracking-[0.14em] text-tinta/55">{dow}</div>
-        <div className="t-display text-display-sm text-tinta">{day}</div>
-        <div className="t-mono text-tiny tracking-[0.1em] text-tinta/55">{mon}</div>
-      </div>
-
-      <div className="flex-1 min-w-0 px-3 pt-2.75 pb-2.5">
-        <div
-          className={`t-display text-[0.9375rem] leading-[1.12] text-tinta ${
-            cancelled ? "line-through" : ""
-          }`}
-        >
-          {game.venue}
+    <section style={{ marginTop: 16 }}>
+      <div className="ios-sect">
+        <h2 className="ios-t3">{title}</h2>
+        <div className="ios-fn ios-sec">
+          {games.length} {games.length === 1 ? "game" : "games"}
         </div>
-
-        <div className="flex items-center gap-2 mt-1.25">
-          <span className="t-eyebrow text-micro tracking-[0.04em] normal-case text-tinta/60 truncate">
-            {clockTime(game.game_time)}
-            {game.location ? ` · ${game.location}` : ""}
-          </span>
-          <span
-            className={`t-mono flex-none ml-auto text-[0.5625rem] tracking-[0.12em] px-2 py-1 rounded-pill whitespace-nowrap border-2 border-tinta ${
-              cancelled ? "bg-naranja text-white" : "bg-transparent text-tinta"
-            }`}
-          >
-            {cancelled ? "Cancelled" : game.skill_level}
-          </span>
-        </div>
-
-        {game.hosting && !cancelled && (
-          <div className="flex justify-end mt-2">
-            <span className="t-mono text-[0.5625rem] tracking-[0.14em] text-tinta bg-lima border-2 border-tinta rounded-stamp px-1.5 py-0.5">
-              Host
-            </span>
-          </div>
-        )}
       </div>
-    </Link>
+      <div className="ios-list">
+        {games.map((game) => (
+          <GameRow key={game.id} game={game} note={hosting.has(game.id) ? "Hosting" : undefined} past={past} />
+        ))}
+      </div>
+    </section>
   );
 }
 
 export default function MyGamesPage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
-  const [games, setGames] = useState<MyGame[]>([]);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [games, setGames] = useState<Game[]>([]);
+  const [hosting, setHosting] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<Filter>("All");
+  const [today, setToday] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -161,163 +66,104 @@ export default function MyGamesPage() {
         router.replace("/login");
         return;
       }
-
-      const [createdGames, joinedGames] = await Promise.all([
-        getGamesCreatedBy(uid),
-        getGamesJoinedBy(uid),
-      ]);
-      if (!active) return;
-
-      // Creating a game also adds you as its first player, so created games
-      // show up in the joined list too. Keep each game once: "Joined" means
-      // games someone else created that you joined.
-      const createdIds = new Set(createdGames.map((g) => String(g.id)));
-      setGames([
-        ...createdGames.map((g) => ({ ...g, hosting: true })),
-        ...joinedGames
-          .filter((g) => !createdIds.has(String(g.id)))
-          .map((g) => ({ ...g, hosting: false })),
-      ]);
+      try {
+        const [created, joined] = await Promise.all([getGamesCreatedBy(uid), getGamesJoinedBy(uid)]);
+        const createdIds = created.map((g) => String(g.id));
+        const all = await getGamesByIds([...new Set([...createdIds, ...joined.map((g) => String(g.id))])]);
+        if (!active) return;
+        // Creating a game also adds you as its first player, so created games
+        // show up in the joined list too. "Joined" means someone else's games.
+        setHosting(new Set(createdIds));
+        setGames(all);
+        setToday(dublinDateKey(new Date()));
+        setFailed(false);
+      } catch {
+        if (!active) return;
+        setFailed(true);
+      }
       setLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, attempt]);
 
-  const counts = useMemo(
-    () => ({
-      All: games.length,
-      Hosting: games.filter((g) => g.hosting).length,
-      Joined: games.filter((g) => !g.hosting).length,
-    }),
-    [games],
+  const { upcoming, past } = useMemo(() => {
+    const visible = games.filter((g) =>
+      filter === "All" ? true : filter === "Hosting" ? hosting.has(g.id) : !hosting.has(g.id),
+    );
+    const isPast = (g: Game) => dublinDateKey(g.startsAt) < today;
+    return {
+      upcoming: visible.filter((g) => !isPast(g)).sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+      past: visible.filter(isPast).sort((a, b) => b.startsAt.localeCompare(a.startsAt)),
+    };
+  }, [games, filter, hosting, today]);
+
+  const newGame = (
+    <Link href="/create" aria-label="New game" className="ios-gcap-i ios-glass ios-press">
+      <Icon name="plus" size={21} />
+    </Link>
   );
 
-  // Sorted soonest first, then split into this month and everything after.
-  const sections = useMemo(() => {
-    const visible = games
-      .filter((g) =>
-        filter === "All" ? true : filter === "Hosting" ? g.hosting : !g.hosting,
-      )
-      .sort((a, b) => a.game_time.localeCompare(b.game_time));
-    return [
-      { title: "This month", games: visible.filter((g) => isThisMonth(g.game_time)) },
-      { title: "Later", games: visible.filter((g) => !isThisMonth(g.game_time)) },
-    ].filter((s) => s.games.length > 0);
-  }, [games, filter]);
-
-  if (loading) {
-    return (
-      <main className="px-5 pt-3 relative">
-        <h1 className="t-display text-[clamp(1.75rem,8vw,2.125rem)] leading-[0.92] text-white mt-2">
-          My games<span className="text-naranja">.</span>
-        </h1>
-        <Skeleton className="rounded-[3px] h-11 w-full mt-3.5" />
-        <div className="mt-6 flex flex-col gap-2.5">
-          <Skeleton className="rounded-card h-21" />
-          <Skeleton className="rounded-card h-21" />
-          <Skeleton className="rounded-card h-21" />
-        </div>
-        <BottomNav />
-      </main>
-    );
-  }
-
   return (
-    <main className="px-5 pt-3 relative">
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="t-eyebrow text-micro text-lima mb-1.25">
-            {counts.All} {counts.All === 1 ? "game" : "games"} · {counts.Hosting} hosting
-          </div>
-          <h1 className="t-display text-[clamp(1.75rem,8vw,2.125rem)] leading-[0.92] text-white">
-            My games<span className="text-naranja">.</span>
-          </h1>
+    <main className="ios">
+      <PageTitle title="My Games" fallback="/discover" right={newGame} />
+
+      {loading ? (
+        <div aria-hidden style={{ marginTop: 16 }}>
+          <div className="ios-skel" style={{ height: 32, borderRadius: 16, margin: "0 16px" }} />
+          <div className="ios-skel" style={{ height: 200, margin: "16px 16px 0" }} />
         </div>
-        <Link
-          href="/create"
-          className="t-mono pena-riso flex-none flex items-center gap-1.75 bg-lima text-tinta border-2 border-tinta rounded-[3px] px-2.75 py-2 text-micro tracking-[0.1em] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-papel"
-        >
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden>
-            <path
-              d="M12 5v14M5 12h14"
-              stroke="currentColor"
-              strokeWidth="3.4"
-              strokeLinecap="round"
-            />
-          </svg>
-          New
-        </Link>
-      </div>
-
-      {/* ── Filter ───────────────────────────────────────────────────────── */}
-      <div className="flex gap-1.5 mt-3.5 bg-[rgb(6_20_58/0.35)] border-2 border-papel/22 rounded-[3px] p-1">
-        {(["All", "Hosting", "Joined"] as Filter[]).map((f) => {
-          const on = filter === f;
-          return (
+      ) : failed ? (
+        <div className="ios-card" style={{ marginTop: 16, padding: 20 }} role="alert">
+          <div className="ios-t3">Couldn’t Load Your Games</div>
+          <div className="ios-sh ios-sec" style={{ marginTop: 4 }}>
+            Your games are safe. Check your connection and try again.
+          </div>
+          <div style={{ display: "flex", marginTop: 14 }}>
             <button
-              key={f}
               type="button"
-              onClick={() => setFilter(f)}
-              aria-pressed={on}
-              className={`t-mono flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded-stamp text-micro transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-lima ${
-                on ? "bg-papel text-tinta" : "text-papel/65 hover:text-papel"
-              }`}
+              className="ios-pill ios-press"
+              style={{ border: 0, cursor: "pointer" }}
+              onClick={() => {
+                setLoading(true);
+                setAttempt((n) => n + 1);
+              }}
             >
-              {f}
-              <span
-                className={`text-[0.5625rem] px-1.25 py-px rounded-pill ${
-                  on ? "bg-tinta text-lima" : "bg-papel/16 text-papel/70"
-                }`}
-              >
-                {counts[f]}
-              </span>
+              Try Again
             </button>
-          );
-        })}
-      </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="ios-seg" role="group" aria-label="Show" style={{ margin: "10px 16px 0" }}>
+            {(["All", "Hosting", "Joined"] as Filter[]).map((f) => (
+              <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>
+                {f}
+              </button>
+            ))}
+          </div>
 
-      {/* ── The board ────────────────────────────────────────────────────── */}
-      <div className="mt-4">
-        {sections.length > 0 ? (
-          sections.map((s) => (
-            <div key={s.title} className="mb-4.5">
-              <Rule title={s.title} count={s.games.length} />
-              <div className="flex flex-col gap-2.5">
-                {s.games.map((game) => (
-                  <GameTicket key={game.id} game={game} />
-                ))}
+          {upcoming.length > 0 && <Section title="Upcoming" games={upcoming} hosting={hosting} />}
+          {past.length > 0 && <Section title="Past" games={past} hosting={hosting} past />}
+
+          {upcoming.length === 0 && past.length === 0 && (
+            <div className="ios-card" style={{ marginTop: 16, padding: 20 }}>
+              <div className="ios-t3">{filter === "Hosting" ? "Run Your Own Game" : "No Games Yet"}</div>
+              <div className="ios-sh ios-sec" style={{ marginTop: 4 }}>
+                {filter === "Hosting" ? "Post a game and other players can take the spots." : "Take a spot in a game at your level."}
+              </div>
+              <div style={{ display: "flex", marginTop: 14 }}>
+                <Link href={filter === "Hosting" ? "/create" : "/discover"} className="ios-pill ios-press">
+                  {filter === "Hosting" ? "New Game" : "Find a Game"}
+                </Link>
               </div>
             </div>
-          ))
-        ) : filter === "Hosting" ? (
-          <EmptyState
-            icon={<CalendarPlus size={22} strokeWidth={2.2} />}
-            title="Run your own game."
-            body="Set one up once — the Loop fills the spots."
-            action={
-              <ButtonLink href="/create" variant="secondary" size="sm">
-                Create a game
-              </ButtonLink>
-            }
-          />
-        ) : (
-          <EmptyState
-            icon={<CalendarSearch size={22} strokeWidth={2.2} />}
-            title="Your next game is out there."
-            body="Take a spot in a game near you, at your level."
-            action={
-              <ButtonLink href="/discover" size="sm">
-                Find a game
-              </ButtonLink>
-            }
-          />
-        )}
-      </div>
+          )}
+        </>
+      )}
 
-      <div className="h-4" />
+      <div style={{ height: 16 }} />
       <BottomNav />
     </main>
   );

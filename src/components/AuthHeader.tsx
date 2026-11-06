@@ -14,7 +14,13 @@ export function useAuthSearch(): string {
   return useSyncExternalStore(noSubscribe, () => window.location.search, () => "");
 }
 
-export default function AuthHeader({ title }: { title: string }) {
+export default function AuthHeader({
+  title,
+  subtitle = "Find and join a padel game near you.",
+}: {
+  title: string;
+  subtitle?: string;
+}) {
   return (
     <header className="ios-auth-head">
       <div style={{ width: 132 }}>
@@ -24,7 +30,7 @@ export default function AuthHeader({ title }: { title: string }) {
         Padel Loop
       </div>
       <h1 className="ios-lt">{title}</h1>
-      <p className="ios-sh ios-sec">Find and join a padel game near you.</p>
+      <p className="ios-sh ios-sec">{subtitle}</p>
     </header>
   );
 }

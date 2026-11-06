@@ -458,6 +458,7 @@ export type RecentResult = {
   when: string; // "Tue 3 Nov"
   venue: string | null;
   partner: { id: string; name: string } | null;
+  ratingChange: number | null; // +14 or -9; null on results from before it was saved
 };
 
 // A player's latest confirmed results, newest first. Read failures return
@@ -465,13 +466,14 @@ export type RecentResult = {
 export async function getRecentResults(userId: string, limit: number): Promise<RecentResult[]> {
   const { data: mine, error } = await supabase
     .from("match_result_participants")
-    .select("result_id, team")
+    .select("*") // includes rating_change once that column exists, and still works before
     .eq("user_id", userId);
   if (error || !mine || mine.length === 0) {
     if (error) console.error("Could not load match participation:", error.message);
     return [];
   }
   const myTeam = new Map(mine.map((r) => [String(r.result_id), r.team as number]));
+  const myChange = new Map(mine.map((r) => [String(r.result_id), (r.rating_change ?? null) as number | null]));
 
   const { data: rows, error: rowsError } = await supabase
     .from("match_results")
@@ -522,6 +524,7 @@ export async function getRecentResults(userId: string, limit: number): Promise<R
       when: stamp ? shortDate(dublinDateKey(stamp)) : "",
       venue: (game?.venue as string | undefined) ?? null,
       partner: partnerId && partnerName ? { id: partnerId, name: partnerName } : null,
+      ratingChange: myChange.get(id) ?? null,
     };
   });
 }

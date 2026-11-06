@@ -25,7 +25,11 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message);
+      setError(
+        error.code === "invalid_credentials"
+          ? "That email or password isn’t right."
+          : "Couldn’t log in. Check your connection and try again.",
+      );
       setLoading(false);
       return;
     }
@@ -84,7 +88,12 @@ export default function LoginPage() {
         </div>
       </form>
 
-      <p className="ios-sh ios-sec" style={{ textAlign: "center", marginTop: 16 }}>
+      <p className="ios-sh" style={{ textAlign: "center", marginTop: 16 }}>
+        <Link href={`/forgot-password${search}`} className="ios-link ios-acc ios-sb">
+          Forgot Password?
+        </Link>
+      </p>
+      <p className="ios-sh ios-sec" style={{ textAlign: "center", marginTop: 8 }}>
         Don’t have an account?{" "}
         <Link href={`/signup${search}`} className="ios-link ios-acc ios-sb">
           Sign Up

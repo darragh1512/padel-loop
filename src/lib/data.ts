@@ -240,6 +240,16 @@ export async function loadGames(): Promise<Game[]> {
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 }
 
+// Particular games with their players, in one batch. Unlike the browse lists this
+// keeps past and cancelled games. A failed read throws.
+export async function getGamesByIds(ids: string[]): Promise<Game[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase.from("games").select("*").in("id", ids);
+  if (error) throw error;
+  const playersByGame = await getPlayersForGames(data ?? []);
+  return (data ?? []).map((row) => rowToGame(row, playersByGame.get(String(row.id)) ?? []));
+}
+
 // The same list for callers that treat a failed read as "no games".
 export async function getGames(): Promise<Game[]> {
   return loadGames().catch(() => []);

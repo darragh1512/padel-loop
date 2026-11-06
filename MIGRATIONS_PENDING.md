@@ -25,7 +25,9 @@ from the top.
 
 ## Pending
 
-None.
+| File | What it adds | Depends on |
+|---|---|---|
+| `20261106200000_rating_change.sql` | Adds `rating_change` to `match_result_participants` and makes `apply_result_rating()` save each player's change when a result is confirmed, so Profile can show +14 or −9. No rating moves and older results stay blank. Stops without changing anything if the live function differs. | `20260812000000`. No pre-flight. Safe in either order relative to the app deploy. |
 
 ## Applied
 

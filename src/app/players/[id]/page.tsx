@@ -16,7 +16,7 @@ import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import EditProfileSheet from "@/components/EditProfileSheet";
 import Alert from "@/components/ios/Alert";
-import Court, { spotsFor } from "@/components/ios/Court";
+import GameRow from "@/components/ios/GameRow";
 import Icon, { type IconName } from "@/components/ios/Icon";
 import Monogram from "@/components/ios/Monogram";
 import PlayerQRCode from "@/components/PlayerQRCode";
@@ -25,8 +25,7 @@ import ReportDialog from "@/components/ReportDialog";
 import { getGame as getGameWithPlayers } from "@/lib/data";
 import { previousPath } from "@/lib/navMemory";
 import { supabase } from "@/lib/supabaseClient";
-import { isFull, slotsLeft, type Game as GameCardData } from "@/lib/types";
-import { gameWhen, spotsOpenText } from "@/lib/when";
+import type { Game as GameCardData } from "@/lib/types";
 import { computeBadges, longestWinStreak, type BadgeProgress } from "../../badges";
 import { blockUser, getBlockedIds, isBlocked, unblockUser } from "../../blocks";
 import { areConnected, connect, disconnect, getConnectionCount } from "../../connections";
@@ -109,35 +108,6 @@ function Stat({ value, label, extra }: { value: React.ReactNode; label: string; 
         {extra}
       </div>
     </div>
-  );
-}
-
-function UpcomingRow({ game }: { game: GameCardData }) {
-  const open = slotsLeft(game);
-  const status = game.isManuallyClosed ? "Closed" : isFull(game) ? "Full" : `${open} open`;
-  return (
-    <Link
-      href={`/games/${game.id}`}
-      className="ios-row ios-link"
-      style={{ padding: "12px 16px", "--ios-inset": "100px" } as React.CSSProperties}
-    >
-      <div style={{ width: 72, flex: "none" }}>
-        <Court
-          spots={spotsFor(game.players, game.maxPlayers, null, game.guestCount)}
-          label={`Court with ${game.players.length + game.guestCount} of ${game.maxPlayers} spots taken, ${open > 0 ? spotsOpenText(open) : "full"}`}
-        />
-      </div>
-      <div className="ios-grow">
-        <div className="ios-hl">{gameWhen(game.startsAt)}</div>
-        <div className="ios-fn ios-sec">{game.venue}</div>
-      </div>
-      <div className={!isFull(game) && !game.isManuallyClosed ? "ios-fn ios-sb ios-acc" : "ios-fn ios-sec"} style={{ whiteSpace: "nowrap" }}>
-        {status}
-      </div>
-      <span className="ios-chev">
-        <Icon name="chevron-right" size={13} />
-      </span>
-    </Link>
   );
 }
 
@@ -740,7 +710,7 @@ export default function PlayerProfilePage() {
         {upcoming.length > 0 ? (
           <div className="ios-list">
             {upcoming.map((game) => (
-              <UpcomingRow key={game.id} game={game} />
+              <GameRow key={game.id} game={game} />
             ))}
           </div>
         ) : (
@@ -768,6 +738,11 @@ export default function PlayerProfilePage() {
                       {[result.when, result.venue, partner && `with ${partner}`].filter(Boolean).join(" · ")}
                     </div>
                   </div>
+                  {result.ratingChange != null && result.ratingChange !== 0 && (
+                    <div className={result.won ? "ios-sh ios-md" : "ios-sh ios-md ios-sec"}>
+                      {result.ratingChange > 0 ? `+${result.ratingChange}` : `−${Math.abs(result.ratingChange)}`}
+                    </div>
+                  )}
                 </div>
               );
             })}

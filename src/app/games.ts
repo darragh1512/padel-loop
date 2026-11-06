@@ -147,7 +147,8 @@ export async function getGamesJoinedBy(userId: string): Promise<Game[]> {
 
   if (error) {
     console.error("Could not load joined games:", error.message);
-    return [];
+    // A failed read must not look like having no games.
+    throw new DataError("Could not load joined games", error.message);
   }
 
   const gameIds = (rows ?? []).map((row) => row.game_id as string);
@@ -164,7 +165,7 @@ export async function getGamesJoinedBy(userId: string): Promise<Game[]> {
 
   if (gamesError) {
     console.error("Could not load joined games:", gamesError.message);
-    return [];
+    throw new DataError("Could not load joined games", gamesError.message);
   }
 
   return games ?? [];
@@ -257,7 +258,7 @@ export async function getGamesCreatedBy(userId: string): Promise<Game[]> {
 
   if (error) {
     console.error("Could not load created games:", error.message);
-    return [];
+    throw new DataError("Could not load created games", error.message);
   }
 
   return data ?? [];

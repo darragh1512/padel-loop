@@ -1,29 +1,24 @@
 "use client";
-// The Notifications screen: a simple list of the logged-in person's alerts,
-// newest first. Unread ones are visibly marked; each links to its game. We
-// fetch the list, show it, THEN mark everything read — so this view can still
-// highlight what was new, while the badge clears for next time. Logged-out
-// visitors are sent to the login page.
+// The Notifications screen: the signed-in person's alerts, newest first. Unread
+// ones are marked; each links to its game. We fetch the list, show it, THEN mark
+// everything read — so this view can still highlight what was new, while the badge
+// clears for next time. Logged-out visitors are sent to the login page.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
-import { ButtonLink, EmptyState, ErrorState } from "@/components/ui";
-import { Bell } from "lucide-react";
+import Icon from "@/components/ios/Icon";
+import PageTitle from "@/components/ios/PageTitle";
 import { supabase } from "@/lib/supabaseClient";
-import {
-  getNotifications,
-  markAllNotificationsRead,
-  type Notification,
-} from "../notifications";
+import { getNotifications, markAllNotificationsRead, type Notification } from "../notifications";
 
 // Friendly "how long ago" text from an ISO timestamp.
 function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();
   if (isNaN(then)) return "";
   const secs = Math.max(0, Math.floor((Date.now() - then) / 1000));
-  if (secs < 60) return "just now";
+  if (secs < 60) return "Just now";
   const mins = Math.floor(secs / 60);
   if (mins < 60) return `${mins} min${mins === 1 ? "" : "s"} ago`;
   const hrs = Math.floor(mins / 60);
@@ -32,47 +27,45 @@ function timeAgo(iso: string): string {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-function NotificationItem({ n, delay = 0 }: { n: Notification; delay?: number }) {
+function NotificationRow({ n }: { n: Notification }) {
   const inner = (
-    <div
-      className="pl-card p-4 mb-3 flex items-start gap-3 pl-rise"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      {/* Unread = the naranja stamp dot; read = hollow, muted. */}
-      <span
-        className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${
-          n.is_read ? "border-[1.5px] border-tinta/30" : "bg-naranja border border-tinta"
-        }`}
-      />
-      <div className="flex-1">
-        <div className={`text-body ${n.is_read ? "text-tinta/70 font-medium" : "text-tinta font-extrabold"}`}>
+    <>
+      <span className="ios-unread" data-on={!n.is_read} aria-hidden />
+      <span className="ios-grow">
+        {!n.is_read && <span className="ios-sr">Unread. </span>}
+        <span className={n.is_read ? "ios-sh" : "ios-sh ios-sb"} style={{ display: "block" }}>
           {n.message}
-        </div>
-        <div className="t-mono text-[9px] tracking-[0.1em] text-tinta/45 mt-1.5">{timeAgo(n.created_at)}</div>
-      </div>
+        </span>
+        <span className="ios-fn ios-sec" style={{ display: "block", marginTop: 2 }}>
+          {timeAgo(n.created_at)}
+        </span>
+      </span>
       {n.game_id != null && (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 text-tinta/45 shrink-0">
-          <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
+        <span className="ios-chev">
+          <Icon name="chevron-right" size={13} />
+        </span>
       )}
-    </div>
+    </>
   );
+  const style = { padding: "11px 16px 11px 12px", "--ios-inset": "32px" } as React.CSSProperties;
 
-  // Tie to its game when there is one; otherwise it's just an unlinked card.
+  // Tied to its game when there is one; otherwise it's just a row.
   return n.game_id != null ? (
-    <Link href={`/games/${n.game_id}`} className="block">
+    <Link href={`/games/${n.game_id}`} className="ios-row ios-link" style={style}>
       {inner}
     </Link>
   ) : (
-    inner
+    <div className="ios-row" style={style}>
+      {inner}
+    </div>
   );
 }
 
 export default function NotificationsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  // Kept apart from an empty inbox: a failed read saying "Nothing yet"
-  // hides the fact that there might be plenty.
+  // Kept apart from an empty inbox: a failed read saying "Nothing yet" hides the
+  // fact that there might be plenty.
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [items, setItems] = useState<Notification[]>([]);
@@ -94,10 +87,10 @@ export default function NotificationsPage() {
         setFailed(false);
         setLoading(false);
 
-        // Mark read AFTER the list is captured, so the view above can still
-        // show which ones were unread this time around. Only on a SUCCESSFUL
-        // read — clearing the badge for an inbox we failed to load would
-        // hide notifications nobody has actually seen.
+        // Mark read AFTER the list is captured, so the view can still show which
+        // ones were unread this time around. Only on a SUCCESSFUL read — clearing
+        // the badge for an inbox we failed to load would hide notifications
+        // nobody has actually seen.
         await markAllNotificationsRead(uid);
       } catch {
         if (!active) return;
@@ -111,44 +104,52 @@ export default function NotificationsPage() {
   }, [router, attempt]);
 
   return (
-    <main className="px-5 pt-6 relative">
-      <p className="t-mono text-micro text-papel/80 mt-2">Fresh from the board</p>
-      <h1 className="t-display text-display-md text-papel mt-1.5 relative">
-        N<span className="text-lima">o</span>tifications
-      </h1>
-      <p className="text-label font-medium text-papel/85 mt-1.5 mb-4">
-        Updates about the games you run.
-      </p>
+    <main className="ios">
+      <PageTitle title="Notifications" />
 
       {loading ? (
-        // Skeleton rows in the shape of the list — papel ghosts.
-        <div className="space-y-3">
-          <div className="rounded-card h-18 pl-skeleton" />
-          <div className="rounded-card h-18 pl-skeleton" />
+        <div className="ios-skel" aria-hidden style={{ height: 180, margin: "16px 16px 0" }} />
+      ) : failed ? (
+        <div className="ios-card" style={{ marginTop: 16, padding: 20 }} role="alert">
+          <div className="ios-t3">Couldn’t Load Notifications</div>
+          <div className="ios-sh ios-sec" style={{ marginTop: 4 }}>
+            They’re still there. Check your connection and try again.
+          </div>
+          <div style={{ display: "flex", marginTop: 14 }}>
+            <button
+              type="button"
+              className="ios-pill ios-press"
+              style={{ border: 0, cursor: "pointer" }}
+              onClick={() => {
+                setLoading(true);
+                setAttempt((n) => n + 1);
+              }}
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       ) : items.length > 0 ? (
-        items.map((n, i) => <NotificationItem key={n.id} n={n} delay={i * 40} />)
-      ) : failed ? (
-        <ErrorState
-          onRetry={() => {
-            setLoading(true);
-            setAttempt((n) => n + 1);
-          }}
-        />
+        <div className="ios-list" style={{ marginTop: 16 }}>
+          {items.map((n) => (
+            <NotificationRow key={n.id} n={n} />
+          ))}
+        </div>
       ) : (
-        <EmptyState
-          icon={<Bell size={22} strokeWidth={2.2} />}
-          title="Nothing yet."
-          body="We'll tell you here when a game fills up or someone drops out."
-          action={
-            <ButtonLink href="/discover" variant="secondary" size="sm">
-              Find a game
-            </ButtonLink>
-          }
-        />
+        <div className="ios-card" style={{ marginTop: 16, padding: 20 }}>
+          <div className="ios-t3">Nothing Yet</div>
+          <div className="ios-sh ios-sec" style={{ marginTop: 4 }}>
+            We’ll tell you here when a game fills up or someone drops out.
+          </div>
+          <div style={{ display: "flex", marginTop: 14 }}>
+            <Link href="/discover" className="ios-pill ios-press">
+              Find a Game
+            </Link>
+          </div>
+        </div>
       )}
 
-      <div className="h-4" />
+      <div style={{ height: 16 }} />
       <BottomNav />
     </main>
   );

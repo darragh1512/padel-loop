@@ -34,7 +34,7 @@ import { usePathname } from "next/navigation";
 
 const DISMISSED_KEY = "padel-loop:install-prompt-dismissed";
 const SHOW_AFTER_MS = 8000;
-const NOT_ON = /^\/(login|signup|welcome|create|games|groups)(\/|$)/;
+const NOT_ON = /^\/(login|signup|welcome|forgot-password|reset-password|create|games|groups)(\/|$)/;
 
 // Chrome's event, which TypeScript does not know about.
 type InstallEvent = Event & {
