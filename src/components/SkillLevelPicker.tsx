@@ -1,11 +1,11 @@
 "use client";
 
-// The player self-rating control: a stack of tappable cards, one per skill
-// level, each with a plain-English line for what that level actually plays
-// like — not just a name. Shared by onboarding (signup) and the profile edit
-// forms, so a player's sense of their own level stays the same wherever they
-// set it.
+// The player self-rating control: one row per skill level, each with a
+// plain-English line for what that level actually plays like — not just a name.
+// Used when signing up and on the welcome screen, so a player's sense of their
+// own level stays the same wherever they first set it.
 
+import Icon from "@/components/ios/Icon";
 import { SKILL_LEVELS, SKILL_LEVEL_DESCRIPTIONS } from "@/app/profiles";
 
 export default function SkillLevelPicker({
@@ -16,51 +16,30 @@ export default function SkillLevelPicker({
   onChange: (level: string) => void;
 }) {
   return (
-    <div role="radiogroup" aria-label="Skill level" className="flex flex-col gap-2">
-      {SKILL_LEVELS.map((level) => {
-        const active = value === level;
-        return (
-          <button
-            key={level}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => onChange(level)}
-            className={`pl-press text-left rounded-field border-2 px-4 py-3 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima ${
-              active
-                ? "bg-lima border-tinta"
-                : "bg-papel border-tinta/20 hover:border-tinta/50"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="t-mono text-micro tracking-[0.12em] text-tinta font-extrabold">
-                {level}
-              </span>
-              <span
-                aria-hidden
-                className={`shrink-0 size-4.5 rounded-pill border-2 border-tinta flex items-center justify-center ${
-                  active ? "bg-tinta" : "bg-papel"
-                }`}
-              >
-                {active && (
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" className="text-papel">
-                    <path
-                      d="M20 6L9 17l-5-5"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </span>
-            </div>
-            <p className="text-label font-medium text-tinta/70 mt-1">
+    <div className="ios-list" role="radiogroup" aria-label="Your level">
+      {SKILL_LEVELS.map((level) => (
+        <button
+          key={level}
+          type="button"
+          role="radio"
+          aria-checked={value === level}
+          className="ios-row ios-toggle-row"
+          style={{ padding: "9px 16px" }}
+          onClick={() => onChange(level)}
+        >
+          <span className="ios-grow">
+            <span className="ios-bd" style={{ display: "block" }}>
+              {level}
+            </span>
+            <span className="ios-fn ios-sec" style={{ display: "block" }}>
               {SKILL_LEVEL_DESCRIPTIONS[level]}
-            </p>
-          </button>
-        );
-      })}
+            </span>
+          </span>
+          <span className="ios-acc" style={{ width: 18, flex: "none" }}>
+            {value === level && <Icon name="check" size={18} />}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }

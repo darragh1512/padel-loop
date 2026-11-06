@@ -25,9 +25,7 @@ from the top.
 
 ## Pending
 
-| File | What it adds | Depends on |
-|---|---|---|
-| `20261106190000_full_game_rule.sql` | The database refuses a player joining a game that is already full, counting guests as taken spots. Weekly copies and waitlist moves aren't affected. Nothing existing is edited or replaced. | `20261106120000` (it stops if guests aren't there). No pre-flight. Safe in either order relative to the app deploy. |
+None.
 
 ## Applied
 
@@ -58,6 +56,7 @@ Run by hand in the SQL editor since:
 | `20261012010000_delete_account_storage_api.sql` | 2026-10-12 | Account deletion fix: `avatar_cleanup`, and a `delete_my_account()` that no longer deletes from `storage.objects`. Date from the owner's memory of running and testing it; a read-only check on 2026-11-06 confirmed the live database has it. |
 | `20261105210000_game_length_and_court.sql` | 2026-11-06 | Optional `duration_mins` and `court_number` on `games`, and `roll_recurring_games()` now copies both, plus `price_per_player`, to next week's game. The live function was compared with the 20260811 version first and matched. |
 | `20261106120000_game_guests.sql` | 2026-11-06 | `guest_count` on `games` for friends not on the app. Guests count as taken spots in `roll_recurring_games()`, `promote_from_waitlist()` and `notify_player_left()`, and `notify_game_full_with_guests()` tells the organiser when a game with guests fills up. Its safety check confirmed all three live functions matched before anything changed. |
+| `20261106190000_full_game_rule.sql` | 2026-11-06 | `check_game_has_space()` and its trigger: the database refuses a player joining a full game, counting guests as taken spots. Weekly copies and waitlist moves aren't affected. |
 
 ### Two follow-ups those files asked for
 

@@ -1,27 +1,27 @@
 "use client";
-// The sign-up screen: name, skill level, email + password.
+// The sign-up screen: name, level, email + password.
 //
 // Email confirmation is OFF in Supabase, so creating the account signs the
-// person in immediately — there is no interstitial and nothing to check an
-// inbox for. We create their profile, then send them straight into the app:
-// back to the game whose link brought them here if there is one, otherwise
-// home (which routes first-timers on to /welcome).
+// person in immediately — there is no interstitial and nothing to check an inbox
+// for. We create their profile, then send them straight into the app: back to the
+// game whose link brought them here if there is one, otherwise home (which routes
+// first-timers on to /welcome).
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { readAuthParams } from "@/lib/pendingIntent";
-import { capture, identify } from "@/lib/analytics";
 import { useState } from "react";
-import { Check } from "lucide-react";
-import { Wordmark } from "@/components/brand";
-import { Button, Field, Input } from "@/components/ui";
+import AuthHeader, { useAuthSearch } from "@/components/AuthHeader";
+import Icon from "@/components/ios/Icon";
 import SkillLevelPicker from "@/components/SkillLevelPicker";
+import { capture, identify } from "@/lib/analytics";
+import { readAuthParams } from "@/lib/pendingIntent";
 import { supabase } from "@/lib/supabaseClient";
 import { createProfile } from "../profiles";
 import { recordTermsAcceptance } from "../terms-acceptance";
 
 export default function SignupPage() {
   const router = useRouter();
+  const search = useAuthSearch();
 
   const [name, setName] = useState("");
   const [skillLevel, setSkillLevel] = useState("Beginner");
@@ -47,21 +47,17 @@ export default function SignupPage() {
     }
 
     // Email confirmation is OFF, so signUp hands back a live session and the
-    // person is signed in from this moment. There is no "check your email"
-    // step and no interruption — they go straight into the app.
+    // person is signed in from this moment.
     let userId = data.user?.id ?? null;
 
     // Belt and braces: if a session somehow doesn't come back (confirmation
-    // switched on again, or a transient auth hiccup), sign in explicitly
-    // rather than leaving them on a form that looks like it did nothing.
+    // switched on again, or a transient auth hiccup), sign in explicitly rather
+    // than leaving them on a form that looks like it did nothing.
     if (!data.session) {
-      const { data: signIn, error: signInError } =
-        await supabase.auth.signInWithPassword({ email, password });
+      const { data: signIn, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
       if (signInError || !signIn.session) {
-        setError(
-          "Your account was created, but we couldn't sign you in. Try logging in.",
-        );
+        setError("Your account was created, but we couldn’t sign you in. Try logging in.");
         setLoading(false);
         return;
       }
@@ -73,138 +69,122 @@ export default function SignupPage() {
       // They can only get here with the box ticked — record it as evidence.
       await recordTermsAcceptance();
 
-      // Identify by auth user id only — the email and name they just typed
-      // are never sent.
+      // Identify by auth user id only — the email and name they just typed are
+      // never sent.
       identify(userId);
       capture("signed_up", { has_join_intent: readAuthParams().intent === "join" });
     }
 
-    // Into the app: back to the game they came from with the join still
-    // pending, or home.
+    // Into the app: back to the game they came from with the join still pending,
+    // or home.
     const { next, intent } = readAuthParams();
-    router.push(
-      intent === "join" && next !== "/" ? `${next}?intent=join` : next,
-    );
+    router.push(intent === "join" && next !== "/" ? `${next}?intent=join` : next);
   }
 
   return (
-    <main className="px-5 pt-12">
-      <header className="pl-rise text-papel">
-        <Wordmark tagline="Find and join a padel game near you." />
-        <h1 className="t-display text-display-md text-papel mt-10">
-          J<span className="text-lima">o</span>in the club
-        </h1>
-        <p className="text-label font-medium text-papel/85 mt-1.5">
-          Create an account and take your first spot. ¿Jugamos?
-        </p>
-      </header>
+    <main className="ios ios-auth">
+      <AuthHeader title="Create Account" />
 
-      <form
-        onSubmit={handleSubmit}
-        className="pl-rise pl-card pena-staples pena-tilt-c mt-6 p-5 pt-7 flex flex-col gap-3.5"
-        style={{ animationDelay: "50ms" }}
-      >
-        <Field label="Name" htmlFor="signup-name" error={null}>
-          <Input
-            id="signup-name"
-            type="text"
-            required
-            autoComplete="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Alex Murphy"
-          />
-        </Field>
-
-        <div>
-          <span className="t-mono block text-micro opacity-85 mb-1.5">Skill level</span>
-          <SkillLevelPicker value={skillLevel} onChange={setSkillLevel} />
-        </div>
-
-        <Field label="Email" htmlFor="signup-email" error={null}>
-          <Input
-            id="signup-email"
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-          />
-        </Field>
-
-        <Field label="Password" htmlFor="signup-password" error={null}>
-          <Input
-            id="signup-password"
-            type="password"
-            required
-            minLength={6}
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 6 characters"
-          />
-        </Field>
-
-        {/* Directly above the button, so agreeing is a deliberate act at the
-            moment of signing up — Sign up stays disabled until it's ticked. */}
-        <div className="flex items-start gap-3 mt-1">
-          <span className="relative shrink-0 size-6 mt-px">
+      <form onSubmit={handleSubmit}>
+        <div className="ios-list" style={{ marginTop: 20 }}>
+          <label className="ios-row ios-form-row">
+            <span className="ios-bd">Name</span>
             <input
-              id="signup-terms"
-              type="checkbox"
+              className="ios-input"
+              type="text"
               required
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              className="peer appearance-none size-6 rounded-[4px] border-2 border-tinta bg-papel checked:bg-lima cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+              autoComplete="name"
+              autoCapitalize="words"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
             />
-            <Check
-              aria-hidden
-              strokeWidth={3.5}
-              className="pointer-events-none absolute inset-0 m-auto size-4 text-tinta opacity-0 peer-checked:opacity-100"
+          </label>
+          <label className="ios-row ios-form-row">
+            <span className="ios-bd">Email</span>
+            <input
+              className="ios-input"
+              type="email"
+              required
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
             />
-          </span>
-          <label
-            htmlFor="signup-terms"
-            className="text-label font-medium text-tinta cursor-pointer"
-          >
-            I agree to the{" "}
-            <Link
-              href="/terms"
-              className="font-bold underline underline-offset-2 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
-            >
-              Terms of Use
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/privacy"
-              className="font-bold underline underline-offset-2 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
-            >
-              Privacy Policy
-            </Link>
-            .
+          </label>
+          <label className="ios-row ios-form-row">
+            <span className="ios-bd">Password</span>
+            <input
+              className="ios-input"
+              type="password"
+              required
+              minLength={6}
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 6 characters"
+            />
           </label>
         </div>
 
-        <Button type="submit" className="mt-1" loading={loading} disabled={!agreed}>
-          {loading ? "Creating account…" : "Sign up"}
-        </Button>
+        <div className="ios-sect" style={{ marginTop: 18 }}>
+          <h2 className="ios-t3">Your Level</h2>
+        </div>
+        <SkillLevelPicker value={skillLevel} onChange={setSkillLevel} />
 
-        <p
-          aria-live="polite"
-          className={`text-center text-label font-semibold text-naranja-d ${error ? "" : "hidden"}`}
-        >
-          {error}
-        </p>
+        {/* Directly above the button, so agreeing is a deliberate act at the
+            moment of signing up — the button stays disabled until it's ticked. */}
+        <div className="ios-list" style={{ marginTop: 12 }}>
+          <div className="ios-row" style={{ padding: "12px 16px" }}>
+            <span className="ios-check">
+              <input
+                id="signup-terms"
+                type="checkbox"
+                required
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+              />
+              <Icon name="check" size={15} />
+            </span>
+            <label htmlFor="signup-terms" className="ios-sh ios-grow" style={{ cursor: "pointer" }}>
+              I agree to the{" "}
+              <Link href="/terms" className="ios-link ios-acc ios-sb">
+                Terms of Use
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="ios-link ios-acc ios-sb">
+                Privacy Policy
+              </Link>
+              .
+            </label>
+          </div>
+        </div>
+
+        {error && (
+          <div className="ios-fn ios-destructive" role="alert" style={{ padding: "8px 32px 0" }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: "flex", margin: "16px 16px 0" }}>
+          <button
+            type="submit"
+            className="ios-wide-btn"
+            data-tone="fill"
+            disabled={!agreed || loading}
+            aria-busy={loading || undefined}
+          >
+            {loading ? "Creating Account…" : "Sign Up"}
+          </button>
+        </div>
       </form>
 
-      <p className="mt-6 text-center text-label font-medium text-papel/85">
+      <p className="ios-sh ios-sec" style={{ textAlign: "center", marginTop: 16 }}>
         Already have an account?{" "}
-        <Link
-          href="/login"
-          className="font-extrabold text-lima hover:underline rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-        >
-          Log in
+        <Link href={`/login${search}`} className="ios-link ios-acc ios-sb">
+          Log In
         </Link>
       </p>
     </main>

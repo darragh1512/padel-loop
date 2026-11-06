@@ -20,6 +20,9 @@
 //   • Installed = never again either way.
 //   • It waits a few seconds after load, so it is not the first thing that
 //     happens to somebody who has just arrived.
+//   • It stays off screens where it would cover something the person is in the
+//     middle of: filling in a form, joining a game, writing a message. It waits
+//     for the next screen with a tab bar.
 //
 // Whether the card is visible is DERIVED, not stored — the conditions are
 // four separate facts arriving at four different times, and keeping a `show`
@@ -27,10 +30,11 @@
 // flashing on screen or appearing twice.
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui";
+import { usePathname } from "next/navigation";
 
 const DISMISSED_KEY = "padel-loop:install-prompt-dismissed";
 const SHOW_AFTER_MS = 8000;
+const NOT_ON = /^\/(login|signup|welcome|create|games|groups)(\/|$)/;
 
 // Chrome's event, which TypeScript does not know about.
 type InstallEvent = Event & {
@@ -75,6 +79,7 @@ function remember() {
 }
 
 export default function InstallPrompt() {
+  const pathname = usePathname();
   // null until the timer has run — nothing is shown before then.
   const [ios, setIos] = useState<boolean | null>(null);
   const [deferred, setDeferred] = useState<InstallEvent | null>(null);
@@ -123,63 +128,39 @@ export default function InstallPrompt() {
 
   // On iOS: show once the timer has run. Everywhere else: only once Chrome
   // has given us an event to fire, so the button can never do nothing.
-  const show = !dismissed && ios !== null && (ios || deferred !== null);
+  const show = !dismissed && ios !== null && (ios || deferred !== null) && !NOT_ON.test(pathname);
   if (!show) return null;
 
   return (
-    <div
-      role="dialog"
-      aria-label="Add Padel Loop to your home screen"
-      // Sits above the bottom nav, and clears the home indicator on a phone
-      // with no bezel button.
-      className="fixed inset-x-0 bottom-0 z-30 px-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] pointer-events-none"
-    >
-      <div className="mx-auto w-full max-w-md pl-card border-2 border-tinta shadow-poster p-4 pointer-events-auto pl-rise">
-        <div className="flex items-start gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icons/icon-192.png"
-            alt=""
-            width={44}
-            height={44}
-            className="rounded-card border-2 border-tinta shrink-0"
-          />
-          <div className="min-w-0">
-            <p className="t-display text-display-xs text-tinta">
-              Put it on your home screen
-            </p>
-            <p className="text-label font-medium text-tinta/70 mt-1">
-              {ios
-                ? "Opens full screen, like an app. No App Store needed."
-                : "Opens full screen and loads faster. No App Store needed."}
-            </p>
-          </div>
-        </div>
+    <div className="ios-install" role="dialog" aria-label="Add Padel Loop to your Home Screen">
+      <div className="ios-hl">Add Padel Loop to Your Home Screen</div>
+      <div className="ios-fn ios-sec" style={{ marginTop: 2 }}>
+        {ios
+          ? "Opens full screen, like an app. No App Store needed."
+          : "Opens full screen and loads faster. No App Store needed."}
+      </div>
 
-        {ios ? (
-          // Safari gives no install API, so this names the exact buttons.
-          <ol className="text-label font-medium text-tinta/75 mt-3 space-y-1 list-decimal pl-4">
-            <li>
-              Tap <span className="font-extrabold">Share</span> at the bottom of
-              Safari — the square with an arrow out of it.
-            </li>
-            <li>
-              Scroll down and tap{" "}
-              <span className="font-extrabold">Add to Home Screen</span>.
-            </li>
-          </ol>
-        ) : null}
+      {ios && (
+        // Safari gives no install API, so this names the exact buttons.
+        <ol className="ios-sh">
+          <li>
+            Tap <span className="ios-sb">Share</span> in Safari, the square with an arrow out of it.
+          </li>
+          <li>
+            Scroll down and tap <span className="ios-sb">Add to Home Screen</span>.
+          </li>
+        </ol>
+      )}
 
-        <div className="flex gap-2.5 mt-4">
-          <Button variant="secondary" className="flex-1" onClick={dismiss}>
-            {ios ? "Got it" : "Not now"}
-          </Button>
-          {!ios && deferred && (
-            <Button className="flex-1" onClick={install}>
-              Add it
-            </Button>
-          )}
-        </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button type="button" className="ios-pill ios-press" style={{ border: 0, cursor: "pointer" }} onClick={dismiss}>
+          {ios ? "Got It" : "Not Now"}
+        </button>
+        {!ios && deferred && (
+          <button type="button" className="ios-pill ios-press" data-prominent style={{ border: 0, cursor: "pointer" }} onClick={install}>
+            Add
+          </button>
+        )}
       </div>
     </div>
   );

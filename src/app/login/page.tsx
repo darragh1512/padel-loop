@@ -1,17 +1,16 @@
 "use client";
-// The log-in screen: email + password, then sends the user to the home page
-// once they're in. Leads with the serif wordmark; logic unchanged.
+// The log-in screen: email + password, then back to whatever they were doing.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { readAuthParams } from "@/lib/pendingIntent";
 import { useState } from "react";
-import { ClubStamp, Wordmark } from "@/components/brand";
-import { Button, Field, Input } from "@/components/ui";
+import AuthHeader, { useAuthSearch } from "@/components/AuthHeader";
+import { readAuthParams } from "@/lib/pendingIntent";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
+  const search = useAuthSearch();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,10 +22,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setError(error.message);
@@ -34,80 +30,66 @@ export default function LoginPage() {
       return;
     }
 
-    // Back to whatever they were trying to do — the game they tapped Join
-    // on, carrying ?intent=join so the join fires on arrival. Home only
-    // when they came here under their own steam.
+    // Back to whatever they were trying to do — the game they tapped Join on,
+    // carrying ?intent=join so the join fires on arrival. Home only when they
+    // came here under their own steam.
     const { next, intent } = readAuthParams();
-    router.push(
-      intent === "join" && next !== "/" ? `${next}?intent=join` : next,
-    );
+    router.push(intent === "join" && next !== "/" ? `${next}?intent=join` : next);
   }
 
   return (
-    <main className="px-5 pt-12">
-      <header className="pl-rise text-papel">
-        <Wordmark tagline="Find and join a padel game near you." />
-        <h1 className="t-display text-display-md text-papel mt-10">
-          L<span className="text-lima">o</span>g in
-        </h1>
-        <p className="text-label font-medium text-papel/85 mt-1.5">Welcome back to the club.</p>
-      </header>
+    <main className="ios ios-auth">
+      <AuthHeader title="Log In" />
 
-      <form
-        onSubmit={handleSubmit}
-        className="pl-rise pl-card pena-staples pena-tilt-c mt-6 p-5 pt-7 flex flex-col gap-3.5"
-        style={{ animationDelay: "50ms" }}
-      >
-        <Field label="Email" htmlFor="login-email" error={null}>
-          <Input
-            id="login-email"
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-          />
-        </Field>
+      <form onSubmit={handleSubmit}>
+        <div className="ios-list" style={{ marginTop: 20 }}>
+          <label className="ios-row ios-form-row">
+            <span className="ios-bd">Email</span>
+            <input
+              className="ios-input"
+              type="email"
+              required
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </label>
+          <label className="ios-row ios-form-row">
+            <span className="ios-bd">Password</span>
+            <input
+              className="ios-input"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Your password"
+            />
+          </label>
+        </div>
 
-        <Field label="Password" htmlFor="login-password" error={null}>
-          <Input
-            id="login-password"
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Your password"
-          />
-        </Field>
+        {error && (
+          <div className="ios-fn ios-destructive" role="alert" style={{ padding: "8px 32px 0" }}>
+            {error}
+          </div>
+        )}
 
-        <Button type="submit" className="mt-2" loading={loading}>
-          {loading ? "Logging in…" : "Log in"}
-        </Button>
-
-        <p
-          aria-live="polite"
-          className={`text-center text-label font-semibold text-naranja-d ${error ? "" : "hidden"}`}
-        >
-          {error}
-        </p>
+        <div style={{ display: "flex", margin: "16px 16px 0" }}>
+          <button type="submit" className="ios-wide-btn" data-tone="fill" disabled={loading} aria-busy={loading || undefined}>
+            {loading ? "Logging In…" : "Log In"}
+          </button>
+        </div>
       </form>
 
-      <p className="mt-6 text-center text-label font-medium text-papel/85">
-        Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          className="font-extrabold text-lima hover:underline rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-        >
-          Sign up
+      <p className="ios-sh ios-sec" style={{ textAlign: "center", marginTop: 16 }}>
+        Don’t have an account?{" "}
+        <Link href={`/signup${search}`} className="ios-link ios-acc ios-sb">
+          Sign Up
         </Link>
       </p>
-
-      {/* The club stamp, inked in papel at the bottom of the door. */}
-      <div className="flex justify-center mt-10 text-papel/90" aria-hidden>
-        <ClubStamp size={104} />
-      </div>
     </main>
   );
 }
