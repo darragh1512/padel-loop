@@ -116,6 +116,7 @@ body:has(.ios) {
 .ios ::selection { background: var(--ios-accent-tint); color: var(--ios-label); }
 .ios :focus-visible,
 .ios-sheet-root :focus-visible,
+.ios-alert-wrap :focus-visible,
 .ios-tabbar :focus-visible { outline: 3px solid var(--ios-accent); outline-offset: 2px; }
 
 /* ── Text styles ── */
@@ -472,8 +473,82 @@ html:has(.ios-sheet:not([data-closing])) .ios-behind::after { opacity: 0.22; }
 @keyframes ios-roll { to { transform: translateY(-100%); } }
 .ios-rating-change { animation: ios-fade 300ms var(--ios-ease-out); }
 
+/* ── Chats ── */
+.ios-chat-icon {
+  width: 44px; height: 44px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center;
+  background: var(--ios-accent-tint); color: var(--ios-accent);
+}
+.ios-pin {
+  width: 36px; height: 36px; flex: none; border: 0; padding: 0; border-radius: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; background: transparent; color: var(--ios-secondary);
+}
+.ios-pin[data-in-header] { width: 44px; height: 44px; border-radius: 22px; color: var(--ios-label); }
+.ios-pin[aria-pressed="true"] { background: var(--ios-accent-tint); color: var(--ios-accent); }
+.ios-pin:disabled { opacity: 0.6; cursor: default; }
+.ios-disclose { transition: transform 200ms var(--ios-ease-out); }
+.ios-disclose[data-open="true"] { transform: rotate(90deg); }
+.ios-seg > button { min-width: 0; }
+
+/* A full-screen conversation: messages scroll under the floating header and box. */
+.ios.ios-chat { position: fixed; inset: 0; z-index: 40; min-height: 0; overflow: hidden; }
+.ios-chat-head {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5; display: flex; align-items: center; gap: 8px;
+  padding: calc(env(safe-area-inset-top) + var(--ios-top-gap)) 16px 12px;
+  background: linear-gradient(to bottom, var(--ios-bg) 70%, transparent);
+}
+.ios-chat-head .ios-gcap-i { border: 0; padding: 0; cursor: pointer; color: var(--ios-label); }
+.ios-chat-scroll {
+  position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 12px;
+  max-width: 448px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + var(--ios-top-gap) + 60px) 16px calc(env(safe-area-inset-bottom) + 76px);
+}
+.ios-msg { display: flex; gap: 8px; align-items: flex-end; max-width: 86%; align-self: flex-start; }
+.ios-msg[data-mine] { align-self: flex-end; }
+.ios-msg-body { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.ios-msg[data-mine] .ios-msg-body { align-items: flex-end; }
+.ios-msg-meta {
+  display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 4px;
+  color: var(--ios-secondary); font-size: 13px; line-height: 18px; letter-spacing: -0.08px;
+}
+.ios-msg-report {
+  border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer;
+  min-height: 28px; padding: 0 4px; text-decoration: underline; text-underline-offset: 2px;
+}
+.ios-bubble {
+  padding: 8px 14px; border-radius: 19px; background: var(--ios-card); color: var(--ios-label);
+  overflow-wrap: anywhere; white-space: pre-wrap;
+}
+.ios-msg[data-mine] .ios-bubble { background: var(--ios-accent-fill); color: var(--ios-on-accent); }
+.ios-msg-day { text-align: center; padding-top: 4px; }
+.ios-chat-game {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 12px; border-radius: 22px;
+  background: var(--ios-card); color: var(--ios-label);
+}
+.ios-chat-composer {
+  position: absolute; left: 50%; transform: translateX(-50%); z-index: 5;
+  bottom: calc(env(safe-area-inset-bottom) + 10px); width: min(100% - 32px, 416px); height: 52px;
+  border-radius: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 18px;
+}
+.ios-chat-composer:focus-within { box-shadow: var(--ios-glass-edge), inset 0 0 0 1.5px var(--ios-accent); }
+.ios-chat-composer input {
+  flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; padding: 0; background: transparent; color: var(--ios-label);
+  font: inherit; font-size: 17px; letter-spacing: -0.43px;
+}
+.ios-chat-composer input::placeholder { color: var(--ios-secondary); opacity: 1; }
+.ios-chat-composer input:focus-visible { outline: none; }
+.ios-chat-composer button {
+  width: 40px; height: 40px; flex: none; border: 0; padding: 0; border-radius: 20px; cursor: pointer;
+  background: var(--ios-accent-fill); color: var(--ios-on-accent); display: flex; align-items: center; justify-content: center;
+}
+.ios-chat-composer button:disabled { background: var(--ios-fill); color: var(--ios-secondary); cursor: default; }
+
 /* ── Alert ── */
-.ios-alert-wrap { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.ios-alert-wrap {
+  position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
 .ios-alert-scrim { position: absolute; inset: 0; border: 0; padding: 0; background: rgb(0 0 0 / 0.25); cursor: default; animation: ios-fade 200ms linear; }
 .ios-alert {
   position: relative; width: min(100%, 300px); border-radius: 26px; overflow: hidden; text-align: center;
@@ -543,6 +618,7 @@ html:active-view-transition-type(open-game, close-game)::view-transition-new(roo
   .ios-court-spot[data-on="false"] { transform: none; }
   .ios-skel { animation: none; }
   .ios-menu, .ios-alert { animation-name: ios-fade; animation-timing-function: linear; }
+  .ios-disclose { transition: none; }
   .ios-roll-digit span { animation: none; transform: translateY(-100%); }
   .ios-roll { animation: ios-fade 200ms linear; }
   .ios-wide-btn, .ios-wide-btn:active:not(:disabled) { transform: none; transition: background-color 200ms linear, color 200ms linear; }

@@ -1,54 +1,34 @@
 "use client";
-// The chat thread — shared by GAME chats and GROUP chats. Pass exactly one of
-// gameId / groupId; everything else about it is identical either way. Used in
-// three places, same logic every time:
-//  • embedded on the game detail page (default, gameId only) — a card under
-//    the game info
-//  • full-screen on /games/[id]/chat (gameId, fullScreen) — WhatsApp-style
-//  • full-screen on /groups/[id]/chat (groupId, fullScreen) — same layout
+// A conversation, shared by GAME chats and GROUP chats. Pass exactly one of
+// gameId / groupId; everything else about it is identical either way.
 //
-// It only works for people who have JOINED/CREATED the game, or are a member
-// of the group. Embedded, a non-member sees a short note; full-screen, they're
-// sent to `redirectTo`.
+// It only works for people who have JOINED/CREATED the game, or are a member of
+// the group. Anyone else is sent to `redirectTo`.
 //
 // What it does:
 //  • loads this thread's messages (oldest at top, newest at the bottom)
-//  • shows YOUR messages on the right in the lima accent, others' on the left
-//    on papel
+//  • shows YOUR messages on the right in blue, others' on the left
 //  • lets you type and send a message; empty messages are ignored and the box
 //    is cleared after sending
 //  • listens for new messages live (Supabase Realtime) so they appear without a
 //    refresh, and stops listening when you leave the page
 //  • keeps the view scrolled to the newest message
 
-import {
-  Fragment,
-  type FormEvent,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, type FormEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
-import { getBlockedIds } from "@/app/blocks";
+import Icon from "@/components/ios/Icon";
+import Monogram from "@/components/ios/Monogram";
 import ReportDialog from "@/components/ReportDialog";
-import { APP_TIME_ZONE } from "@/lib/time";
-import PlayerAvatar from "@/components/PlayerAvatar";
-import { MessageCircle } from "lucide-react";
-import { EmptyState, ErrorState, SectionLabel } from "@/components/ui";
+import { dublinDateKey } from "@/lib/time";
+import { supabase } from "@/lib/supabaseClient";
+import { clockTime, dayHeading } from "@/lib/when";
+import { getBlockedIds } from "@/app/blocks";
 import { canUserChat, getMessages, sendMessage } from "../../games";
-import {
-  canUserChatInGroup,
-  getGroupMessages,
-  sendGroupMessage,
-} from "../../groups";
+import { canUserChatInGroup, getGroupMessages, sendGroupMessage } from "../../groups";
 
-// The fields ChatThread actually renders — both ChatMessage (games.ts) and
-// GroupChatMessage (groups.ts) satisfy this, so either can be loaded straight
-// into the same state without converting one into the other.
+// The fields this renders — both ChatMessage (games.ts) and GroupChatMessage
+// (groups.ts) satisfy this.
 type ThreadMessage = {
   id: number;
   user_id: string;
@@ -58,60 +38,26 @@ type ThreadMessage = {
   senderAvatarUrl: string | null;
 };
 
-// A non-message item the caller wants merged into the thread by timestamp —
-// e.g. a group's proposed-game cards. `createdAt` decides where it lands
-// among the messages; `content` is rendered as-is (it owns its own layout —
-// unlike a message bubble, it isn't wrapped or constrained to 80% width).
-// This is the ONLY way anything other than a real message enters the render
-// list — the message model itself (loading, access check, Realtime) never
-// changes because of it.
+// A non-message item merged into the thread by timestamp, such as a game proposed
+// in a group. This is the ONLY way anything other than a real message enters the
+// list: loading, access checks and live updates never change because of it.
 export type InlineThreadItem = {
   id: string;
   createdAt: string;
   content: ReactNode;
 };
 
-// The app's focus ring — 3px lima, offset from the shape (FOCUS in ui.tsx).
-const FOCUS_RING =
-  "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-lima";
-
-// Turn a stored timestamp into a short clock time like "14:32", on a Dublin
-// clock — the same fixed timezone every other time in the app renders in
-// (see src/lib/time.ts). Falls back to empty text if the value isn't a real
-// date.
-function shortTime(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString("en-GB", {
-    timeZone: APP_TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
-
 export default function ChatThread({
   gameId,
   groupId,
-  fullScreen = false,
   redirectTo,
   inlineItems = [],
 }: {
-  // Exactly one of these is passed by any given caller — whichever one
-  // decides everywhere below whether this is a game thread or a group one.
+  // Exactly one of these is passed by any given caller.
   gameId?: string;
   groupId?: string;
-  // When true, render edge-to-edge to fill a full-screen page: no section
-  // label, no card chrome — the messages area grows to fill its parent and the
-  // composer sits at the very bottom. Default (false) is the embedded card used
-  // on the game detail page.
-  fullScreen?: boolean;
-  // When set, anyone who isn't allowed to chat is sent here instead of seeing
-  // the inline "join to chat" note. Used by the full-screen pages.
-  redirectTo?: string;
-  // Extra non-message items merged into the render by timestamp (e.g. a
-  // group's proposed games). Empty by default — inert for game threads,
-  // which never pass this.
+  // Anyone who isn't allowed to chat is sent here.
+  redirectTo: string;
   inlineItems?: InlineThreadItem[];
 }) {
   const isGroup = groupId != null;
@@ -121,13 +67,14 @@ export default function ChatThread({
   const [userId, setUserId] = useState<string | null>(null);
   const [canChat, setCanChat] = useState(false);
   const [ready, setReady] = useState(false); // finished the access check
+  const [loaded, setLoaded] = useState(false); // finished the first read
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
-  // The message being reported, if any. Held whole rather than by id so
-  // the dialog can send a copy of the text as evidence — the message
-  // itself can be deleted out from under the report.
+  // The message being reported, if any. Held whole rather than by id so the sheet
+  // can send a copy of the text as evidence — the message itself can be deleted
+  // out from under the report.
   const [reporting, setReporting] = useState<ThreadMessage | null>(null);
-  // A thread that failed to load must not read as a thread nobody has
-  // written in — that invites somebody to repeat a message already there.
+  // A thread that failed to load must not read as a thread nobody has written
+  // in — that invites somebody to repeat a message already there.
   const [failed, setFailed] = useState(false);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -135,38 +82,21 @@ export default function ChatThread({
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Jump the message list to the newest message (its bottom).
-  const scrollToBottom = useCallback(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, []);
-
-  // Pull the latest messages from the database into the screen.
-  // Messages from anyone this viewer has blocked are dropped — both the
-  // history and anything arriving live, since Realtime updates come back
-  // through this same reload.
+  // Messages from anyone this viewer has blocked are dropped — both the history
+  // and anything arriving live, since live updates come back through this reload.
   //
   // Only THIS viewer stops seeing them. The blocked person's own thread is
-  // untouched and still shows everything, including their own messages, so
-  // nothing about the thread tells them they have been blocked.
+  // untouched, so nothing about the thread tells them they have been blocked.
   const reload = useCallback(async () => {
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id ?? null;
-
     const [msgs, blocked] = await Promise.all([
       isGroup ? getGroupMessages(threadId) : getMessages(threadId),
       getBlockedIds(uid),
     ]);
-
-    setMessages(
-      blocked.size === 0
-        ? msgs
-        : msgs.filter((m) => !blocked.has(m.user_id)),
-    );
+    setMessages(blocked.size === 0 ? msgs : msgs.filter((m) => !blocked.has(m.user_id)));
   }, [isGroup, threadId]);
 
-  // reload() throws when the read fails; this wraps it for the callers
-  // that need the failure recorded rather than propagated.
   const reloadSafely = useCallback(async () => {
     try {
       await reload();
@@ -174,6 +104,7 @@ export default function ChatThread({
     } catch {
       setFailed(true);
     }
+    setLoaded(true);
   }, [reload]);
 
   // On first load: find who's logged in, check whether they're allowed to chat,
@@ -189,10 +120,7 @@ export default function ChatThread({
       setUserId(uid);
 
       const allowed =
-        uid != null &&
-        (await (isGroup
-          ? canUserChatInGroup(threadId, uid)
-          : canUserChat(threadId, uid)));
+        uid != null && (await (isGroup ? canUserChatInGroup(threadId, uid) : canUserChat(threadId, uid)));
       if (!active) return;
       setCanChat(allowed);
       setReady(true);
@@ -201,18 +129,12 @@ export default function ChatThread({
       await reloadSafely();
 
       // Live updates: listen for new rows in "messages" for THIS thread only.
-      // Whenever one arrives (from anyone), refresh the thread.
       const idColumn = isGroup ? "group_id" : "game_id";
       channel = supabase
         .channel(`messages:${isGroup ? "group" : "game"}:${threadId}`)
         .on(
           "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-            filter: `${idColumn}=eq.${threadId}`,
-          },
+          { event: "INSERT", schema: "public", table: "messages", filter: `${idColumn}=eq.${threadId}` },
           () => {
             reloadSafely();
           },
@@ -220,25 +142,20 @@ export default function ChatThread({
         .subscribe();
     })();
 
-    // Cleanup when leaving the page: stop the live listener.
     return () => {
       active = false;
       if (channel) supabase.removeChannel(channel);
     };
   }, [isGroup, threadId, reloadSafely]);
 
-  // Whenever the messages change (first load or a new one arrives), keep the
-  // newest message in view.
+  // Whenever the thread changes, keep the newest message in view.
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, inlineItems.length, loaded]);
 
-  // Full-screen page only: send people who can't chat to the detail page,
-  // rather than showing the inline note.
   useEffect(() => {
-    if (ready && !canChat && redirectTo) {
-      router.replace(redirectTo);
-    }
+    if (ready && !canChat) router.replace(redirectTo);
   }, [ready, canChat, redirectTo, router]);
 
   async function handleSend(e: FormEvent) {
@@ -251,260 +168,133 @@ export default function ChatThread({
     const result = isGroup
       ? await sendGroupMessage(threadId, userId, body)
       : await sendMessage(threadId, userId, body);
+    setSending(false);
     if ("error" in result) {
-      setError("Couldn't send that message. Please try again.");
-      setSending(false);
+      // Their words stay in the box, so nothing has to be retyped.
+      setError("Couldn’t send that message. Try again.");
       return;
     }
-    setText(""); // clear the box
-    setSending(false);
-    await reload(); // show it straight away (Realtime also picks it up)
+    setText("");
+    await reloadSafely(); // show it straight away (the live update also picks it up)
   }
 
-  // Still checking access — render nothing to avoid a flash of the wrong state.
-  if (!ready) return null;
+  // Still checking access, or on the way to the redirect.
+  if (!ready || !canChat) return null;
 
-  // Not a player or the creator (or logged out).
-  if (!canChat) {
-    // Full-screen page redirects (see the effect above) — render nothing here.
-    if (redirectTo) return null;
-    // Embedded: show a short note in place of the box.
-    return (
-      <>
-        <SectionLabel>Group chat</SectionLabel>
-        <div className="pl-surface rounded-card px-4 py-5 text-center">
-          <p className="text-label font-medium text-tinta/70">
-            Take a spot in this game and the group chat opens up.
-          </p>
-        </div>
-      </>
-    );
-  }
-
-  // ── Shared pieces, rendered the same in both layouts ──────────────────────
-
-  // Every message becomes a { key, createdAt, node } entry alongside any
-  // inlineItems the caller passed, then the combined list is sorted by
-  // timestamp once. This is purely a render-time merge — the messages state,
-  // loading, access check, and Realtime subscription above are all untouched
-  // by inlineItems existing or not.
-  // The small print around each bubble (name, time, Report) sits on
-  // whatever is behind the thread: the blue wall full-screen, a papel
-  // poster when embedded on the game page. Ink on paper, paper on the wall.
-  const print = fullScreen
-    ? { name: "text-papel/85", faint: "text-papel/60", report: "text-papel/55 hover:text-papel" }
-    : { name: "text-tinta/70", faint: "text-tinta/45", report: "text-tinta/45 hover:text-naranja-d" };
-
-  const messageEntries = messages.map((m) => {
-    const mine = m.user_id === userId;
-    return {
-      key: `msg-${m.id}`,
-      createdAt: m.created_at,
-      node: (
-        <div
-          className={`flex flex-col max-w-[80%] ${
-            mine ? "items-end self-end" : "items-start self-start"
-          }`}
-        >
-          <div className="flex items-center gap-2 mb-1.5 px-0.5">
-            <Link
-              href={`/players/${m.user_id}`}
-              aria-label={m.senderName}
-              className="shrink-0 active:opacity-70 transition-opacity"
-            >
-              <PlayerAvatar
-                userId={m.user_id}
-                avatarUrl={m.senderAvatarUrl}
-                name={m.senderName}
-                className="size-5"
-              />
-            </Link>
-            <Link
-              href={`/players/${m.user_id}`}
-              className={`t-mono text-tiny ${print.name} rounded-field active:opacity-70 transition-opacity duration-150 ease-out ${FOCUS_RING}`}
-            >
-              {mine ? "You" : m.senderName}
-            </Link>
-            <span className={`t-mono text-tiny ${print.faint}`}>
-              {shortTime(m.created_at)}
-            </span>
+  const entries = [
+    ...messages.map((m) => {
+      const mine = m.user_id === userId;
+      return {
+        key: `msg-${m.id}`,
+        createdAt: m.created_at,
+        node: (
+          <div className="ios-msg" data-mine={mine || undefined}>
+            {!mine && (
+              <Link href={`/players/${m.user_id}`} aria-label={m.senderName} className="ios-link ios-press" style={{ flex: "none" }}>
+                <Monogram name={m.senderName} photoUrl={m.senderAvatarUrl} size={32} />
+              </Link>
+            )}
+            <div className="ios-msg-body">
+              <div className="ios-msg-meta">
+                {!mine && (
+                  <Link href={`/players/${m.user_id}`} className="ios-link ios-md">
+                    {m.senderName}
+                  </Link>
+                )}
+                <span>{clockTime(m.created_at)}</span>
+                {/* Only on somebody else's message, and deliberately quiet. */}
+                {!mine && (
+                  <button type="button" className="ios-msg-report" onClick={() => setReporting(m)} aria-label={`Report this message from ${m.senderName}`}>
+                    Report
+                  </button>
+                )}
+              </div>
+              <div className="ios-bubble ios-bd">{m.body}</div>
+            </div>
           </div>
-          {/* Paper scraps on the board — a 2px ink edge and the poster drop,
-              like every card on the wall. Yours get the lima print pass. */}
-          <div
-            className={`${
-              mine ? "bg-lima rounded-br-none" : "bg-papel rounded-bl-none"
-            } text-tinta border-2 border-tinta rounded-card shadow-sheet px-3.5 py-2.5 text-body font-medium break-words`}
-          >
-            {m.body}
-          </div>
-          {/* Only on somebody else's message, and deliberately quiet —
-              present when it's needed, invisible the rest of the time. */}
-          {!mine && (
-            <button
-              type="button"
-              onClick={() => setReporting(m)}
-              className={`t-mono text-tiny ${print.report} mt-2 px-0.5 rounded-field transition-colors duration-150 ease-out ${FOCUS_RING}`}
-            >
-              Report
-            </button>
-          )}
-        </div>
-      ),
-    };
-  });
+        ),
+      };
+    }),
+    ...inlineItems.map((item) => ({ key: `inline-${item.id}`, createdAt: item.createdAt, node: item.content })),
+  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-  const combinedEntries = [
-    ...messageEntries,
-    ...inlineItems.map((item) => ({
-      key: `inline-${item.id}`,
-      createdAt: item.createdAt,
-      node: item.content,
-    })),
-  ].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-  );
+  let lastDay = "";
 
-  const messageList = failed ? (
-    <div className="my-4">
-      <ErrorState
-        title="Couldn't load the messages."
-        body="They're still there — this is a loading problem, not an empty thread."
-        onRetry={() => {
-          setFailed(false);
-          reloadSafely();
-        }}
-      />
-    </div>
-  ) : combinedEntries.length === 0 ? (
-    fullScreen ? (
-      // On the wall, the empty thread gets the app's empty-state poster.
-      // The composer right underneath is its one action.
-      <div className="my-auto">
-        <EmptyState
-          icon={<MessageCircle size={22} strokeWidth={2.2} aria-hidden />}
-          title="No messages yet"
-          body="Say hello to your group below. ¿Jugamos?"
-        />
-      </div>
-    ) : (
-      <p className="text-label font-medium text-tinta/70 text-center my-6">
-        No messages yet — say hello to your group. ¿Jugamos?
-      </p>
-    )
-  ) : (
-    <>
-      {combinedEntries.map((entry) => (
-        <Fragment key={entry.key}>{entry.node}</Fragment>
-      ))}
-    </>
-  );
-
-  // The input + send button. Identical for both layouts; full-screen just adds
-  // a little safe-area padding so it clears the phone's home indicator.
-  // The field is the app's standard printed input; Send is the screen's one
-  // primary action, so it's the lima cut-square button with the riso offset.
-  const composer = (
-    <form
-      onSubmit={handleSend}
-      className={`flex items-center gap-2.5 border-t-2 border-tinta p-3 bg-papel ${
-        fullScreen ? "pb-[max(0.75rem,env(safe-area-inset-bottom))]" : ""
-      }`}
-    >
-      <input
-        type="text"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Message your group…"
-        aria-label="Type a message"
-        className="flex-1 min-w-0 h-11 pl-surface rounded-field px-4 text-body font-medium text-tinta placeholder:text-tinta/45 placeholder:font-normal focus:outline-none focus:border-naranja transition-colors duration-150 ease-out"
-      />
-      <button
-        type="submit"
-        disabled={sending || text.trim().length === 0}
-        aria-label="Send message"
-        className={`pena-riso pl-hit shrink-0 size-11 rounded-card bg-lima text-tinta border-2 border-tinta inline-flex items-center justify-center disabled:opacity-45 disabled:pointer-events-none ${FOCUS_RING}`}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path
-            d="M4 12l16-7-7 16-2.5-6.5L4 12z"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-    </form>
-  );
-
-  // Mounted in both layouts below. Dialog is fixed-position and renders
-  // null when closed, so where it sits in the tree makes no difference.
-  const reportDialog =
-    reporting && userId ? (
-      <ReportDialog
-        open={reporting != null}
-        onClose={() => setReporting(null)}
-        reporterId={userId}
-        reportedId={reporting.user_id}
-        reportedName={reporting.senderName}
-        context="message"
-        messageId={reporting.id}
-        messageText={reporting.body}
-        onBlocked={() => {
-          setReporting(null);
-          // Their messages come straight out of this thread.
-          reload();
-        }}
-      />
-    ) : null;
-
-  // ── Full-screen layout (the /games/[id]/chat page) ────────────────────────
-  // Fills its parent's height; messages scroll, composer is pinned at the bottom.
-  if (fullScreen) {
-    return (
-      <div className="flex flex-col h-full min-h-0">
-        {reportDialog}
-        <div
-          ref={scrollRef}
-          className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4 px-5 py-5"
-        >
-          {messageList}
-        </div>
-        {/* Sits on the wall, so it's the papel-on-naranja-d stamp the Chat
-            tab uses for its errors. */}
-        <p
-          aria-live="polite"
-          className={`mx-5 mb-2 text-center text-label font-semibold text-papel bg-naranja-d rounded-field px-3 py-1.5 ${error ? "" : "hidden"}`}
-        >
-          {error}
-        </p>
-        {composer}
-      </div>
-    );
-  }
-
-  // ── Embedded card layout (the game detail page) — unchanged ───────────────
   return (
     <>
-      {reportDialog}
-      <SectionLabel>Group chat</SectionLabel>
-      <div className="pl-card overflow-hidden flex flex-col">
-        {/* Messages — this area scrolls on its own; newest stays at the bottom. */}
-        <div
-          ref={scrollRef}
-          className="flex flex-col gap-3 px-4 py-4 overflow-y-auto max-h-[55vh] min-h-[120px]"
-        >
-          {messageList}
-        </div>
-        {composer}
+      <div ref={scrollRef} className="ios-chat-scroll">
+        {/* Keeps a short thread down by the message box. */}
+        <div style={{ flex: 1 }} />
+        {failed ? (
+          <div className="ios-card" style={{ margin: 0, padding: 20 }} role="alert">
+            <div className="ios-t3">Couldn’t Load the Messages</div>
+            <div className="ios-sh ios-sec" style={{ marginTop: 4 }}>
+              They’re still there. Check your connection and try again.
+            </div>
+            <div style={{ display: "flex", marginTop: 14 }}>
+              <button type="button" className="ios-pill ios-press" style={{ border: 0, cursor: "pointer" }} onClick={reloadSafely}>
+                Try Again
+              </button>
+            </div>
+          </div>
+        ) : !loaded ? null : entries.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "0 24px 12px" }}>
+            <div className="ios-hl">No Messages Yet</div>
+            <div className="ios-sh ios-sec" style={{ marginTop: 2 }}>
+              Say hello to your group.
+            </div>
+          </div>
+        ) : (
+          entries.map((entry) => {
+            const day = dublinDateKey(entry.createdAt);
+            const newDay = day !== lastDay;
+            lastDay = day;
+            return (
+              <Fragment key={entry.key}>
+                {newDay && <div className="ios-msg-day ios-fn ios-sec">{dayHeading(entry.createdAt)}</div>}
+                {entry.node}
+              </Fragment>
+            );
+          })
+        )}
       </div>
-      <p
-        aria-live="polite"
-        className={`text-center text-label font-semibold text-papel bg-naranja-d rounded-field px-3 py-1.5 mt-2 ${error ? "" : "hidden"}`}
-      >
-        {error}
-      </p>
+
+      {error && (
+        <div className="ios-toast ios-glass ios-fn" role="alert" style={{ bottom: "calc(env(safe-area-inset-bottom) + 78px)" }}>
+          {error}
+        </div>
+      )}
+
+      <form className="ios-chat-composer ios-glass" onSubmit={handleSend}>
+        <input
+          type="text"
+          enterKeyHint="send"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Message your group"
+          aria-label="Type a message"
+        />
+        <button type="submit" className="ios-press" disabled={sending || text.trim().length === 0} aria-label="Send message">
+          <Icon name="arrow-up" size={20} />
+        </button>
+      </form>
+
+      {reporting && userId && (
+        <ReportDialog
+          open
+          onClose={() => setReporting(null)}
+          reporterId={userId}
+          reportedId={reporting.user_id}
+          reportedName={reporting.senderName}
+          context="message"
+          messageId={reporting.id}
+          messageText={reporting.body}
+          onBlocked={() => {
+            // Their messages come straight out of this thread.
+            reloadSafely();
+          }}
+        />
+      )}
     </>
   );
 }

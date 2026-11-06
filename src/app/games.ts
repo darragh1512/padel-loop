@@ -1013,17 +1013,19 @@ export async function getConversationsFor(
   userId: string,
 ): Promise<Conversation[]> {
   // 1. The games they've joined (their rows in game_players).
-  const { data: joinedRows } = await supabase
+  const { data: joinedRows, error: joinedError } = await supabase
     .from("game_players")
     .select("game_id")
     .eq("user_id", userId);
+  if (joinedError) throw new DataError("Could not load your games", joinedError.message);
   const joinedIds = (joinedRows ?? []).map((row) => String(row.game_id));
 
   // 2. The games they created.
-  const { data: createdGames } = await supabase
+  const { data: createdGames, error: createdError } = await supabase
     .from("games")
     .select("*")
     .eq("created_by", userId);
+  if (createdError) throw new DataError("Could not load your games", createdError.message);
 
   // 3. Merge both into one list with no duplicates (a game you created AND are
   //    a player in should appear only once). We key by the game's id.

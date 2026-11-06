@@ -1,17 +1,65 @@
 "use client";
-// Header actions for a group thread: add a member (search + pick, can add
-// several without closing) and leave the group (confirm, then back to the
-// chat list). Mirrors CreatorActions' self-contained dialog-state pattern
-// (games/[id]/creator-actions.tsx) — RLS is the real gate either way, these
-// are just the entry points.
+// The ⋯ menu for a group thread: add members (search and pick, several without
+// closing) and leave the group (confirm, then back to the chats list). RLS is the
+// real gate either way; these are just the entry points.
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Button, Dialog } from "@/components/ui";
+import Alert from "@/components/ios/Alert";
+import Icon from "@/components/ios/Icon";
+import Sheet, { useSheetClosing } from "@/components/ios/Sheet";
 import MemberPicker from "@/components/MemberPicker";
 import { supabase } from "@/lib/supabaseClient";
 import { addGroupMember, leaveGroup } from "../../../groups";
 import type { ProfileSearchResult } from "../../../profiles";
+
+function AddMembersSheet({
+  groupId,
+  memberIds,
+  onMemberAdded,
+  onClose,
+}: {
+  groupId: string;
+  memberIds: string[];
+  onMemberAdded: () => void;
+  onClose: () => void;
+}) {
+  const [added, setAdded] = useState<ProfileSearchResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [closing, close] = useSheetClosing(useCallback(() => onClose(), [onClose]));
+
+  async function handlePick(person: ProfileSearchResult) {
+    const { data } = await supabase.auth.getUser();
+    const uid = data.user?.id;
+    if (!uid) return;
+    setError(null);
+    const result = await addGroupMember(groupId, person.id, uid);
+    if ("ok" in result) {
+      setAdded((list) => [...list, person]);
+      onMemberAdded();
+    } else {
+      setError(`Couldn’t add ${person.name || "that player"}. Try again.`);
+    }
+  }
+
+  return (
+    <Sheet title="Add Members" left={{ label: "Done", onPress: close }} closing={closing} onRequestClose={close}>
+      <div style={{ height: 4 }} />
+      <MemberPicker excludeIds={[...memberIds, ...added.map((p) => p.id)]} onPick={handlePick} />
+      {error && (
+        <div className="ios-fn ios-destructive" role="alert" style={{ padding: "8px 32px 0" }}>
+          {error}
+        </div>
+      )}
+      {added.length > 0 && (
+        <div className="ios-fn ios-sec" role="status" style={{ padding: "8px 32px 0" }}>
+          Added {added.map((p) => p.name || "Player").join(", ")}.
+        </div>
+      )}
+    </Sheet>
+  );
+}
 
 export default function GroupThreadActions({
   groupId,
@@ -23,34 +71,27 @@ export default function GroupThreadActions({
   onMemberAdded: () => void;
 }) {
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [working, setWorking] = useState(false);
-  const [justAddedIds, setJustAddedIds] = useState<string[]>([]);
   const [error, setError] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
 
-  async function handlePick(person: ProfileSearchResult) {
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id;
-    if (!uid) return;
-
-    const result = await addGroupMember(groupId, person.id, uid);
-    if ("ok" in result) {
-      setJustAddedIds((ids) => [...ids, person.id]);
-      onMemberAdded();
-    }
+  function closeMenu() {
+    setMenuOpen(false);
+    button.current?.focus();
   }
 
   async function handleLeave() {
     const { data } = await supabase.auth.getUser();
     const uid = data.user?.id;
     if (!uid || working) return;
-
     setWorking(true);
     setError(false);
     const result = await leaveGroup(groupId, uid);
     if ("ok" in result) {
-      router.push("/chat");
+      router.replace("/chat");
     } else {
       setError(true);
       setWorking(false);
@@ -59,90 +100,86 @@ export default function GroupThreadActions({
 
   return (
     <>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <button
-          type="button"
-          aria-label="Add a member"
-          onClick={() => {
-            setJustAddedIds([]);
-            setAdding(true);
-          }}
-          className="pl-press pl-hit size-9 rounded-card border-2 border-tinta bg-papel text-tinta flex items-center justify-center hover:bg-lima/40 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-lima"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M15 19v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M22 11h-6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-        <button
-          type="button"
-          aria-label="Leave group"
-          onClick={() => setLeaving(true)}
-          className="pl-press pl-hit size-9 rounded-card border-2 border-dashed border-naranja-d bg-papel text-naranja-d flex items-center justify-center hover:bg-naranja-d/10 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-lima"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-      </div>
-
-      <Dialog open={adding} onClose={() => setAdding(false)} title="Add to group">
-        <div className="mt-3">
-          <MemberPicker
-            excludeIds={[...memberIds, ...justAddedIds]}
-            onPick={handlePick}
-          />
-        </div>
-        <Button variant="secondary" className="mt-4" onClick={() => setAdding(false)}>
-          Done
-        </Button>
-      </Dialog>
-
-      <Dialog
-        open={leaving}
-        onClose={() => !working && setLeaving(false)}
-        title="Leave this group?"
+      <button
+        ref={button}
+        type="button"
+        className="ios-gcap-i ios-press"
+        style={{ border: 0, padding: 0, background: "transparent", cursor: "pointer" }}
+        aria-label="More"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen(true)}
       >
-        <p className="text-label font-medium text-tinta/70 mt-2">
-          You&apos;ll stop seeing its messages, and need to be added back in to
-          rejoin.
-        </p>
-        <div className="flex gap-2.5 mt-5">
-          <Button
-            variant="secondary"
-            className="flex-1"
-            onClick={() => setLeaving(false)}
-            disabled={working}
-          >
-            Stay
-          </Button>
-          <Button
-            variant="destructive"
-            className="flex-1"
-            onClick={handleLeave}
-            loading={working}
-          >
-            Leave group
-          </Button>
-        </div>
-        <p
-          aria-live="polite"
-          className={`text-center text-label font-semibold text-naranja-d mt-3 ${error ? "" : "hidden"}`}
-        >
-          Couldn&apos;t leave the group. Please try again.
-        </p>
-      </Dialog>
+        <Icon name="ellipsis" size={24} />
+      </button>
+
+      {/* Outside the glass capsule, which would otherwise trap the menu inside it. */}
+      {menuOpen &&
+        createPortal(
+          <div className="ios-sheet-root">
+            <button type="button" className="ios-menu-scrim" aria-label="Close menu" tabIndex={-1} onClick={closeMenu} />
+            <div
+              className="ios-menu ios-game-menu"
+              role="menu"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") closeMenu();
+              }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                autoFocus
+                className="ios-menu-item"
+                style={{ paddingLeft: 14 }}
+                onClick={() => {
+                  setMenuOpen(false);
+                  setAdding(true);
+                }}
+              >
+                Add Members
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="ios-menu-item"
+                style={{ paddingLeft: 14 }}
+                data-destructive
+                onClick={() => {
+                  setMenuOpen(false);
+                  setError(false);
+                  setLeaving(true);
+                }}
+              >
+                Leave Group
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {adding && (
+        <AddMembersSheet
+          groupId={groupId}
+          memberIds={memberIds}
+          onMemberAdded={onMemberAdded}
+          onClose={() => setAdding(false)}
+        />
+      )}
+
+      <Alert
+        open={leaving}
+        onClose={() => {
+          if (!working) setLeaving(false);
+        }}
+        title="Leave This Group?"
+        error={error ? "Couldn’t leave the group. Try again." : null}
+        actions={[
+          { label: "Stay", bold: true, disabled: working, onPress: () => setLeaving(false) },
+          { label: "Leave", destructive: true, busy: working, onPress: handleLeave },
+        ]}
+      >
+        You’ll stop seeing its messages, and need to be added back in to rejoin.
+      </Alert>
     </>
   );
 }

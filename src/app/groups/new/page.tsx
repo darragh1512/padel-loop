@@ -1,23 +1,22 @@
 "use client";
 // Create a group: name it, pick people, then land straight in its chat.
-// Reuses the same Field/Input form primitives as login/signup, and the
-// shared MemberPicker for finding people (same search as /search).
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import BottomNav from "@/components/BottomNav";
+import Alert from "@/components/ios/Alert";
+import Icon from "@/components/ios/Icon";
+import Monogram from "@/components/ios/Monogram";
+import Sheet, { useSheetClosing } from "@/components/ios/Sheet";
 import MemberPicker from "@/components/MemberPicker";
-import PlayerAvatar from "@/components/PlayerAvatar";
-import { Field, Input, PrimaryButton, SectionLabel } from "@/components/ui";
+import { lastPath } from "@/lib/navMemory";
 import { supabase } from "@/lib/supabaseClient";
-import { createGroup, addGroupMember } from "../../groups";
+import { addGroupMember, createGroup } from "../../groups";
 import type { ProfileSearchResult } from "../../profiles";
 
 export default function NewGroupPage() {
   const router = useRouter();
 
-  // Creating a group requires an account — send logged-out visitors to login,
-  // same route-protection pattern as /create.
+  // Creating a group requires an account, so signed-out visitors go to log in.
   const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -33,14 +32,17 @@ export default function NewGroupPage() {
   const [picked, setPicked] = useState<ProfileSearchResult[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
 
-  function handlePick(person: ProfileSearchResult) {
-    setPicked((list) =>
-      list.some((p) => p.id === person.id) ? list : [...list, person],
-    );
-  }
-  function removePicked(id: string) {
-    setPicked((list) => list.filter((p) => p.id !== id));
+  const leave = useCallback(() => {
+    if (lastPath()) router.back();
+    else router.push("/chat");
+  }, [router]);
+  const [closing, close] = useSheetClosing(leave);
+
+  function requestClose() {
+    if (name.trim() !== "" || picked.length > 0) setConfirmingDiscard(true);
+    else close();
   }
 
   async function handleCreate() {
@@ -54,81 +56,101 @@ export default function NewGroupPage() {
 
     const result = await createGroup(name, userId);
     if ("error" in result) {
-      setError(result.error);
+      setError("Couldn’t create the group. Try again.");
       setSaving(false);
       return;
     }
 
-    // Add everyone picked. Best-effort: a failing add doesn't block the rest
-    // or stop the group (already created) from opening.
+    // Add everyone picked. Best-effort: a failing add doesn't block the rest or
+    // stop the group (already created) from opening.
     for (const person of picked) {
       await addGroupMember(result.id, person.id, userId);
     }
 
-    router.push(`/groups/${result.id}/chat`);
+    router.replace(`/groups/${result.id}/chat`);
   }
 
   return (
-    <main className="px-5 pt-6 relative">
-      <p className="t-mono text-micro text-papel/80 mt-2">Club noticeboard</p>
-      <h1 className="t-display text-display-md text-papel mt-1.5">New group</h1>
-      <p className="text-label font-medium text-papel/85 mt-1.5 mb-4">
-        Name it, add your people.
-      </p>
-
-      <SectionLabel>Name</SectionLabel>
-      <Field label="Group name" htmlFor="group-name">
-        <Input
-          id="group-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Saturday crew"
-          maxLength={60}
-        />
-      </Field>
-
-      <SectionLabel>Add members</SectionLabel>
-      {picked.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {picked.map((person) => (
-            <button
-              key={person.id}
-              type="button"
-              onClick={() => removePicked(person.id)}
-              aria-label={`Remove ${person.name || "player"}`}
-              className="flex items-center gap-2 pl-surface rounded-full pl-1 pr-3 py-1"
-            >
-              <PlayerAvatar
-                userId={person.id}
-                avatarUrl={person.avatar_url}
-                name={person.name}
-                className="size-6"
-              />
-              <span className="text-label font-semibold text-tinta">
-                {person.name || "Player"}
-              </span>
-              <span aria-hidden className="text-tinta/45">
-                ×
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-      <MemberPicker excludeIds={picked.map((p) => p.id)} onPick={handlePick} />
-
-      <p
-        aria-live="polite"
-        className={`text-center text-label font-semibold text-naranja-d mt-4 ${error ? "" : "hidden"}`}
+    <>
+      <main className="ios" />
+      <Sheet
+        title="New Group"
+        left={{ label: "Cancel", onPress: requestClose }}
+        right={{ label: "Create", onPress: handleCreate, busy: saving }}
+        closing={closing}
+        onRequestClose={requestClose}
+        after={
+          <Alert
+            open={confirmingDiscard}
+            onClose={() => setConfirmingDiscard(false)}
+            title="Discard This Group?"
+            actions={[
+              { label: "Keep Editing", bold: true, onPress: () => setConfirmingDiscard(false) },
+              {
+                label: "Discard",
+                destructive: true,
+                onPress: () => {
+                  setConfirmingDiscard(false);
+                  close();
+                },
+              },
+            ]}
+          />
+        }
       >
-        {error}
-      </p>
+        <div className="ios-list" style={{ marginTop: 12 }}>
+          <label className="ios-row ios-sheet-row">
+            <span className="ios-bd">Name</span>
+            <input
+              className="ios-field"
+              value={name}
+              maxLength={60}
+              placeholder="e.g. Saturday crew"
+              onChange={(e) => {
+                setError(null);
+                setName(e.target.value);
+              }}
+            />
+          </label>
+        </div>
+        {error && (
+          <div className="ios-fn ios-destructive" role="alert" style={{ padding: "8px 32px 0" }}>
+            {error}
+          </div>
+        )}
 
-      <PrimaryButton className="mt-5" onClick={handleCreate} loading={saving}>
-        Create group
-      </PrimaryButton>
-
-      <div className="h-4" />
-      <BottomNav />
-    </main>
+        <div className="ios-sect" style={{ marginTop: 18 }}>
+          <h2 className="ios-t3">Add Members</h2>
+          {picked.length > 0 && <div className="ios-fn ios-sec">{picked.length} added</div>}
+        </div>
+        {picked.length > 0 && (
+          <div className="ios-list" style={{ marginBottom: 12 }}>
+            {picked.map((person) => (
+              <div
+                key={person.id}
+                className="ios-row"
+                style={{ padding: "8px 16px", "--ios-inset": "68px" } as React.CSSProperties}
+              >
+                <Monogram name={person.name} photoUrl={person.avatar_url} />
+                <span className="ios-bd ios-grow ios-clip">{person.name || "Player"}</span>
+                <button
+                  type="button"
+                  className="ios-search-btn"
+                  style={{ color: "var(--ios-secondary)" }}
+                  aria-label={`Remove ${person.name || "player"}`}
+                  onClick={() => setPicked((list) => list.filter((p) => p.id !== person.id))}
+                >
+                  <Icon name="clear" size={20} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <MemberPicker
+          excludeIds={picked.map((p) => p.id)}
+          onPick={(person) => setPicked((list) => (list.some((p) => p.id === person.id) ? list : [...list, person]))}
+        />
+      </Sheet>
+    </>
   );
 }

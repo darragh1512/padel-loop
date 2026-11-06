@@ -11,6 +11,12 @@ export function recordPath(path: string) {
   current = path;
 }
 
+// The last screen with a tab bar. From a screen without one, such as a
+// conversation, this is where the person came from.
+export function lastPath(): string | null {
+  return current;
+}
+
 export function previousPath(): string | null {
   return previous;
 }

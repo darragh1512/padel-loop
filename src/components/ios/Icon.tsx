@@ -16,6 +16,9 @@ export type IconName =
   | "chevron-down"
   | "chevron-right"
   | "updown"
+  | "arrow-up"
+  | "info"
+  | "pushpin"
   | "gear"
   | "people"
   | "trophy"
@@ -165,6 +168,26 @@ export default function Icon({ name, size = 18 }: { name: IconName; size?: numbe
             fillRule="evenodd"
             d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8zm4.9 6.6-5.8 6.8a1 1 0 0 1-1.5 0l-2.7-3 1.5-1.3 2 2.2 5-5.9z"
           />
+        </svg>
+      );
+    case "arrow-up":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 20V5M5.5 11.5 12 5l6.5 6.5" />
+        </svg>
+      );
+    case "info":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+          <circle cx="12" cy="12" r="9.2" />
+          <path d="M12 11v5.6" strokeWidth="2.2" />
+          <circle cx="12" cy="7.4" r="1.3" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case "pushpin":
+      return (
+        <svg {...common} fill="currentColor">
+          <path d="M14.7 2.3a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1-.3 1.6l-1.5.7-3.4 3.4.2 3.3a1 1 0 0 1-.3.8l-1.1 1.1a1 1 0 0 1-1.4 0l-3.6-3.6-5.6 5.6a1 1 0 0 1-1.4-1.4l5.6-5.6-3.6-3.6a1 1 0 0 1 0-1.4l1.1-1.1a1 1 0 0 1 .8-.3l3.3.2 3.4-3.4.7-1.5a1 1 0 0 1 .2-.3z" />
         </svg>
       );
     case "updown":

@@ -4,6 +4,7 @@
 // that can't be undone, such as leaving or cancelling a game.
 
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export type AlertAction = {
   label: string;
@@ -39,7 +40,7 @@ export default function Alert({
   }, [open, onClose]);
 
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="ios-alert-wrap" role="alertdialog" aria-modal="true" aria-label={title}>
       <button type="button" className="ios-alert-scrim" aria-label="Close" tabIndex={-1} onClick={onClose} />
       <div className="ios-alert">
@@ -70,6 +71,7 @@ export default function Alert({
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

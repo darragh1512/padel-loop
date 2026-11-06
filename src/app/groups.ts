@@ -271,7 +271,9 @@ export async function getGroupMessages(
 
   if (error) {
     console.error("Could not load group messages:", error.message);
-    return [];
+    // A thread that failed to load must not read as a thread nobody has
+    // written in. The chat screen shows a retry instead.
+    throw new Error(error.message);
   }
   if (!rows || rows.length === 0) return [];
 

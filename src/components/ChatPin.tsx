@@ -1,18 +1,19 @@
 "use client";
 
-// Pinning a chat to the top of your own Chat tab — the shared pieces.
+// Pinning a chat to the top of your own Chats tab — the shared pieces.
 //
-//   PinToggle        the round pin button (lima = pinned, like an active chip)
+//   PinToggle        the pin button (tinted blue when pinned)
 //   PinLimitDialog   the "unpin one first" notice for a fourth pin
-//   ChatPinButton    a self-contained PinToggle for the full-screen chat
-//                    headers: it looks up who's signed in and their pins
+//   ChatPinButton    a self-contained PinToggle for the conversation headers: it
+//                    looks up who's signed in and their pins
 //
-// The Chat tab list uses PinToggle directly, because it already holds every
-// pin in state and needs to re-sort the list when one changes.
+// The Chats list uses PinToggle directly, because it already holds every pin in
+// state and needs to re-sort the list when one changes.
 
 import { useEffect, useState } from "react";
-import { Pin, PinOff } from "lucide-react";
-import { Button, Dialog } from "@/components/ui";
+import { createPortal } from "react-dom";
+import Alert from "@/components/ios/Alert";
+import Icon from "@/components/ios/Icon";
 import { supabase } from "@/lib/supabaseClient";
 import {
   MAX_PINS,
@@ -29,62 +30,41 @@ export function PinToggle({
   busy = false,
   title,
   onToggle,
+  inHeader = false,
 }: {
   pinned: boolean;
   busy?: boolean;
   // The chat's name, for the screen-reader label.
   title: string;
   onToggle: () => void;
+  inHeader?: boolean;
 }) {
-  const Icon = pinned ? PinOff : Pin;
   return (
     <button
       type="button"
+      className={inHeader ? "ios-gcap-i ios-pin ios-press" : "ios-pin ios-press"}
+      data-in-header={inHeader || undefined}
       onClick={onToggle}
       disabled={busy}
       aria-pressed={pinned}
       aria-label={pinned ? `Unpin ${title}` : `Pin ${title} to the top`}
-      className={`pl-press pl-hit size-9 shrink-0 rounded-card border-2 grid place-items-center transition-colors duration-150 ease-out disabled:opacity-60 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-lima ${
-        pinned
-          ? "bg-lima border-tinta text-tinta"
-          : "bg-papel border-tinta/35 text-tinta/55 hover:bg-lima/40 hover:text-tinta hover:border-tinta"
-      }`}
     >
-      <Icon size={15} strokeWidth={2.4} aria-hidden />
+      <Icon name="pushpin" size={inHeader ? 21 : 17} />
     </button>
   );
 }
 
-export function PinLimitDialog({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+export function PinLimitDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Dialog open={open} onClose={onClose} title="Pins are full">
-      <p className="text-label font-medium text-tinta/70 mt-2">
-        {PIN_LIMIT_MESSAGE} Tap the pin on any pinned chat to free up a spot.
-      </p>
-      <Button className="mt-5" onClick={onClose}>
-        Got it
-      </Button>
-    </Dialog>
+    <Alert open={open} onClose={onClose} title="Pins Are Full" actions={[{ label: "OK", bold: true, onPress: onClose }]}>
+      {PIN_LIMIT_MESSAGE} Tap the pin on any pinned chat to free up a spot.
+    </Alert>
   );
 }
 
-// For the full-screen chat header. Renders nothing until it knows who's
-// signed in, so there's never a pin button that can't work.
-export function ChatPinButton({
-  kind,
-  id,
-  title,
-}: {
-  kind: ChatKind;
-  id: string;
-  title: string;
-}) {
+// For the conversation header. Renders nothing until it knows who's signed in,
+// so there's never a pin button that can't work.
+export function ChatPinButton({ kind, id, title }: { kind: ChatKind; id: string; title: string }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [pins, setPins] = useState<Set<string> | null>(null);
   const [busy, setBusy] = useState(false);
@@ -107,7 +87,7 @@ export function ChatPinButton({
     };
   }, []);
 
-  // The failure stamp clears itself after a few seconds.
+  // The failure note clears itself after a few seconds.
   useEffect(() => {
     if (!error) return;
     const t = setTimeout(() => setError(null), 4000);
@@ -129,9 +109,7 @@ export function ChatPinButton({
     }
 
     setBusy(true);
-    const result = pinned
-      ? await unpinChat(userId, kind, id)
-      : await pinChat(userId, kind, id);
+    const result = pinned ? await unpinChat(userId, kind, id) : await pinChat(userId, kind, id);
     setBusy(false);
 
     if ("error" in result) {
@@ -148,18 +126,17 @@ export function ChatPinButton({
 
   return (
     <>
-      <PinToggle pinned={pinned} busy={busy} title={title} onToggle={toggle} />
+      <PinToggle pinned={pinned} busy={busy} title={title} onToggle={toggle} inHeader />
       <PinLimitDialog open={limitOpen} onClose={() => setLimitOpen(false)} />
-      {/* A failed pin (network, etc.) — shown as a small stamp under the
-          header rather than a dialog, since retrying is one tap. */}
-      {error && (
-        <p
-          role="status"
-          className="absolute right-4 top-full mt-2 z-10 t-mono text-micro tracking-[0.08em] text-papel bg-naranja-d rounded-field px-2.5 py-1.5"
-        >
-          {error}
-        </p>
-      )}
+      {error &&
+        createPortal(
+          <div className="ios-sheet-root">
+            <div className="ios-toast ios-glass ios-fn" role="status">
+              {error}
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

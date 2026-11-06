@@ -1,68 +1,41 @@
 "use client";
-// The Chat tab (/chat): a list of the logged-in person's game and group
-// conversations.
+// The Chats tab: the signed-in person's game and group conversations.
 //
-// This screen is JUST a list. It does no chat logic of its own — tapping a row
-// opens that conversation's full-screen page (/games/[id]/chat or
-// /groups/[id]/chat), which reuses the shared ChatThread component. All
-// sending, live updates, access checks, etc. still live in that component.
-//
-// Layout follows the prototype: search and a Games/Groups filter under the
-// title, then the conversations grouped by kind, each a card with a status
-// rail and a club-tone avatar.
+// This screen is JUST a list. Tapping a row opens that conversation's full-screen
+// page, and all sending, live updates and access checks live there.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
-import { ButtonLink, EmptyState, Skeleton } from "@/components/ui";
-import { MessageCircle } from "lucide-react";
+import { PinLimitDialog, PinToggle } from "@/components/ChatPin";
+import Icon from "@/components/ios/Icon";
+import Monogram from "@/components/ios/Monogram";
 import { supabase } from "@/lib/supabaseClient";
 import { APP_TIME_ZONE, dublinDateKey } from "@/lib/time";
-import { getConversationsFor, formatGameTime, type Conversation } from "../games";
-import {
-  MAX_PINS,
-  getPinnedKeys,
-  pinChat,
-  pinKey,
-  unpinChat,
-} from "../chat-pins";
-import { PinLimitDialog, PinToggle } from "@/components/ChatPin";
+import { gameWhen } from "@/lib/when";
+import { MAX_PINS, getPinnedKeys, pinChat, pinKey, unpinChat } from "../chat-pins";
+import { getConversationsFor, type Conversation } from "../games";
 
-// A short timestamp for the last message: the clock time if it was today
-// (e.g. "14:32"), otherwise the date (e.g. "10 Jun"). Empty if there's none.
-// Dublin clock and Dublin calendar day, like every other time in the app.
+// The clock time if it was today ("14:32"), otherwise the date ("10 Jun"). On a
+// Dublin clock, like every other time in the app.
 function shortStamp(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
-  const sameDay = dublinDateKey(d) === dublinDateKey(new Date());
-  return sameDay
-    ? d.toLocaleTimeString("en-GB", {
-        timeZone: APP_TIME_ZONE,
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      })
-    : d.toLocaleDateString("en-GB", {
-        timeZone: APP_TIME_ZONE,
-        day: "numeric",
-        month: "short",
-      });
+  return dublinDateKey(d) === dublinDateKey(new Date())
+    ? d.toLocaleTimeString("en-GB", { timeZone: APP_TIME_ZONE, hour: "2-digit", minute: "2-digit", hour12: false })
+    : d.toLocaleDateString("en-GB", { timeZone: APP_TIME_ZONE, day: "numeric", month: "short" });
 }
 
-// The id + link target for a conversation, whichever kind it is.
 function conversationKey(c: Conversation): string {
   return c.kind === "game" ? c.game.id : c.group.id;
 }
-// Kind-prefixed ("game:12" / "group:12") — a game and a group can share a
-// numeric id, so this is what pins and list keys use.
+// Kind-prefixed, because a game and a group can share a numeric id.
 function pinKeyFor(c: Conversation): string {
   return pinKey(c.kind, conversationKey(c));
 }
 function conversationHref(c: Conversation): string {
-  return c.kind === "game"
-    ? `/games/${c.game.id}/chat`
-    : `/groups/${c.group.id}/chat`;
+  return c.kind === "game" ? `/games/${c.game.id}/chat` : `/groups/${c.group.id}/chat`;
 }
 
 // How many Dublin calendar days until this game — negative once it's past.
@@ -70,180 +43,115 @@ function daysUntil(iso: string): number | null {
   const key = dublinDateKey(iso);
   const today = dublinDateKey(new Date());
   if (!key || !today) return null;
-  const ms = Date.parse(`${key}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`);
-  return Math.round(ms / 86_400_000);
+  return Math.round((Date.parse(`${key}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
 }
 
-// A game counts as IMMINENT — the one row that shouts — when it's today or
-// tomorrow. That's the closest honest stand-in for the prototype's "live"
-// state; we have no unread or presence data to drive it from.
-function imminent(c: Conversation): boolean {
-  if (c.kind !== "game") return false;
-  const d = daysUntil(c.game.game_time);
-  return d != null && d >= 0 && d <= 1;
-}
-
-// The club tones, picked deterministically from the conversation's id so a
-// given chat always wears the same colour.
-const TONES = [
-  { bg: "bg-naranja", fg: "text-white" },
-  { bg: "bg-pista", fg: "text-white" },
-  { bg: "bg-lima", fg: "text-tinta" },
-  { bg: "bg-tinta", fg: "text-papel" },
-];
-function toneFor(key: string) {
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  return TONES[h % TONES.length];
-}
-
-// Up to two initials from a venue or group name ("Malahide Padel Club" → MP).
-function initialsFor(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  return ((parts[0][0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
-}
-
-/* One conversation card — shared by games AND groups, and by the pinned,
-   active and collapsed "Past games" lists. `muted` dials back opacity for
-   past rows only. A pinned card wears a strip of lime tape across its top
-   edge: taped to the top of the noticeboard.
-
-   The pin button sits BESIDE the card's link, not inside it — a button
-   nested in a link is invalid and would open the chat on every pin tap. */
 function ConversationRow({
   c,
-  muted = false,
   pinned,
   pinBusy,
   onTogglePin,
 }: {
   c: Conversation;
-  muted?: boolean;
   pinned: boolean;
   pinBusy: boolean;
   onTogglePin: () => void;
 }) {
   const title = c.kind === "game" ? c.game.venue : c.group.name;
-  return (
-    <div className="relative">
-      {pinned && <span className="pena-tape z-10" aria-hidden />}
-      <ConversationCard c={c} muted={muted} />
-      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-        <PinToggle
-          pinned={pinned}
-          busy={pinBusy}
-          title={title}
-          onToggle={onTogglePin}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ConversationCard({ c, muted = false }: { c: Conversation; muted?: boolean }) {
-  const title = c.kind === "game" ? c.game.venue : c.group.name;
-  const soon = imminent(c);
-  const hasMessages = c.lastMessageBody != null;
-  const tone = toneFor(conversationKey(c));
+  const days = c.kind === "game" ? daysUntil(c.game.game_time) : null;
+  const soon = days != null && days >= 0 && days <= 1;
 
   let meta: string;
   if (c.kind === "game") {
-    const d = daysUntil(c.game.game_time);
-    const when =
-      d === 0
-        ? "Starts today"
-        : d === 1
-          ? "Starts tomorrow"
-          : d != null && d > 1 && d <= 6
-            ? `Starts in ${d} days`
-            : formatGameTime(c.game.game_time);
+    const when = days === 0 ? "Starts today" : days === 1 ? "Starts tomorrow" : gameWhen(c.game.game_time);
     meta = c.game.location ? `${when} · ${c.game.location}` : when;
   } else {
     meta = `${c.memberCount} member${c.memberCount === 1 ? "" : "s"}`;
   }
 
   return (
-    <Link
-      href={conversationHref(c)}
-      className={`pl-card pl-press relative flex items-center gap-3 py-2.75 pr-15 pl-4 overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima ${
-        muted ? "opacity-60" : ""
-      }`}
-    >
-      <span
-        aria-hidden
-        className={`absolute left-0 inset-y-0 w-1.5 ${
-          soon ? "bg-naranja" : hasMessages ? "bg-lima" : "bg-tinta/20"
-        }`}
-      />
-
-      <span
-        aria-hidden
-        className={`flex-none size-10 rounded-pill grid place-items-center t-display text-[0.8125rem] border-2 border-tinta ${tone.bg} ${tone.fg}`}
-      >
-        {initialsFor(title)}
-      </span>
-
-      <span className="flex-1 min-w-0">
-        <span className="flex items-baseline gap-2">
-          <span className="t-display text-[0.9375rem] leading-[1.15] text-tinta truncate">
-            {title}
+    <div className="ios-row" style={{ padding: "10px 12px 10px 16px", "--ios-inset": "72px" } as React.CSSProperties}>
+      {/* The pin sits BESIDE the link: a button inside a link would open the chat. */}
+      <Link href={conversationHref(c)} className="ios-link ios-grow ios-press" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {c.kind === "game" ? (
+          <span className="ios-chat-icon" aria-hidden>
+            <Icon name="court" size={24} />
           </span>
-          <span className="t-eyebrow flex-none ml-auto text-tiny tracking-[0.06em] normal-case text-tinta/50 whitespace-nowrap">
-            {shortStamp(c.lastMessageAt)}
+        ) : (
+          <Monogram name={title} size={44} />
+        )}
+        <span className="ios-grow">
+          <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span className="ios-hl ios-clip ios-grow">{title}</span>
+            <span className="ios-fn ios-sec" style={{ flex: "none" }}>
+              {shortStamp(c.lastMessageAt)}
+            </span>
+          </span>
+          <span className={soon ? "ios-fn ios-sb ios-acc ios-clip" : "ios-fn ios-sec ios-clip"} style={{ display: "block" }}>
+            {meta}
+          </span>
+          <span className={c.lastMessageBody != null ? "ios-sh ios-clip" : "ios-sh ios-sec ios-clip"} style={{ display: "block" }}>
+            {c.lastMessageBody ?? "No messages yet"}
           </span>
         </span>
-
-        <span
-          className={`block text-tiny mt-0.75 truncate ${
-            soon ? "t-mono text-naranja" : "t-eyebrow tracking-[0.08em] text-tinta/55"
-          }`}
-        >
-          {meta}
-        </span>
-
-        <span
-          className={`block text-label leading-tight truncate mt-1.25 ${
-            hasMessages ? "text-tinta font-semibold" : "text-tinta/50"
-          }`}
-        >
-          {c.lastMessageBody ?? "No messages yet — say hello"}
-        </span>
-      </span>
-    </Link>
-  );
-}
-
-/* The section rule. */
-function Rule({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2.5 mx-0.5 mb-2.25">
-      <span className="t-mono text-tiny tracking-[0.2em] text-papel/72 whitespace-nowrap">
-        {children}
-      </span>
-      <span className="flex-1 h-0.5 bg-papel/18" />
+      </Link>
+      <PinToggle pinned={pinned} busy={pinBusy} title={title} onToggle={onTogglePin} />
     </div>
   );
 }
 
 type Filter = "All" | "Games" | "Groups";
 
+function Notice({
+  title,
+  body,
+  href,
+  action,
+  onPress,
+}: {
+  title: string;
+  body: string;
+  href?: string;
+  action: string;
+  onPress?: () => void;
+}) {
+  return (
+    <div className="ios-card" style={{ marginTop: 16, padding: 20 }}>
+      <div className="ios-t3">{title}</div>
+      <div className="ios-sh ios-sec" style={{ marginTop: 4 }}>
+        {body}
+      </div>
+      <div style={{ display: "flex", marginTop: 14 }}>
+        {href ? (
+          <Link href={href} className="ios-pill ios-press">
+            {action}
+          </Link>
+        ) : (
+          <button type="button" className="ios-pill ios-press" style={{ border: 0, cursor: "pointer" }} onClick={onPress}>
+            {action}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ChatPage() {
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [loggedIn, setLoggedIn] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [pastOpen, setPastOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>("All");
 
-  // Pins are this person's own — pinKeyFor() values. Nobody else's list
-  // is affected by anything here.
+  // Pins are this person's own. Nobody else's list is affected by anything here.
   const [userId, setUserId] = useState<string | null>(null);
   const [pins, setPins] = useState<Set<string>>(new Set());
   const [pinBusy, setPinBusy] = useState<string | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
 
-  // On load: find who's logged in and fetch their conversations and pins.
   useEffect(() => {
     let active = true;
     (async () => {
@@ -253,22 +161,25 @@ export default function ChatPage() {
       setLoggedIn(uid != null);
       setUserId(uid);
       if (uid) {
-        const [convos, pinned] = await Promise.all([
-          getConversationsFor(uid),
-          getPinnedKeys(uid),
-        ]);
-        if (!active) return;
-        setConversations(convos);
-        setPins(pinned);
+        try {
+          const [convos, pinned] = await Promise.all([getConversationsFor(uid), getPinnedKeys(uid)]);
+          if (!active) return;
+          setConversations(convos);
+          setPins(pinned);
+          setFailed(false);
+        } catch {
+          if (!active) return;
+          setFailed(true);
+        }
       }
       setLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [attempt]);
 
-  // The failure notice clears itself after a few seconds.
+  // The failure note clears itself after a few seconds.
   useEffect(() => {
     if (!pinError) return;
     const t = setTimeout(() => setPinError(null), 4000);
@@ -281,8 +192,8 @@ export default function ChatPage() {
     const pinned = pins.has(key);
     setPinError(null);
 
-    // A fourth pin: say so before asking the database, which would refuse
-    // it anyway (the limit is enforced there too).
+    // A fourth pin: say so before asking the database, which would refuse it
+    // anyway (the limit is enforced there too).
     if (!pinned && pins.size >= MAX_PINS) {
       setLimitOpen(true);
       return;
@@ -314,264 +225,150 @@ export default function ChatPage() {
     onTogglePin: () => togglePin(c),
   });
 
-  // Active/past split, derived purely from game_time — no schema change, no
-  // second query. Boundary is DUBLIN midnight (not "now"), so a game later
-  // today stays active all day; only games before today (on a Dublin
-  // calendar) move to Past. Groups have no game_time and must always stay
-  // active — the `c.kind === "game"` guard short-circuits isPast to false
-  // for them.
-  const todayKey = dublinDateKey(new Date());
-  const isPast = (c: Conversation) => {
-    if (c.kind !== "game") return false;
-    const key = dublinDateKey(c.game.game_time);
-    return key !== "" && key < todayKey; // unreadable time → keep it active
-  };
-  const activeConversations = conversations.filter((c) => !isPast(c));
-  // Pinned chats are lifted out of wherever they'd normally sit (including
-  // Past) and shown above everything; the rest keep their normal order.
-  const pastConversations = conversations.filter(
-    (c) => isPast(c) && !pins.has(pinKeyFor(c)),
-  );
+  const { pinnedRows, sections, past } = useMemo(() => {
+    // The boundary is DUBLIN midnight, so a game later today stays active all
+    // day. Groups have no game time and always stay active.
+    const today = dublinDateKey(new Date());
+    const isPast = (c: Conversation) => {
+      if (c.kind !== "game") return false;
+      const key = dublinDateKey(c.game.game_time);
+      return key !== "" && key < today; // unreadable time → keep it active
+    };
+    const matches = (c: Conversation) =>
+      filter === "All" || (filter === "Games" ? c.kind === "game" : c.kind === "group");
+    const pinnedKey = (c: Conversation) => pins.has(pinKeyFor(c));
+    const active = conversations.filter((c) => !isPast(c) && !pinnedKey(c) && matches(c));
+    return {
+      // Pinned chats are lifted out of wherever they'd normally sit, including Past.
+      pinnedRows: conversations.filter((c) => pinnedKey(c) && matches(c)),
+      sections: [
+        { title: "Game Chats", rows: active.filter((c) => c.kind === "game") },
+        { title: "Groups", rows: active.filter((c) => c.kind === "group") },
+      ].filter((s) => s.rows.length > 0),
+      past: conversations.filter((c) => isPast(c) && !pinnedKey(c) && matches(c)),
+    };
+  }, [conversations, filter, pins]);
 
-  const counts = useMemo(
-    () => ({
-      All: activeConversations.length,
-      Games: activeConversations.filter((c) => c.kind === "game").length,
-      Groups: activeConversations.filter((c) => c.kind === "group").length,
-    }),
-    [activeConversations],
-  );
-
-  const matchesFilter = (c: Conversation) =>
-    filter === "All"
-      ? true
-      : filter === "Games"
-        ? c.kind === "game"
-        : c.kind === "group";
-
-  // Pinned, in the list's normal (most-recent-activity) order.
-  const pinnedRows = conversations.filter(
-    (c) => pins.has(pinKeyFor(c)) && matchesFilter(c),
-  );
-
-  const sections = useMemo(() => {
-    const visible = activeConversations.filter(
-      (c) =>
-        !pins.has(pinKeyFor(c)) &&
-        (filter === "All"
-          ? true
-          : filter === "Games"
-            ? c.kind === "game"
-            : c.kind === "group"),
-    );
-    return [
-      { title: "Game chats", rows: visible.filter((c) => c.kind === "game") },
-      { title: "Groups", rows: visible.filter((c) => c.kind === "group") },
-    ].filter((s) => s.rows.length > 0);
-  }, [activeConversations, filter, pins]);
+  const nothing = pinnedRows.length === 0 && sections.length === 0 && past.length === 0;
 
   return (
-    <main className="px-5 pt-3 relative">
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="t-eyebrow text-tiny text-lima mb-1">Club noticeboard</div>
-          <h1 className="t-display text-[clamp(1.75rem,8vw,2.125rem)] leading-[0.92] text-white">
-            Chat<span className="text-naranja">.</span>
-          </h1>
-        </div>
+    <main className="ios">
+      <header className="ios-nav">
+        <h1 className="ios-lt">Chats</h1>
         {!loading && loggedIn && (
-          <Link
-            href="/groups/new"
-            className="t-mono pena-riso flex-none flex items-center gap-1.75 bg-lima text-tinta border-2 border-tinta rounded-[3px] px-2.75 py-2 text-micro tracking-[0.1em] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-papel"
-          >
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden>
-              <path
-                d="M12 5v14M5 12h14"
-                stroke="currentColor"
-                strokeWidth="3.4"
-                strokeLinecap="round"
-              />
-            </svg>
-            Group
+          <Link href="/groups/new" aria-label="New group" className="ios-gcap-i ios-glass ios-press" style={{ color: "var(--ios-label)" }}>
+            <Icon name="plus" size={21} />
           </Link>
         )}
-      </div>
+      </header>
 
-      {!loading && loggedIn && (
+      {loading ? (
+        <div aria-hidden style={{ marginTop: 16 }}>
+          <div className="ios-skel" style={{ height: 40, borderRadius: 20, margin: "0 16px" }} />
+          <div className="ios-skel" style={{ height: 240, margin: "16px 16px 0" }} />
+        </div>
+      ) : !loggedIn ? (
+        <Notice
+          title="Your Conversations Live Here"
+          body="Log in and every game you join brings its group chat with it."
+          href="/login"
+          action="Log In"
+        />
+      ) : failed ? (
+        <div role="alert">
+          <Notice
+            title="Couldn’t Load Your Chats"
+            body="They’re still there. Check your connection and try again."
+            action="Try Again"
+            onPress={() => {
+              setLoading(true);
+              setAttempt((n) => n + 1);
+            }}
+          />
+        </div>
+      ) : (
         <>
-          {/* Search — the app's real player search lives at /search. */}
-          <Link
-            href="/search"
-            className="flex items-center gap-2.25 mt-3.25 bg-[rgb(6_20_58/0.35)] border-2 border-papel/22 rounded-[3px] px-2.75 py-2.25 hover:border-papel/40 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="15"
-              height="15"
-              fill="none"
-              aria-hidden
-              className="flex-none text-papel/60"
-            >
-              <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="2.2" />
-              <path
-                d="M16 16l4 4"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="t-eyebrow text-label tracking-[0.04em] normal-case text-papel/50">
-              Search people and games
-            </span>
+          <Link href="/search" className="ios-search ios-link">
+            <Icon name="search" size={20} />
+            <span className="ios-bd">Search Players</span>
           </Link>
 
-          {/* Filter */}
-          <div className="flex gap-1.5 mt-2.25 bg-[rgb(6_20_58/0.35)] border-2 border-papel/22 rounded-[3px] p-1">
-            {(["All", "Games", "Groups"] as Filter[]).map((f) => {
-              const on = filter === f;
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFilter(f)}
-                  aria-pressed={on}
-                  className={`t-mono flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded-stamp text-micro transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-lima ${
-                    on ? "bg-papel text-tinta" : "text-papel/65 hover:text-papel"
-                  }`}
-                >
-                  {f}
-                  <span
-                    className={`text-[0.5625rem] px-1.25 py-px rounded-pill ${
-                      on ? "bg-tinta text-lima" : "bg-papel/16 text-papel/70"
-                    }`}
-                  >
-                    {counts[f]}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="ios-seg" role="group" aria-label="Show" style={{ margin: "10px 16px 0" }}>
+            {(["All", "Games", "Groups"] as Filter[]).map((f) => (
+              <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>
+                {f}
+              </button>
+            ))}
           </div>
+
+          {nothing ? (
+            conversations.length === 0 ? (
+              <Notice title="No Chats Yet" body="Join a game and its group chat appears here." href="/discover" action="Find a Game" />
+            ) : (
+              <div className="ios-sh ios-sec" style={{ textAlign: "center", padding: 24 }}>
+                Nothing here yet.
+              </div>
+            )
+          ) : (
+            <>
+              {pinnedRows.length > 0 && (
+                <section style={{ marginTop: 16 }}>
+                  <div className="ios-sect">
+                    <h2 className="ios-t3">Pinned</h2>
+                    <div className="ios-fn ios-sec">
+                      {pins.size} of {MAX_PINS}
+                    </div>
+                  </div>
+                  <div className="ios-list">
+                    {pinnedRows.map((c) => (
+                      <ConversationRow key={pinKeyFor(c)} c={c} {...rowProps(c)} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {sections.map((s) => (
+                <section key={s.title} style={{ marginTop: 16 }}>
+                  <div className="ios-sect">
+                    <h2 className="ios-t3">{s.title}</h2>
+                  </div>
+                  <div className="ios-list">
+                    {s.rows.map((c) => (
+                      <ConversationRow key={pinKeyFor(c)} c={c} {...rowProps(c)} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+
+              {past.length > 0 && (
+                <div className="ios-list" style={{ marginTop: 16 }}>
+                  <button
+                    type="button"
+                    className="ios-row ios-toggle-row"
+                    aria-expanded={pastOpen}
+                    onClick={() => setPastOpen((v) => !v)}
+                  >
+                    <span className="ios-bd ios-grow">Past Game Chats</span>
+                    <span className="ios-fn ios-sec">{past.length}</span>
+                    <span className="ios-chev ios-disclose" data-open={pastOpen}>
+                      <Icon name="chevron-right" size={13} />
+                    </span>
+                  </button>
+                  {pastOpen && past.map((c) => <ConversationRow key={pinKeyFor(c)} c={c} {...rowProps(c)} />)}
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
 
-      {/* ── The list ─────────────────────────────────────────────────────── */}
-      <div className="mt-4">
-        {loading ? (
-          <div className="flex flex-col gap-2.25">
-            <Skeleton className="rounded-card h-19" />
-            <Skeleton className="rounded-card h-19" />
-          </div>
-        ) : !loggedIn ? (
-          <EmptyState
-            icon={<MessageCircle size={22} strokeWidth={2.2} />}
-            title="Your conversations live here."
-            body="Log in and every game you join brings its group chat with it."
-            action={
-              <ButtonLink href="/login" size="sm">
-                Log in
-              </ButtonLink>
-            }
-          />
-        ) : sections.length === 0 && pinnedRows.length === 0 ? (
-          <EmptyState
-            icon={<MessageCircle size={22} strokeWidth={2.2} />}
-            title="No conversations yet."
-            body="Join a game and its group chat appears here."
-            action={
-              <ButtonLink href="/discover" size="sm">
-                Find a game
-              </ButtonLink>
-            }
-          />
-        ) : (
-          <>
-            {/* Pinned — above everything. Extra gap so each card's strip of
-                tape has room to sit across its top edge. */}
-            {pinnedRows.length > 0 && (
-              <div className="mb-4">
-                <Rule>
-                  Pinned · {pins.size} of {MAX_PINS}
-                </Rule>
-                <div className="flex flex-col gap-4 pt-2">
-                  {pinnedRows.map((c) => (
-                    <ConversationRow
-                      key={pinKeyFor(c)}
-                      c={c}
-                      muted={isPast(c)}
-                      {...rowProps(c)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {sections.map((s) => (
-              <div key={s.title} className="mb-4">
-                <Rule>{s.title}</Rule>
-                <div className="flex flex-col gap-2.25">
-                  {s.rows.map((c) => (
-                    <ConversationRow key={pinKeyFor(c)} c={c} {...rowProps(c)} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-
-        {pinError && (
-          <p
-            role="status"
-            className="text-center text-label font-semibold text-papel bg-naranja-d rounded-field px-3 py-1.5 mb-3"
-          >
-            {pinError}
-          </p>
-        )}
-
-        {/* Past game chats — the dashed drawer at the foot of the board. */}
-        {!loading && loggedIn && pastConversations.length > 0 && (
-          <>
-            <button
-              type="button"
-              onClick={() => setPastOpen((v) => !v)}
-              aria-expanded={pastOpen}
-              className="t-mono w-full flex items-center justify-between gap-2.5 bg-white/8 hover:bg-white/14 border-2 border-dashed border-papel/35 rounded-card px-3.5 py-3.25 text-micro tracking-[0.14em] text-papel/72 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-            >
-              Past game chats
-              <svg
-                viewBox="0 0 24 24"
-                width="15"
-                height="15"
-                fill="none"
-                aria-hidden
-                className={`transition-transform duration-150 ease-out ${
-                  pastOpen ? "rotate-180" : ""
-                }`}
-              >
-                <path
-                  d="M6 9l6 6 6-6"
-                  stroke="currentColor"
-                  strokeWidth="2.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-
-            {pastOpen && (
-              <div className="flex flex-col gap-2.25 mt-2.5">
-                {pastConversations.map((c) => (
-                  <ConversationRow key={pinKeyFor(c)} c={c} muted {...rowProps(c)} />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
+      {pinError && (
+        <div className="ios-toast ios-glass ios-fn" style={{ bottom: 91 }} role="status">
+          {pinError}
+        </div>
+      )}
       <PinLimitDialog open={limitOpen} onClose={() => setLimitOpen(false)} />
-
-      <div className="h-4" />
+      <div style={{ height: 16 }} />
       <BottomNav />
     </main>
   );
