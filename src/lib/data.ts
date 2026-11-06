@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { dublinDateKey } from "@/lib/time";
-import { isCancelled, readDuration, readPrice, type Game, type Player } from "./types";
+import { isCancelled, readDuration, readGuests, readPrice, type Game, type Player } from "./types";
 
 /* ── Games data for the redesigned UI ───────────────────────────
    Reuses the existing Supabase client (src/lib/supabaseClient.ts), so the
@@ -172,6 +172,7 @@ function rowToGame(row: any, players: Player[] = []): Game {
     maxPlayers: row.max_players ?? 4,
     courtFee: courtFeeFor(row.skill_level), // derived from skill tier (no price column)
     players, // real joined players (from game_players); empty list = open slots
+    guestCount: readGuests(row.guest_count), // friends not on the app; each holds a spot
     createdBy: row.created_by ?? undefined, // who created the game (for owner-only actions)
     status: row.status ?? undefined, // "active" / "cancelled" (drives browse filtering + label)
     createdAt: row.created_at ?? undefined, // when the row was made (group-thread ordering)

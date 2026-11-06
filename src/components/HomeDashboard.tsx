@@ -41,7 +41,7 @@ function place(game: Game): string {
 
 function courtLabel(game: Game): string {
   const open = slotsLeft(game);
-  return `Court with ${game.players.length} of ${game.maxPlayers} players in, ${spotsOpenText(open)}`;
+  return `Court with ${game.players.length + game.guestCount} of ${game.maxPlayers} spots taken, ${spotsOpenText(open)}`;
 }
 
 function SectionTitle({ title, seeAllHref }: { title: string; seeAllHref?: string }) {
@@ -70,7 +70,7 @@ function NextGameCard({ game }: { game: Game }) {
         {/* The same court as the game page's header: tapping grows one into the other. */}
         <ViewTransition name={`game-court-${game.id}`} share="court-morph" default="none">
           <div>
-            <Court spots={spotsFor(game.players, game.maxPlayers, null)} big radius={8.5} label={courtLabel(game)} />
+            <Court spots={spotsFor(game.players, game.maxPlayers, null, game.guestCount)} big radius={8.5} label={courtLabel(game)} />
           </div>
         </ViewTransition>
         <div style={{ padding: "12px 6px 0" }}>
@@ -151,7 +151,7 @@ function NearbyRow({
     () => (joined && userId ? [...game.players, { id: userId, initials: viewerInitials }] : game.players),
     [joined, game.players, userId, viewerInitials],
   );
-  const open = game.maxPlayers - players.length;
+  const open = game.maxPlayers - players.length - game.guestCount;
   const when = gameWhen(game.startsAt);
   return (
     <div className="ios-row" style={{ "--ios-inset": "112px" } as React.CSSProperties}>
@@ -162,8 +162,8 @@ function NearbyRow({
       >
         <div style={{ width: 84, flex: "none" }}>
           <Court
-            spots={spotsFor(players, game.maxPlayers, null)}
-            label={`Court with ${players.length} of ${game.maxPlayers} players in, ${spotsOpenText(open)}`}
+            spots={spotsFor(players, game.maxPlayers, null, game.guestCount)}
+            label={`Court with ${players.length + game.guestCount} of ${game.maxPlayers} spots taken, ${spotsOpenText(open)}`}
           />
         </div>
         <div className="ios-grow">

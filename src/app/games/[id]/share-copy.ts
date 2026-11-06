@@ -6,7 +6,7 @@
 // means they can still disagree about the NUMBER (that is unavoidable), but
 // never about the wording or the rules for choosing it.
 
-import { formatDay, formatTimeRange, isCancelled, isFull, type Game } from "@/lib/types";
+import { formatDay, formatTimeRange, isCancelled, isFull, slotsLeft, type Game } from "@/lib/types";
 
 /* The state a card is describing. Order matters: cancelled outranks
    everything (there is no game), then the organiser's own closure, then full.
@@ -37,7 +37,7 @@ export function spotsPhrase(game: Game): string {
   if (state === "cancelled") return "Cancelled";
   if (state === "closed") return "Closed to new players";
 
-  const left = game.maxPlayers - game.players.length;
+  const left = slotsLeft(game);
   if (left <= 0) return `Full · ${game.maxPlayers} of ${game.maxPlayers}`;
   return `${left} of ${game.maxPlayers} spots left`;
 }

@@ -41,6 +41,7 @@ const ROW = { padding: "8px 16px", "--ios-inset": "68px" } as React.CSSPropertie
 export default function GameRoster({
   gameId,
   players,
+  guests,
   maxPlayers,
   viewerId,
   createdBy,
@@ -48,6 +49,7 @@ export default function GameRoster({
 }: {
   gameId: string;
   players: Player[];
+  guests: number; // friends playing who aren't on the app
   maxPlayers: number;
   viewerId: string | null;
   // The organiser — the only viewer who sees Remove.
@@ -76,7 +78,8 @@ export default function GameRoster({
   const blockedHere = players.filter((p) => blocked.has(p.id)).length;
   const isOrganiser = viewerId != null && viewerId === createdBy;
   const canRemove = (playerId: string) => isOrganiser && !locked && playerId !== viewerId;
-  const emptySlots = Math.max(maxPlayers - players.length, 0);
+  const taken = players.length + guests;
+  const emptySlots = Math.max(maxPlayers - taken, 0);
 
   async function handleRemove() {
     if (!removing || removeWorking) return;
@@ -116,9 +119,19 @@ export default function GameRoster({
       <div className="ios-sect">
         <h2 className="ios-t3">Players</h2>
         <div className="ios-fn ios-sec">
-          {players.length} of {maxPlayers}
+          {Math.min(taken, maxPlayers)} of {maxPlayers}
         </div>
       </div>
+
+      {/* A guest joined through the app but is still being counted as a guest. */}
+      {isOrganiser && guests > 0 && taken > maxPlayers && (
+        <div className="ios-card" style={{ padding: 16, marginBottom: 10 }} role="status">
+          <div className="ios-hl">More Players Than Spots</div>
+          <p className="ios-sh ios-sec" style={{ marginTop: 2 }}>
+            If a guest has joined through the app, edit the game and lower Players Already In.
+          </p>
+        </div>
+      )}
 
       {blockedHere > 0 && (
         <div className="ios-card" style={{ padding: 16, marginBottom: 10 }}>
@@ -175,6 +188,19 @@ export default function GameRoster({
             </div>
           );
         })}
+
+        {/* Friends who aren't on the app hold a spot, but there's no one to link to. */}
+        {Array.from({ length: guests }).map((_, i) => (
+          <div key={`guest-${i}`} className="ios-row" style={ROW}>
+            <div className="ios-mono" data-guest aria-hidden style={{ width: 40, height: 40, fontSize: 16 }}>
+              +1
+            </div>
+            <div className="ios-grow">
+              <div className="ios-bd">Guest</div>
+              <div className="ios-fn ios-sec">Not on Padel Loop</div>
+            </div>
+          </div>
+        ))}
 
         {Array.from({ length: emptySlots }).map((_, i) => (
           <div key={`open-${i}`} className="ios-row" style={ROW}>

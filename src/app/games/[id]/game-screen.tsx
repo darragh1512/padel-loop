@@ -159,7 +159,7 @@ export default function GameScreen({
     return game.players;
   }, [game.players, joined, loading, userId, profile]);
 
-  const open = game.maxPlayers - players.length;
+  const open = game.maxPlayers - players.length - game.guestCount;
   const status = closed ? "Closed" : open > 0 ? spotsOpenText(open) : "Full";
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -263,10 +263,10 @@ export default function GameScreen({
         <ViewTransition name={`game-court-${game.id}`} share="court-morph" default="none">
           <div>
             <Court
-              spots={spotsFor(players, game.maxPlayers, null)}
+              spots={spotsFor(players, game.maxPlayers, null, game.guestCount)}
               big
               radius={6}
-              label={`Court with ${players.length} of ${game.maxPlayers} players in, ${status}`}
+              label={`Court with ${players.length + game.guestCount} of ${game.maxPlayers} spots taken, ${status}`}
             />
           </div>
         </ViewTransition>
@@ -302,6 +302,7 @@ export default function GameScreen({
       <GameRoster
         gameId={game.id}
         players={players}
+        guests={game.guestCount}
         maxPlayers={game.maxPlayers}
         viewerId={userId}
         createdBy={game.createdBy}

@@ -25,6 +25,7 @@ export type Game = {
   is_manually_closed?: boolean | null; // creator stopped new joins by hand
   duration_mins?: number | null; // game length; null/absent = not set
   court_number?: string | null; // which court; null/absent = not set
+  guest_count?: number | null; // friends playing who aren't on the app; absent = none
 };
 
 // Turns a stored timestamp (e.g. "2026-06-10T17:30:00+00:00") into friendly
@@ -620,7 +621,7 @@ function isMissingColumn(
 // Columns added by migrations that may not have been run yet. When the database
 // says one of these is missing, it comes off the write and the write is retried,
 // so the game still saves. Returns whether anything was removed to retry without.
-const OPTIONAL_COLUMNS = ["price_per_player", "duration_mins", "court_number"];
+const OPTIONAL_COLUMNS = ["price_per_player", "duration_mins", "court_number", "guest_count"];
 function dropMissingColumns(
   row: Record<string, unknown>,
   error: { code?: string; message?: string } | null,
@@ -650,6 +651,7 @@ export type NewGame = {
   price_per_player?: number | null; // euro PER PLAYER; null = no price set
   duration_mins?: number | null; // game length; null = not set
   court_number?: string | null; // which court; null = not set
+  guest_count?: number; // friends playing who aren't on the app
 };
 
 // Saves a brand-new game, recording who created it (created_by), then adds
@@ -682,6 +684,7 @@ export async function createGame(
   }
   if (game.duration_mins != null) row.duration_mins = game.duration_mins;
   if (game.court_number) row.court_number = game.court_number;
+  if (game.guest_count) row.guest_count = game.guest_count;
 
   const insertGame = () =>
     supabase
@@ -737,6 +740,7 @@ export type GameEdits = {
   price_per_player?: number | null; // euro PER PLAYER; null = clear the price
   duration_mins?: number | null; // game length; null = clear it
   court_number?: string | null; // which court; null = clear it
+  guest_count?: number; // friends playing who aren't on the app
 };
 
 // Save changes to an existing game's row in the "games" table. Only the
@@ -758,6 +762,7 @@ export async function updateGame(
     price_per_player: edits.price_per_player ?? null,
     duration_mins: edits.duration_mins ?? null,
     court_number: edits.court_number ?? null,
+    guest_count: edits.guest_count ?? 0,
   };
 
   const saveGame = () => supabase.from("games").update(row).eq("id", gameId);

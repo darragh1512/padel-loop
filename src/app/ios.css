@@ -25,6 +25,8 @@
   --ios-tab-label: #1c1c1e;
   --ios-chevron: rgb(60 60 67 / 0.35);
   --ios-monogram: #6e6e73;
+  --ios-guest: #aeaeb2;
+  --ios-on-guest: #1c1c1e;
   --ios-badge: #ff3b30;
   --ios-destructive: #d70015;
   --ios-bar-sub: #3c3c43;
@@ -285,6 +287,7 @@ body:has(.ios) {
   border-radius: 50%; background: var(--ios-monogram); color: #fff; flex: none;
   display: flex; align-items: center; justify-content: center; font-weight: 600; letter-spacing: 0.2px;
 }
+.ios-mono[data-guest] { background: var(--ios-guest); color: var(--ios-on-guest); }
 .ios-chev { color: var(--ios-chevron); flex: none; }
 
 /* ── Game page ── */
@@ -405,6 +408,13 @@ html:has(.ios-sheet:not([data-closing])) .ios-behind::after { opacity: 0.22; }
 }
 .ios-toggle[data-on="true"] { background: var(--ios-accent-fill); }
 .ios-toggle[data-on="true"]::after { transform: translateX(21px); }
+.ios-stepper { width: 96px; height: 34px; border-radius: 17px; background: var(--ios-fill); display: flex; align-items: center; flex: none; }
+.ios-stepper button {
+  flex: 1; height: 100%; border: 0; padding: 0; background: transparent; color: var(--ios-label); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.ios-stepper button:disabled { color: var(--ios-chevron); cursor: default; }
+.ios-stepper i { width: 1px; height: 18px; background: var(--ios-sep); flex: none; }
 .ios-seg { height: 32px; padding: 2px; border-radius: 16px; background: var(--ios-fill); display: flex; flex: none; }
 .ios-seg button {
   flex: 1; height: 28px; border: 0; padding: 0; border-radius: 14px; background: transparent; color: var(--ios-label); cursor: pointer;
@@ -462,6 +472,11 @@ html:has(.ios-sheet:not([data-closing])) .ios-behind::after { opacity: 0.22; }
     transform 350ms linear(0, 0.03, 0.102, 0.198, 0.303, 0.409, 0.509, 0.601, 0.681, 0.75, 0.808, 0.856, 0.895, 0.925, 0.949, 0.967, 0.98, 0.99, 0.996, 1.001, 1.004, 1.005, 1.006, 1.006, 1);
 }
 
+/* In the sheet, the stepper fills or empties a spot quickly: 180 ms. */
+.ios-sheet .ios-court-big .ios-court-spot {
+  transition: opacity 180ms var(--ios-ease-out), transform 180ms var(--ios-ease-out);
+}
+
 /* ── Moving between screens ──
    Screens swap instantly, as tabs do. Home's court into a game's header is the
    exception: a spring of 0.4 s with no bounce, with the rest of the screen fading. */
@@ -499,7 +514,7 @@ html:active-view-transition-type(open-game, close-game)::view-transition-new(roo
   .ios-sheet[data-closing] { transform: none; opacity: 0; }
   .ios-toggle, .ios-toggle::after { transition: background-color 200ms linear; }
   .ios-toggle::after { transition: none; }
-  .ios-court-big .ios-court-spot { transition: opacity 200ms linear; }
+  .ios-court-big .ios-court-spot, .ios-sheet .ios-court-big .ios-court-spot { transition: opacity 180ms linear; }
   .ios-bar-btn, .ios-bar-btn:active:not(:disabled) { transform: none; transition: background-color 200ms linear, color 200ms linear; }
   .ios-joinbar, .ios-toast { transition: none; }
   .ios-bar-face { transition: opacity 200ms linear; }

@@ -226,7 +226,7 @@ function GameCard({
     () => (joined && userId ? [...game.players, { id: userId, initials: viewerInitials }] : game.players),
     [joined, game.players, userId, viewerInitials],
   );
-  const open = game.maxPlayers - players.length;
+  const open = game.maxPlayers - players.length - game.guestCount;
   const time = clockTime(game.startsAt);
   const price = formatPrice(game.pricePerPlayer);
   // Full and closed games stay listed, because their page offers the waitlist.
@@ -257,8 +257,8 @@ function GameCard({
         </div>
         <div style={{ width: 112, flex: "none" }}>
           <Court
-            spots={spotsFor(players, game.maxPlayers, null)}
-            label={`Court with ${players.length} of ${game.maxPlayers} players in, ${status}`}
+            spots={spotsFor(players, game.maxPlayers, null, game.guestCount)}
+            label={`Court with ${players.length + game.guestCount} of ${game.maxPlayers} spots taken, ${status}`}
           />
         </div>
       </Link>

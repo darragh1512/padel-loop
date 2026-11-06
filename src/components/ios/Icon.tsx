@@ -10,6 +10,7 @@ export type IconName =
   | "person"
   | "bell"
   | "plus"
+  | "minus"
   | "directions"
   | "mic"
   | "chevron-down"
@@ -211,6 +212,12 @@ export default function Icon({ name, size = 18 }: { name: IconName; size?: numbe
             fillRule="evenodd"
             d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM8.6 7.4 12 10.8l3.4-3.4 1.2 1.2-3.4 3.4 3.4 3.4-1.2 1.2-3.4-3.4-3.4 3.4-1.2-1.2 3.4-3.4-3.4-3.4z"
           />
+        </svg>
+      );
+    case "minus":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+          <path d="M4 12h16" />
         </svg>
       );
     case "directions":

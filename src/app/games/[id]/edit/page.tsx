@@ -41,6 +41,7 @@ export default function EditGamePage() {
         minutes: game.durationMins,
         court: game.courtNumber ?? "",
         players: game.players,
+        guests: game.guestCount,
       });
     })();
     return () => {

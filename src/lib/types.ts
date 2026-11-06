@@ -26,6 +26,7 @@ export type Game = {
   maxPlayers: number;
   courtFee: number;          // total court cost in EUR
   players: Player[];
+  guestCount: number;        // friends playing who aren't on the app; each holds a spot
   createdBy?: string;        // user id of the game's creator (from games.created_by)
   status?: string;           // "active" (default) or "cancelled" (from games.status)
   createdAt?: string;        // ISO timestamp, from games.created_at — when this game
@@ -46,7 +47,8 @@ export const isCancelled = (g: Game) =>
   (g.status ?? "").trim().toLowerCase() === "cancelled";
 
 export const pricePerHead = (g: Game) => g.courtFee / g.maxPlayers;
-export const slotsLeft = (g: Game) => g.maxPlayers - g.players.length;
+// Spots held by real players and by guests (friends who aren't on the app).
+export const slotsLeft = (g: Game) => g.maxPlayers - g.players.length - g.guestCount;
 
 // ── Why a game can't be joined ───────────────────────────────────────────
 // There are two DIFFERENT reasons, and they are kept deliberately separate:
@@ -131,6 +133,13 @@ export const skillTierOf = (g: Game): "Beginner" | "Intermediate" | "Advanced" =
   if (g.levelMin >= 3.5) return "Advanced";
   return "Intermediate";
 };
+
+// Guests from the database. A missing column (before the migration runs) or an
+// unreadable value means none.
+export function readGuests(value: unknown): number {
+  const n = Number(value ?? 0);
+  return Number.isInteger(n) && n > 0 ? n : 0;
+}
 
 // A player's own level, in the three bands games are listed under.
 export function tierOfPlayer(skill?: string | null): "Beginner" | "Intermediate" | "Advanced" | null {

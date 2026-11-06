@@ -4,10 +4,11 @@
 // it. The same sheet proposes a game inside a group (the game then stays off
 // Discover) and edits an existing game.
 //
-// Real data only. The mockup's "Players Already In" and "Connections Only" need
-// things the app doesn't store yet, so they're left out for now. Game length and
-// court number are optional: tapping the chosen length again clears it, and an
-// empty court shows nothing on the game.
+// Real data only. The mockup's "Connections Only" needs things the app doesn't
+// store yet, so it's left out for now. Game length and court number are optional:
+// tapping the chosen length again clears it, and an empty court shows nothing on
+// the game. "Players Already In" counts everyone already playing: anyone beyond
+// the real players is a guest, a friend who isn't on the app but holds a spot.
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
@@ -42,6 +43,7 @@ export type GameToEdit = {
   minutes: number | null;
   court: string;
   players: { id: string; initials: string }[];
+  guests: number;
 };
 
 type Form = {
@@ -50,6 +52,7 @@ type Form = {
   date: string;
   time: string;
   size: number;
+  guests: number;
   minutes: number | null;
   court: string;
   level: string;
@@ -111,6 +114,7 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
     date: editing?.date ?? "",
     time: editing?.time ?? "19:00",
     size: editing?.maxPlayers ?? 4,
+    guests: editing?.guests ?? 0,
     minutes: editing ? editing.minutes : 90,
     court: editing?.court ?? "",
     level: editing?.level ?? "Intermediate",
@@ -244,6 +248,7 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
       price_per_player: price.value,
       duration_mins: form.minutes,
       court_number: form.court.replace(/^court\s*/i, "").trim() || null,
+      guest_count: form.guests,
     };
 
     setSaving(true);
@@ -295,6 +300,7 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
   }
 
   const players = editing?.players ?? (userId ? [{ id: userId, initials: initials || " " }] : []);
+  const alreadyIn = players.length + form.guests;
   const sizes = [...new Set([2, 4, form.size])].sort((a, b) => a - b);
   const lengths = [...new Set([...LENGTHS, ...(form.minutes ? [form.minutes] : [])])].sort((a, b) => a - b);
   const title = editing ? "Edit Game" : groupId ? "Propose Game" : "New Game";
@@ -414,11 +420,36 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
               <div className="ios-list" style={{ marginTop: 12 }}>
                 <div style={{ padding: "12px 12px 0" }}>
                   <Court
-                    spots={spotsFor(players, form.size, null)}
+                    spots={spotsFor(players, form.size, null, form.guests)}
                     big
                     radius={7}
-                    label={`Court with ${players.length} of ${form.size} players in`}
+                    label={`Court with ${alreadyIn} of ${form.size} spots taken`}
                   />
+                </div>
+                <div className="ios-row" style={{ minHeight: 52, padding: "0 16px" }}>
+                  <div className="ios-bd ios-grow">Players Already In</div>
+                  <div className="ios-bd ios-sb" aria-live="polite" style={{ marginRight: 2 }}>
+                    {alreadyIn}
+                  </div>
+                  <div className="ios-stepper" role="group" aria-label="Players already in">
+                    <button
+                      type="button"
+                      aria-label="One fewer player already in"
+                      disabled={form.guests === 0}
+                      onClick={() => change({ guests: form.guests - 1 })}
+                    >
+                      <Icon name="minus" size={15} />
+                    </button>
+                    <i aria-hidden />
+                    <button
+                      type="button"
+                      aria-label="One more player already in"
+                      disabled={alreadyIn >= form.size}
+                      onClick={() => change({ guests: form.guests + 1 })}
+                    >
+                      <Icon name="plus" size={15} />
+                    </button>
+                  </div>
                 </div>
                 <div className="ios-row" style={{ minHeight: 52, padding: "0 16px" }}>
                   <div className="ios-bd ios-grow">Players</div>
@@ -428,7 +459,7 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
                     value={form.size}
                     width={96}
                     disabled={(size) => size < players.length}
-                    onPick={(size) => change({ size })}
+                    onPick={(size) => change({ size, guests: Math.min(form.guests, Math.max(size - players.length, 0)) })}
                   />
                 </div>
               </div>
@@ -531,7 +562,9 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
                 </div>
               ) : (
                 <div className="ios-fn ios-sec" style={{ padding: "8px 32px 0" }}>
-                  {editing
+                  {form.guests > 0
+                    ? "Guests hold a spot but aren’t on the app. If one joins, lower the number so nobody is counted twice."
+                    : editing
                     ? "Players see your changes straight away."
                     : groupId
                       ? "Only your group will see this."
