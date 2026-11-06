@@ -1,279 +1,57 @@
 "use client";
-// Edit-game form. Only the game's creator can reach it (we check the logged-in
-// user against games.created_by and bounce everyone else back to the detail
-// page). The fields are pre-filled with the game's current values; saving
-// writes them back to the game's row in Supabase and returns to the detail
-// page, which re-reads fresh data and shows the update.
+// Edit a game, in the same sheet as New Game. Only the game's creator can reach
+// it (we check the logged-in user against the game's creator and send everyone
+// else back to the game). The fields start with the game's current values.
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import BottomNav from "@/components/BottomNav";
-import { GhostButton, PrimaryButton, SectionLabel } from "@/components/ui";
+import CreateGameSheet, { type GameToEdit } from "@/components/CreateGameSheet";
+import { getGame } from "@/lib/data";
 import { supabase } from "@/lib/supabaseClient";
-import { dublinToUtc, utcToDublinInput } from "@/lib/time";
-import { getGame, updateGame } from "../../../games";
-import { readPrice, parsePriceInput } from "@/lib/types";
-
-const SKILL_LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
-
-// Game times are stored as true UTC instants but shown and typed as
-// Europe/Dublin wall-clock times everywhere (see src/lib/time.ts). The edit
-// control follows suit: pre-fill it with the stored instant's Dublin reading,
-// and on save treat what the creator typed as Dublin time.
-
-// "YYYY-MM-DDTHH:mm" (typed as Dublin wall clock) → a true-UTC ISO timestamp.
-function dublinInputToIso(value: string): string {
-  const [date, time] = value.split("T");
-  return dublinToUtc(date, time);
-}
+import { utcToDublinInput } from "@/lib/time";
+import { skillTierOf } from "@/lib/types";
 
 export default function EditGamePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const gameId = params.id;
+  const [editing, setEditing] = useState<GameToEdit | null>(null);
 
-  const [loading, setLoading] = useState(true);
-  const [allowed, setAllowed] = useState(false);
-
-  // Form fields (pre-filled once the game loads).
-  const [venue, setVenue] = useState("");
-  const [location, setLocation] = useState("");
-  const [gameTime, setGameTime] = useState(""); // datetime-local value
-  const [skillLevel, setSkillLevel] =
-    useState<(typeof SKILL_LEVELS)[number]>("Intermediate");
-  const [maxPlayers, setMaxPlayers] = useState(4);
-  // Held as TEXT while being edited; parsed on save. Empty means the game
-  // has no price, which is a real, saveable state.
-  const [price, setPrice] = useState("");
-  const [priceError, setPriceError] = useState<string | null>(null);
-
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(false);
-
-  // Load the game and confirm the logged-in user created it. Anyone who isn't
-  // the creator (including logged-out visitors) is sent away — they can't edit.
   useEffect(() => {
     let active = true;
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id ?? null;
       const game = await getGame(gameId);
-
       if (!active) return;
-
-      if (!game || !uid || game.created_by !== uid) {
+      if (!game || !uid || game.createdBy !== uid) {
         router.replace(`/games/${gameId}`);
         return;
       }
-
-      setVenue(game.venue);
-      setLocation(game.location);
-      setGameTime(utcToDublinInput(game.game_time));
-      if (SKILL_LEVELS.includes(game.skill_level as (typeof SKILL_LEVELS)[number])) {
-        setSkillLevel(game.skill_level as (typeof SKILL_LEVELS)[number]);
-      }
-      setMaxPlayers(game.max_players);
-      // readPrice copes with the column not existing yet (undefined), so
-      // the edit form still loads before the price migration is run — the
-      // box just starts empty.
-      const existingPrice = readPrice(game.price_per_player);
-      setPrice(existingPrice == null ? "" : existingPrice.toFixed(2));
-      setAllowed(true);
-      setLoading(false);
+      const [date, time] = utcToDublinInput(game.startsAt).split("T");
+      setEditing({
+        gameId,
+        venue: game.venue,
+        area: game.area ?? "",
+        date,
+        time,
+        level: skillTierOf(game),
+        maxPlayers: game.maxPlayers,
+        price: game.pricePerPlayer == null ? "" : String(game.pricePerPlayer),
+        minutes: game.durationMins,
+        court: game.courtNumber ?? "",
+        players: game.players,
+      });
     })();
     return () => {
       active = false;
     };
   }, [gameId, router]);
 
-  async function handleSave() {
-    if (saving) return;
-
-    // Checked before anything is sent, so a bad price never reaches the
-    // database. Blank is valid and clears the price.
-    const parsedPrice = parsePriceInput(price);
-    if ("error" in parsedPrice) {
-      setPriceError(parsedPrice.error);
-      return;
-    }
-    setPriceError(null);
-
-    setSaving(true);
-    setError(false);
-
-    const result = await updateGame(gameId, {
-      venue: venue.trim(),
-      location: location.trim(),
-      game_time: dublinInputToIso(gameTime),
-      skill_level: skillLevel,
-      max_players: maxPlayers,
-      price_per_player: parsedPrice.value, // null = clear the price
-    });
-
-    if ("ok" in result) {
-      router.push(`/games/${gameId}`);
-      router.refresh(); // make the detail page re-read the updated row
-    } else {
-      setError(true);
-      setSaving(false);
-    }
-  }
-
-  // While we load + check permissions, show nothing useful (we redirect
-  // non-creators), so just render a minimal placeholder.
-  if (loading || !allowed) {
-    // Skeletons in the shape of the form — sunken, subtle pulse.
-    return (
-      <main className="px-5 pt-6 relative">
-        <div className="rounded-field h-9 w-44 mt-2 pl-skeleton" />
-        <div className="mt-8 space-y-2.5">
-          <div className="rounded-field h-[60px] pl-skeleton" />
-          <div className="rounded-field h-[60px] pl-skeleton" />
-          <div className="rounded-field h-[60px] pl-skeleton" />
-        </div>
-        <BottomNav />
-      </main>
-    );
-  }
-
-  const fieldClass =
-    "w-full bg-transparent text-body font-semibold text-tinta outline-none placeholder:text-tinta/45 placeholder:font-normal [color-scheme:light]";
-
   return (
-    <main className="px-5 pt-6 relative">
-      <p className="t-mono text-micro text-papel/80 mt-2">Fix the poster</p>
-      <h1 className="t-display text-display-md text-papel mt-1.5 relative">
-        Edit a game
-      </h1>
-      <p className="text-label font-medium text-papel/85 mt-1.5 mb-4">
-        Update the details — players see the changes straight away.
-      </p>
-
-      <SectionLabel>Where &amp; when</SectionLabel>
-
-      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-naranja">
-        <label className="t-mono block text-micro tracking-[0.12em] text-tinta/70 mb-1">Venue</label>
-        <input
-          type="text"
-          value={venue}
-          onChange={(e) => setVenue(e.target.value)}
-          placeholder="e.g. Malahide Padel Club"
-          className={fieldClass}
-        />
-      </div>
-
-      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-naranja">
-        <label className="t-mono block text-micro tracking-[0.12em] text-tinta/70 mb-1">Location</label>
-        <input
-          type="text"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="e.g. Malahide"
-          className={fieldClass}
-        />
-      </div>
-
-      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-naranja">
-        <label className="t-mono block text-micro tracking-[0.12em] text-tinta/70 mb-1">Date &amp; time</label>
-        <input
-          type="datetime-local"
-          value={gameTime}
-          onChange={(e) => setGameTime(e.target.value)}
-          className={fieldClass}
-        />
-      </div>
-
-      <SectionLabel>Game setup</SectionLabel>
-
-      <div className="pl-surface flex rounded-full p-1 mb-2.5">
-        {SKILL_LEVELS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setSkillLevel(s)}
-            className={`flex-1 text-center text-label py-2 rounded-full transition-colors duration-150 ease-out ${
-              skillLevel === s
-                ? "bg-lima text-tinta font-extrabold border-[1.5px] border-tinta"
-                : "text-tinta/70 font-semibold border-[1.5px] border-transparent"
-            }`}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-
-      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 flex justify-between items-center">
-        <label className="t-mono text-micro tracking-[0.12em] text-tinta/70">Max players</label>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Fewer players"
-            onClick={() => setMaxPlayers((n) => Math.max(2, n - 1))}
-            className="w-7 h-7 rounded-full bg-papel border-[1.5px] border-tinta text-tinta text-lg leading-none flex items-center justify-center active:scale-95 transition-transform duration-150 ease-out"
-          >
-            −
-          </button>
-          <span className="text-body font-extrabold text-tinta w-4 text-center">{maxPlayers}</span>
-          <button
-            type="button"
-            aria-label="More players"
-            onClick={() => setMaxPlayers((n) => Math.min(8, n + 1))}
-            className="w-7 h-7 rounded-full bg-lima border-[1.5px] border-tinta text-tinta text-lg leading-none flex items-center justify-center active:scale-95 transition-transform duration-150 ease-out"
-          >
-            +
-          </button>
-        </div>
-      </div>
-
-      {/* Price per player — optional. Cleared (left blank) means the game
-          has no price and no screen shows one. */}
-      <div className="pl-surface rounded-field px-4 py-3 mb-2.5 focus-within:border-naranja">
-        <label
-          htmlFor="edit-price"
-          className="t-mono block text-micro tracking-[0.12em] text-tinta/70 mb-1"
-        >
-          Price per player
-        </label>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-body font-extrabold text-tinta/45">€</span>
-          <input
-            id="edit-price"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="Optional"
-            aria-invalid={priceError ? true : undefined}
-            className={fieldClass}
-          />
-        </div>
-        {priceError ? (
-          <p aria-live="polite" className="text-label font-semibold text-naranja-d mt-1">
-            {priceError}
-          </p>
-        ) : (
-          <p className="text-label font-medium text-tinta/55 mt-1">
-            What each player pays. Leave blank for no set price.
-          </p>
-        )}
-      </div>
-
-      <div className="h-3" />
-
-      <PrimaryButton onClick={handleSave}>
-        {saving ? "Saving…" : "Save changes"}
-      </PrimaryButton>
-      {error && (
-        <p className="text-center text-label font-semibold text-papel bg-naranja-d rounded-field px-3 py-1.5 mt-2">
-          Couldn&apos;t save those changes. Please try again.
-        </p>
-      )}
-      <div className="h-2.5" />
-      <GhostButton onClick={() => router.push(`/games/${gameId}`)}>Cancel</GhostButton>
-
-      <BottomNav />
-    </main>
+    <>
+      <main className="ios" />
+      {editing && <CreateGameSheet editing={editing} />}
+    </>
   );
 }

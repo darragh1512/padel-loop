@@ -1,14 +1,17 @@
-"use client";
-
 import BottomNav from "@/components/BottomNav";
-import CreateGameForm from "@/components/CreateGameForm";
+import CreateGameSheet from "@/components/CreateGameSheet";
+import HomeDashboard from "@/components/HomeDashboard";
 
+// Opening the address directly, such as after logging in: there's no screen to
+// rise over, so the sheet sits over Home.
 export default function CreateGamePage() {
   return (
-    /* Extra bottom padding clears the pinned create bar as well as the nav. */
-    <main className="px-5 pt-4 pb-32 relative">
-      <CreateGameForm />
-      <BottomNav />
-    </main>
+    <>
+      <main className="ios">
+        <HomeDashboard />
+        <BottomNav />
+      </main>
+      <CreateGameSheet />
+    </>
   );
 }

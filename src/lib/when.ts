@@ -48,6 +48,13 @@ export function dayHeading(iso: string, now: Date = new Date()): string {
   return longDate(d);
 }
 
+/* "Sat 7 Nov", from a YYYY-MM-DD date. */
+export function shortDate(date: string): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return date;
+  return `${fmt(d, { weekday: "short" })} ${fmt(d, { day: "numeric" })} ${fmt(d, { month: "short" })}`;
+}
+
 /* "Thursday 5 November" */
 export function longDate(now: Date = new Date()): string {
   return `${fmt(now, { weekday: "long" })} ${fmt(now, { day: "numeric" })} ${fmt(now, { month: "long" })}`;

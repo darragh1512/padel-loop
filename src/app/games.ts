@@ -23,6 +23,8 @@ export type Game = {
   status?: string | null; // "active" (default) or "cancelled"
   price_per_player?: number | string | null; // euro PER PLAYER; null/absent = not set
   is_manually_closed?: boolean | null; // creator stopped new joins by hand
+  duration_mins?: number | null; // game length; null/absent = not set
+  court_number?: string | null; // which court; null/absent = not set
 };
 
 // Turns a stored timestamp (e.g. "2026-06-10T17:30:00+00:00") into friendly
@@ -615,6 +617,27 @@ function isMissingColumn(
   return msg.includes(column) && (msg.includes("column") || msg.includes("schema"));
 }
 
+// Columns added by migrations that may not have been run yet. When the database
+// says one of these is missing, it comes off the write and the write is retried,
+// so the game still saves. Returns whether anything was removed to retry without.
+const OPTIONAL_COLUMNS = ["price_per_player", "duration_mins", "court_number"];
+function dropMissingColumns(
+  row: Record<string, unknown>,
+  error: { code?: string; message?: string } | null,
+): boolean {
+  const sending = OPTIONAL_COLUMNS.filter((column) => column in row);
+  const missing = sending.filter((column) => isMissingColumn(error, column));
+  if (missing.length === 0) return false;
+  // Remove just the column it names, if it names one.
+  const message = (error?.message ?? "").toLowerCase();
+  const named = missing.filter((column) => message.includes(column));
+  for (const column of named.length > 0 ? named : missing) {
+    console.warn(`games.${column} is missing — saving this game without it. Run its migration.`);
+    delete row[column];
+  }
+  return true;
+}
+
 // The details needed to create a new game (the form fields the user fills in).
 export type NewGame = {
   venue: string;
@@ -625,6 +648,8 @@ export type NewGame = {
   group_id?: string; // set when this game is a group proposal (phase 2 of group chats)
   recurs_weekly?: boolean; // repeat this game weekly (the database rolls it forward)
   price_per_player?: number | null; // euro PER PLAYER; null = no price set
+  duration_mins?: number | null; // game length; null = not set
+  court_number?: string | null; // which court; null = not set
 };
 
 // Saves a brand-new game, recording who created it (created_by), then adds
@@ -655,6 +680,8 @@ export async function createGame(
   if (game.price_per_player != null) {
     row.price_per_player = game.price_per_player;
   }
+  if (game.duration_mins != null) row.duration_mins = game.duration_mins;
+  if (game.court_number) row.court_number = game.court_number;
 
   const insertGame = () =>
     supabase
@@ -665,13 +692,9 @@ export async function createGame(
 
   let { data, error } = await insertGame();
 
-  // Price column not there yet? Save the game without it rather than
+  // An optional column not there yet? Save the game without it rather than
   // failing the create outright.
-  if (error && "price_per_player" in row && isMissingColumn(error, "price_per_player")) {
-    console.warn(
-      "games.price_per_player is missing — creating this game without a price. Run the price migration.",
-    );
-    delete row.price_per_player;
+  while (error && dropMissingColumns(row, error)) {
     ({ data, error } = await insertGame());
   }
 
@@ -712,6 +735,8 @@ export type GameEdits = {
   skill_level: string;
   max_players: number;
   price_per_player?: number | null; // euro PER PLAYER; null = clear the price
+  duration_mins?: number | null; // game length; null = clear it
+  court_number?: string | null; // which court; null = clear it
 };
 
 // Save changes to an existing game's row in the "games" table. Only the
@@ -731,19 +756,17 @@ export async function updateGame(
     skill_level: edits.skill_level,
     max_players: edits.max_players,
     price_per_player: edits.price_per_player ?? null,
+    duration_mins: edits.duration_mins ?? null,
+    court_number: edits.court_number ?? null,
   };
 
   const saveGame = () => supabase.from("games").update(row).eq("id", gameId);
 
   let { error } = await saveGame();
 
-  // Price column not there yet? Save everything else rather than blocking
-  // the edit entirely.
-  if (error && isMissingColumn(error, "price_per_player")) {
-    console.warn(
-      "games.price_per_player is missing — saving this game without the price. Run the price migration.",
-    );
-    delete row.price_per_player;
+  // An optional column not there yet? Save everything else rather than
+  // blocking the edit entirely.
+  while (error && dropMissingColumns(row, error)) {
     ({ error } = await saveGame());
   }
 

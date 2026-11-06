@@ -25,10 +25,7 @@ from the top.
 
 ## Pending
 
-| File | What it adds | Depends on |
-|---|---|---|
-| `20261012010000_delete_account_storage_api.sql` | FIXES account deletion (was failing for everyone with `42501: Direct deletion from storage tables is not allowed`). `delete_my_account()` no longer deletes from `storage.objects`; it logs any surviving avatar files to the new `avatar_cleanup` table instead. The app now deletes the files through the Storage API first. | `20260914` (supersedes its `delete_my_account()`). No pre-flight. Safe in either order relative to the app deploy. |
-| `20261105210000_game_length_and_court.sql` | Adds optional `duration_mins` and `court_number` to `games`, and makes weekly games copy both, plus their price, to next week's game. Older games stay empty and show neither. | `20260811` (supersedes its `roll_recurring_games()`). No pre-flight. Safe in either order relative to the app deploy. |
+None.
 
 ## Applied
 
@@ -56,6 +53,8 @@ Run by hand in the SQL editor since:
 | `20260928010000_chat_pins.sql` | 2026-10-07 | `chat_pins` (own-rows-only RLS, only chats you're in), `can_pin_chat()`, the 3-pin limit trigger, and unpin-on-leave triggers for games and groups |
 | `20260928000000_organiser_removes_player.sql` | 2026-10-12 | `game_removals`, `remove_player_from_game()` (organiser-only, refused once a match result exists), the no-rejoin / no-queue triggers, the removed player's notification, and a `notify_player_left` that stays quiet for removals |
 | `20261012000000_terms_acceptances.sql` | 2026-10-12 | `terms_acceptances`: append-only GDPR record of who ticked the sign-up terms box, when (server-stamped), and which terms/privacy versions |
+| `20261012010000_delete_account_storage_api.sql` | 2026-10-12 | Account deletion fix: `avatar_cleanup`, and a `delete_my_account()` that no longer deletes from `storage.objects`. Date from the owner's memory of running and testing it; a read-only check on 2026-11-06 confirmed the live database has it. |
+| `20261105210000_game_length_and_court.sql` | 2026-11-06 | Optional `duration_mins` and `court_number` on `games`, and `roll_recurring_games()` now copies both, plus `price_per_player`, to next week's game. The live function was compared with the 20260811 version first and matched. |
 
 ### Two follow-ups those files asked for
 

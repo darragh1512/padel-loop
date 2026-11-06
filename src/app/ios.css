@@ -30,6 +30,9 @@
   --ios-bar-sub: #3c3c43;
   --ios-glass: rgb(255 255 255 / 0.58);
   --ios-menu: rgb(250 250 252 / 0.84);
+  --ios-sheet: rgb(244 244 248 / 0.84);
+  --ios-seg-on: #ffffff;
+  --ios-switch-off: rgb(120 120 128 / 0.2);
   --ios-glass-edge:
     inset 0 0.5px 0 rgb(255 255 255 / 0.95), inset 0 0 0 0.5px rgb(255 255 255 / 0.55),
     inset 0 -0.5px 0 rgb(255 255 255 / 0.3), 0 8px 28px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.05);
@@ -64,6 +67,9 @@
     --ios-chevron: rgb(235 235 245 / 0.3);
     --ios-glass: rgb(44 44 46 / 0.58);
     --ios-menu: rgb(44 44 46 / 0.86);
+    --ios-sheet: rgb(28 28 30 / 0.86);
+    --ios-seg-on: #636366;
+    --ios-switch-off: rgb(120 120 128 / 0.32);
     --ios-glass-edge:
       inset 0 0.5px 0 rgb(255 255 255 / 0.28), inset 0 0 0 0.5px rgb(255 255 255 / 0.12),
       0 8px 28px rgb(0 0 0 / 0.5);
@@ -107,6 +113,7 @@ body:has(.ios) {
 }
 .ios ::selection { background: var(--ios-accent-tint); color: var(--ios-label); }
 .ios :focus-visible,
+.ios-sheet-root :focus-visible,
 .ios-tabbar :focus-visible { outline: 3px solid var(--ios-accent); outline-offset: 2px; }
 
 /* ── Text styles ── */
@@ -347,6 +354,79 @@ body:has(.ios) {
 .ios-legacy { margin: 18px 16px 0; padding: 4px 16px 16px; border-radius: 26px; background: #1c5bbf; }
 .ios-legacy:empty { display: none; }
 
+/* ── Sheet ──
+   It rises on the iOS sheet curve while the screen behind recedes to 95%. */
+.ios-behind { transition: transform 400ms cubic-bezier(0.32, 0.72, 0, 1), border-radius 400ms cubic-bezier(0.32, 0.72, 0, 1); }
+.ios-behind::after {
+  content: ""; position: absolute; inset: 0; z-index: 60; background: #000; opacity: 0; pointer-events: none;
+  transition: opacity 400ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+html:has(.ios-sheet), body:has(.ios-sheet) { background: #000; overflow: hidden; }
+html:has(.ios-sheet) .ios-behind { background: var(--ios-bg); }
+html:has(.ios-sheet:not([data-closing])) .ios-behind {
+  transform: translateY(44px) scale(0.95); transform-origin: 50% var(--ios-scroll, 0px);
+  border-radius: 40px; overflow: hidden;
+}
+html:has(.ios-sheet:not([data-closing])) .ios-behind::after { opacity: 0.22; }
+.ios-sheet-root {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased;
+}
+.ios-sheet {
+  position: fixed; z-index: 45; bottom: 0; left: 50%; margin-left: calc(min(100vw, 448px) / -2); width: min(100vw, 448px);
+  top: calc(env(safe-area-inset-top) + var(--ios-top-gap) + 2px);
+  display: flex; flex-direction: column; border-radius: 38px 38px 0 0; overflow: hidden;
+  background: var(--ios-sheet); color: var(--ios-label);
+  -webkit-backdrop-filter: blur(36px) saturate(1.7); backdrop-filter: blur(36px) saturate(1.7);
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.9), 0 -8px 40px rgb(0 0 0 / 0.18);
+  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
+  animation: ios-sheet-rise 400ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes ios-sheet-rise { from { transform: translateY(100%); } }
+.ios-sheet[data-closing] { transform: translateY(100%); animation: none; }
+.ios-sheet-top { flex: none; touch-action: none; cursor: grab; }
+.ios-grabber { width: 36px; height: 5px; border-radius: 3px; background: rgb(127 127 134 / 0.5); margin: 6px auto 0; }
+.ios-sheet-nav { display: flex; align-items: center; justify-content: space-between; height: 50px; padding: 6px 16px 0; }
+.ios-sheet-btn {
+  height: 44px; padding: 0 17px; border: 0; border-radius: 22px; cursor: pointer; color: var(--ios-label);
+  font-size: 17px; font-weight: 500; letter-spacing: -0.43px;
+}
+.ios-sheet-btn[data-prominent] { padding: 0 19px; background: var(--ios-accent-fill); color: var(--ios-on-accent); font-weight: 600; }
+.ios-sheet-btn:disabled { opacity: 0.6; cursor: default; }
+.ios-sheet-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: calc(env(safe-area-inset-bottom) + 16px); }
+.ios-sheet-page { animation: ios-fade 160ms linear; }
+.ios-sheet-row { min-height: 54px; padding: 0 16px; --ios-inset: 52px; }
+.ios-toggle-row { width: 100%; border: 0; background: transparent; color: inherit; cursor: pointer; min-height: 52px; padding: 0 16px; text-align: left; }
+.ios-sheet-row.ios-toggle-row { min-height: 54px; }
+.ios-toggle { position: relative; width: 63px; height: 28px; border-radius: 14px; flex: none; background: var(--ios-switch-off); transition: background-color 200ms var(--ios-ease-out); }
+.ios-toggle::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 38px; height: 24px; border-radius: 12px; background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2); transition: transform 200ms var(--ios-ease-out);
+}
+.ios-toggle[data-on="true"] { background: var(--ios-accent-fill); }
+.ios-toggle[data-on="true"]::after { transform: translateX(21px); }
+.ios-seg { height: 32px; padding: 2px; border-radius: 16px; background: var(--ios-fill); display: flex; flex: none; }
+.ios-seg button {
+  flex: 1; height: 28px; border: 0; padding: 0; border-radius: 14px; background: transparent; color: var(--ios-label); cursor: pointer;
+  font-size: 14px; font-weight: 500; letter-spacing: -0.15px;
+}
+.ios-seg button[aria-pressed="true"] { background: var(--ios-seg-on); font-weight: 600; box-shadow: 0 1px 4px rgb(0 0 0 / 0.14); }
+.ios-seg button:disabled { opacity: 0.35; cursor: default; }
+.ios-dpill {
+  position: relative; height: 34px; padding: 0 11px; border-radius: 9px; flex: none; cursor: pointer;
+  background: var(--ios-fill); display: flex; align-items: center;
+  font-size: 16px; line-height: 21px; font-weight: 500; letter-spacing: -0.31px;
+}
+.ios-dpill input, .ios-native-over {
+  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; margin: 0; font-size: 16px; cursor: pointer;
+}
+.ios-field {
+  flex: 1; min-width: 0; border: 0; outline: 0; padding: 0; background: transparent; text-align: right;
+  color: var(--ios-secondary); font: inherit; font-size: 17px; line-height: 22px; letter-spacing: -0.43px;
+}
+.ios-field::placeholder { color: var(--ios-secondary); opacity: 1; }
+.ios-field:focus { color: var(--ios-label); }
+
 /* ── Alert ── */
 .ios-alert-wrap { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .ios-alert-scrim { position: absolute; inset: 0; border: 0; padding: 0; background: rgb(0 0 0 / 0.25); cursor: default; animation: ios-fade 200ms linear; }
@@ -413,6 +493,12 @@ html:active-view-transition-type(open-game, close-game)::view-transition-new(roo
   .ios-court-spot[data-on="false"] { transform: none; }
   .ios-skel { animation: none; }
   .ios-menu, .ios-alert { animation-name: ios-fade; animation-timing-function: linear; }
+  .ios-behind, .ios-behind::after { transition: opacity 200ms linear; }
+  html:has(.ios-sheet:not([data-closing])) .ios-behind { transform: none; border-radius: 0; }
+  .ios-sheet { animation: ios-fade 200ms linear; transition: opacity 200ms linear; }
+  .ios-sheet[data-closing] { transform: none; opacity: 0; }
+  .ios-toggle, .ios-toggle::after { transition: background-color 200ms linear; }
+  .ios-toggle::after { transition: none; }
   .ios-court-big .ios-court-spot { transition: opacity 200ms linear; }
   .ios-bar-btn, .ios-bar-btn:active:not(:disabled) { transform: none; transition: background-color 200ms linear, color 200ms linear; }
   .ios-joinbar, .ios-toast { transition: none; }
@@ -426,7 +512,7 @@ html:active-view-transition-type(open-game, close-game)::view-transition-new(roo
 /* ── Reduce Transparency: solid surfaces instead of glass ── */
 @media (prefers-reduced-transparency: reduce) {
   .ios-glass { background: var(--ios-card); -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .ios-menu, .ios-alert { background: var(--ios-card); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .ios-menu, .ios-alert, .ios-sheet { background: var(--ios-bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .ios-glass-clear { background: rgb(255 255 255 / 0.28); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .ios-edge { display: none; }
 }

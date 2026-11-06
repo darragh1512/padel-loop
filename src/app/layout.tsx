@@ -85,7 +85,8 @@ import InstallPrompt from "@/components/InstallPrompt";
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+  sheet,
+}: Readonly<{ children: React.ReactNode; sheet: React.ReactNode }>) {
   return (
     <html
       lang="en"
@@ -99,9 +100,11 @@ export default function RootLayout({
             402px frame is a canvas, not a constraint) and capped on wider
             screens so the design keeps its one-column reading measure.
             Bottom padding clears the fixed bottom navigation. */}
-        <div className="mx-auto w-full max-w-md min-h-dvh relative pb-28 pt-[env(safe-area-inset-top)]">
+        <div className="ios-behind mx-auto w-full max-w-md min-h-dvh relative pb-28 pt-[env(safe-area-inset-top)]">
           {children}
         </div>
+        {/* A sheet rising over the current screen, such as New Game. */}
+        {sheet}
         <InstallPrompt />
       </body>
     </html>

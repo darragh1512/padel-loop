@@ -14,6 +14,9 @@ export type IconName =
   | "mic"
   | "chevron-down"
   | "chevron-right"
+  | "updown"
+  | "calendar"
+  | "court"
   | "chevron-left"
   | "share"
   | "ellipsis"
@@ -99,6 +102,38 @@ export default function Icon({ name, size = 18 }: { name: IconName; size?: numbe
       return (
         <svg {...common} fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8.5 4l8 8-8 8" />
+        </svg>
+      );
+    case "updown":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M7 9l5-5.5L17 9M7 15l5 5.5 5-5.5" />
+        </svg>
+      );
+    case "calendar":
+      return (
+        <svg {...common}>
+          <rect x="2.2" y="3" width="19.6" height="18.4" rx="3.6" fill="currentColor" />
+          <rect x="4.3" y="8.2" width="15.4" height="11.1" rx="1.5" fill="var(--ios-card)" />
+          <g fill="currentColor">
+            <rect x="9.9" y="10" width="1.9" height="1.9" rx=".4" />
+            <rect x="13" y="10" width="1.9" height="1.9" rx=".4" />
+            <rect x="16.1" y="10" width="1.9" height="1.9" rx=".4" />
+            <rect x="6.2" y="13" width="1.9" height="1.9" rx=".4" />
+            <rect x="9.9" y="13" width="1.9" height="1.9" rx=".4" />
+            <rect x="13" y="13" width="1.9" height="1.9" rx=".4" />
+            <rect x="16.1" y="13" width="1.9" height="1.9" rx=".4" />
+            <rect x="6.2" y="16" width="1.9" height="1.9" rx=".4" />
+            <rect x="9.9" y="16" width="1.9" height="1.9" rx=".4" />
+            <rect x="13" y="16" width="1.9" height="1.9" rx=".4" />
+          </g>
+        </svg>
+      );
+    case "court":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2.4" />
+          <path d="M12 5v14M6.4 5v14M17.6 5v14M6.4 12h11.2" strokeWidth="1.5" />
         </svg>
       );
     case "chevron-left":
