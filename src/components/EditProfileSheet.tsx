@@ -1,6 +1,6 @@
 "use client";
 
-// Editing your own profile: photo, name, level, home club and bio.
+// Editing your own profile: photo, name, level, home club, home area and bio.
 //
 // A new photo uploads as soon as it's picked but only reaches your profile when
 // you save. Removing a photo is immediate, so it asks first.
@@ -26,6 +26,7 @@ export default function EditProfileSheet({
   const [name, setName] = useState(profile.name ?? "");
   const [skill, setSkill] = useState<string>(profile.skill_level || SKILL_LEVELS[0]);
   const [club, setClub] = useState(profile.home_club ?? "");
+  const [area, setArea] = useState(profile.home_area ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
   const [photo, setPhoto] = useState<string | null>(profile.avatar_url ?? null);
   const [touched, setTouched] = useState(false);
@@ -93,11 +94,12 @@ export default function EditProfileSheet({
       name,
       skill_level: skill,
       home_club: club,
+      home_area: area,
       bio,
       avatar_url: photo,
     });
     if ("ok" in result) {
-      onChanged({ name, skill_level: skill, home_club: club, bio, avatar_url: photo });
+      onChanged({ name, skill_level: skill, home_club: club, home_area: area, bio, avatar_url: photo });
       // A newly uploaded photo only reaches the database here.
       publishAvatarChange({ userId: playerId, avatarUrl: photo });
       close();
@@ -209,6 +211,15 @@ export default function EditProfileSheet({
             value={club}
             placeholder="Optional"
             onChange={(e) => edited(setClub)(e.target.value)}
+          />
+        </label>
+        <label className="ios-row ios-sheet-row" style={{ "--ios-inset": "16px" } as React.CSSProperties}>
+          <span className="ios-bd" style={{ whiteSpace: "nowrap" }}>Home Area</span>
+          <input
+            className="ios-field"
+            value={area}
+            placeholder="Optional"
+            onChange={(e) => edited(setArea)(e.target.value)}
           />
         </label>
       </div>

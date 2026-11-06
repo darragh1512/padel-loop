@@ -17,6 +17,8 @@ Jobs that have to be done before Padel Loop goes properly public. Tick them off 
   10. Send a real password reset to an iPhone and a Gmail address, and follow the link all the way through.
 - [ ] **Add the reset page to Supabase's allowed addresses.** In Authentication, under URL Configuration, add `https://padel-loop-one.vercel.app/reset-password` to Redirect URLs. If the app moves to its own domain, add that address too and update Site URL. Without this, the link in the reset email won't return to the reset page.
 - [ ] **Check the new design on a real iPhone.** Screenshots can't prove the status bar, glass effects, keyboard in chat, date and time pickers, or animations.
+- [ ] **Check the top-of-screen fade on a real iPhone.** On longer screens, content slides under the time and battery with nothing to soften it. If it looks wrong on a real phone, add a soft fade at the top of every screen.
+- [ ] **Test a real account deletion with a throwaway account.** Create an account, join a game, then delete it from Settings and check the login, profile and chat messages are gone. So far this has only been tested against a stand-in database.
 
 ## Soon after launch
 

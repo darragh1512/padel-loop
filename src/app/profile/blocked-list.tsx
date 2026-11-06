@@ -1,113 +1,106 @@
 "use client";
 
-// The blocked-users list in settings — manage and unblock.
+// The blocked players section of Settings: see who you've blocked and unblock.
 //
-// This is the only screen that names who you've blocked, and it is only ever
-// visible to the person who did the blocking. RLS enforces that independently:
-// the SELECT policy on `blocks` is `blocker_id = auth.uid()`, so there is no
-// query anyone can write to discover that they have been blocked.
+// This is the only screen that names who you've blocked, and only the person who
+// did the blocking can see it. The database enforces that too: the read rule on
+// `blocks` is `blocker_id = auth.uid()`, so nobody can find out they were blocked.
 //
-// Unblocking does NOT restore the connection that blocking removed.
-// Reconnecting is a decision, not an undo.
+// Unblocking doesn't restore the connection that blocking removed. Reconnecting
+// is a decision, not an undo.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import PlayerAvatar from "@/components/PlayerAvatar";
-import { SectionLabel } from "@/components/ui";
+import Monogram from "@/components/ios/Monogram";
 import { getBlockedPeople, unblockUser, type BlockedPerson } from "@/app/blocks";
 
 export default function BlockedList({ userId }: { userId: string | null }) {
   const [people, setPeople] = useState<BlockedPerson[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [unblockFailed, setUnblockFailed] = useState(false);
 
-  // Same subscribe-shaped effect the rest of the app uses: the async work
-  // happens in a callback, guarded so a late response cannot set state on an
-  // unmounted screen.
   useEffect(() => {
+    if (!userId) return;
     let active = true;
-    (async () => {
-      if (!userId) {
-        if (active) setLoading(false);
-        return;
-      }
-      let rows: BlockedPerson[] = [];
-      try {
-        rows = await getBlockedPeople(userId);
-      } catch {
-        // Failing quietly here is the right call: this panel is hidden when
-        // nobody is blocked, so an error banner on a settings screen for a
-        // list most people do not have would be noise. The console has it.
-        if (active) setLoading(false);
-        return;
-      }
-      if (!active) return;
-      setPeople(rows);
-      setLoading(false);
-    })();
+    getBlockedPeople(userId)
+      .then((rows) => {
+        if (!active) return;
+        setPeople(rows);
+        setFailed(false);
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
     return () => {
       active = false;
     };
-  }, [userId]);
+  }, [userId, attempt]);
 
   async function handleUnblock(blockedId: string) {
     if (!userId || busyId) return;
     setBusyId(blockedId);
+    setUnblockFailed(false);
     const result = await unblockUser(userId, blockedId);
-    if ("ok" in result) {
-      // Drop it locally rather than refetching — the row is gone either way.
-      setPeople((current) => current.filter((p) => p.userId !== blockedId));
-    }
+    if ("ok" in result) setPeople((current) => current.filter((p) => p.userId !== blockedId));
+    else setUnblockFailed(true);
     setBusyId(null);
   }
 
-  // Nothing blocked is the normal case, and an empty card would just be noise
-  // on the settings screen.
-  if (loading || people.length === 0) return null;
+  // A failed read would otherwise look the same as nobody being blocked.
+  if (failed) {
+    return (
+      <div className="ios-card ios-sh" style={{ marginTop: 16, padding: 16 }} role="alert">
+        Couldn’t load your blocked players.{" "}
+        <button
+          type="button"
+          className="ios-acc ios-md"
+          style={{ border: 0, padding: 0, background: "none", cursor: "pointer", font: "inherit" }}
+          onClick={() => setAttempt((n) => n + 1)}
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // Most people have blocked nobody, and an empty section would just be noise.
+  if (people.length === 0) return null;
 
   return (
-    <>
-      <SectionLabel>Blocked players</SectionLabel>
-      <div className="pl-card px-4 py-1.5">
+    <section style={{ marginTop: 16 }}>
+      <div className="ios-sect">
+        <h2 className="ios-t3">Blocked Players</h2>
+      </div>
+      <div className="ios-list">
         {people.map((person) => (
-          <div
-            key={person.userId}
-            className="flex items-center justify-between gap-3 py-2.5 border-b border-tinta/15 last:border-0"
-          >
-            <Link
-              href={`/players/${person.userId}`}
-              className="flex items-center gap-3 min-w-0 rounded-field active:opacity-70 transition-opacity duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
-            >
-              <PlayerAvatar
-                userId={person.userId}
-                avatarUrl={person.avatarUrl}
-                name={person.name}
-                className="size-9 opacity-70"
-              />
-              <div className="min-w-0">
-                <div className="text-body font-extrabold text-tinta truncate">
-                  {person.name ?? "Player"}
-                </div>
-                <div className="t-mono text-micro tracking-[0.1em] text-tinta/60">
-                  Blocked
-                </div>
-              </div>
+          <div key={person.userId} className="ios-row" style={{ padding: "8px 16px", "--ios-inset": "68px" } as React.CSSProperties}>
+            <Link href={`/players/${person.userId}`} className="ios-link ios-grow" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Monogram name={person.name} photoUrl={person.avatarUrl} />
+              <span className="ios-bd ios-grow ios-clip">{person.name || "Player"}</span>
             </Link>
             <button
               type="button"
-              onClick={() => handleUnblock(person.userId)}
+              className="ios-pill-tint ios-press"
               disabled={busyId === person.userId}
-              className="t-mono shrink-0 text-micro tracking-[0.12em] text-naranja-d border-2 border-naranja-d rounded-pill px-3 py-1.5 disabled:opacity-50 active:scale-[0.98] transition-transform duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+              aria-busy={busyId === person.userId || undefined}
+              aria-label={`Unblock ${person.name || "player"}`}
+              onClick={() => handleUnblock(person.userId)}
             >
-              {busyId === person.userId ? "…" : "Unblock"}
+              Unblock
             </button>
           </div>
         ))}
-        <p className="text-label font-medium text-tinta/55 py-2.5 border-t-2 border-dashed border-tinta/20">
-          They were never told. Unblocking won&rsquo;t reconnect you — you can do
-          that from their profile if you want to.
-        </p>
       </div>
-    </>
+      {unblockFailed && (
+        <p className="ios-fn ios-destructive" role="alert" style={{ padding: "8px 32px 0" }}>
+          Couldn’t unblock that player. Check your connection and try again.
+        </p>
+      )}
+      <p className="ios-fn ios-sec" style={{ padding: "8px 32px 0" }}>
+        They were never told. Unblocking won’t reconnect you, but you can do that from their profile.
+      </p>
+    </section>
   );
 }

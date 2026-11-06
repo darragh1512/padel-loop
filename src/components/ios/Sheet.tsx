@@ -141,7 +141,7 @@ export default function Sheet({
                     {right.label}
                   </button>
                 ) : (
-                  <span style={{ width: 72 }} />
+                  <span style={{ width: 88 }} />
                 )}
               </div>
             </div>

@@ -458,6 +458,7 @@ html:has(.ios-sheet:not([data-closing])) .ios-behind::after { opacity: 0.22; }
 .ios-wide-btn:active:not(:disabled) { transform: scale(0.97); }
 .ios-wide-btn:disabled { cursor: default; }
 .ios-wide-btn[data-tone="tint"] { background: var(--ios-accent-tint); color: var(--ios-accent); }
+.ios-wide-btn[data-tone="destructive"] { background: var(--ios-destructive); color: #fff; }
 .ios-wide-btn:disabled:not([aria-busy]):not([data-tone="tint"]) { background: var(--ios-fill); color: var(--ios-secondary); }
 .ios-textarea {
   display: block; width: 100%; border: 0; outline: 0; padding: 14px 16px; background: transparent; resize: none;
@@ -557,7 +558,7 @@ html:has(.ios-sheet:not([data-closing])) .ios-behind::after { opacity: 0.22; }
   font: inherit; font-size: 17px; letter-spacing: -0.43px;
 }
 .ios-input::placeholder { color: var(--ios-secondary); opacity: 1; }
-.ios .ios-input:focus-visible { outline: none; }
+.ios .ios-input:focus-visible, .ios-sheet-root .ios-input:focus-visible { outline: none; }
 .ios-form-row:focus-within { background: var(--ios-fill); }
 .ios-check { position: relative; width: 24px; height: 24px; flex: none; color: transparent; }
 .ios-check input {

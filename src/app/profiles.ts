@@ -142,6 +142,7 @@ export type PlayerProfileEdits = {
   name: string;
   skill_level: string;
   home_club: string;
+  home_area: string;
   bio: string;
   avatar_url?: string | null;
 };
@@ -149,7 +150,7 @@ export type PlayerProfileEdits = {
 // Save changes a person made to their own player profile. Uses "upsert"
 // (update-or-insert) keyed on their auth user id, so it creates the row if it
 // doesn't exist yet and updates it otherwise. Only the columns we pass are
-// touched — older fields like home_area are left untouched. Returns
+// touched. Returns
 // { ok: true } on success or { error } with a message on failure.
 export async function savePlayerProfile(
   userId: string,
@@ -163,6 +164,7 @@ export async function savePlayerProfile(
     name: edits.name,
     skill_level: edits.skill_level,
     home_club: edits.home_club,
+    home_area: edits.home_area,
     bio: edits.bio,
   };
   if (edits.avatar_url !== undefined) {
