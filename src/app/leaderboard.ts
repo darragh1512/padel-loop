@@ -24,7 +24,7 @@ export type LeaderboardRow = {
 };
 
 export async function getLeaderboard(): Promise<LeaderboardRow[]> {
-  // 1. Every profile — the board lists the whole peña, ranked or not.
+  // 1. Every profile — the board lists everyone, ranked or not.
   // profiles.rating only exists once the ratings migration has been run, and
   // migrations here are applied by hand. Asking for a column that doesn't
   // exist fails the WHOLE query (an empty leaderboard, not just a missing
@@ -44,10 +44,7 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
       .from("profiles")
       .select(BASE_COLUMNS)
       .limit(500);
-    if (fallback.error) {
-      console.error("Could not load profiles:", fallback.error.message);
-      return [];
-    }
+    if (fallback.error) throw new Error(fallback.error.message);
     profiles = fallback.data;
   } else {
     profiles = withRating.data;
@@ -66,12 +63,9 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
         .from("match_result_participants")
         .select("result_id, user_id, team"),
     ]);
-  if (resultError) {
-    console.error("Could not load confirmed results:", resultError.message);
-  }
-  if (partError) {
-    console.error("Could not load participants:", partError.message);
-  }
+  // Without these every player would look like they'd played nothing.
+  if (resultError) throw new Error(resultError.message);
+  if (partError) throw new Error(partError.message);
 
   const winnerByResult = new Map<string, number | null>();
   for (const r of results ?? []) {

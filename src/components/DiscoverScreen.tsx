@@ -12,11 +12,11 @@ import Link from "next/link";
 import Court, { spotsFor } from "@/components/ios/Court";
 import Icon from "@/components/ios/Icon";
 import JoinPill from "@/components/ios/JoinPill";
-import Monogram from "@/components/ios/Monogram";
 import { supabase } from "@/lib/supabaseClient";
 import { initialsFrom, loadGames } from "@/lib/data";
 import { dublinDateKey } from "@/lib/time";
 import { formatPrice, isFull, skillTierOf, tierOfPlayer, type Game } from "@/lib/types";
+import PlayerRow from "@/components/ios/PlayerRow";
 import { usePlayerSearch } from "@/lib/usePlayerSearch";
 import { clockTime, dayHeading, dublinHour, spotsOpenText } from "@/lib/when";
 import { getConnections } from "@/app/connections";
@@ -319,21 +319,7 @@ function PlayerResults({
       </div>
       <div className="ios-list">
         {results.map((person) => (
-          <Link
-            key={person.id}
-            href={`/players/${person.id}`}
-            className="ios-row ios-link"
-            style={{ padding: "8px 16px", "--ios-inset": "68px" } as React.CSSProperties}
-          >
-            <Monogram name={person.name} photoUrl={person.avatar_url} />
-            <div className="ios-grow">
-              <div className="ios-bd">{person.name || "Player"}</div>
-              <div className="ios-fn ios-sec">{[person.skill_level, person.home_club].filter(Boolean).join(" · ")}</div>
-            </div>
-            <span className="ios-chev">
-              <Icon name="chevron-right" size={13} />
-            </span>
-          </Link>
+          <PlayerRow key={person.id} person={person} />
         ))}
       </div>
     </section>

@@ -1,72 +1,55 @@
 "use client";
-// The leaderboard (/leaderboard): the whole peña ranked by earned rating, or
-// by wins — confirmed matches only, same rule as everywhere else. Players
-// with fewer than RANKED_MIN_MATCHES confirmed matches aren't ranked yet;
-// they show below in their own list rather than being hidden.
-//
-// Reads the board client-side with the shared Supabase client and sends
-// logged-out visitors to the login page, same pattern as /connections.
+// Leaderboard (/leaderboard): players ranked by earned rating or by wins, on
+// confirmed matches only. Anyone under RANKED_MIN_MATCHES isn't ranked yet and
+// sits in their own list below rather than being hidden.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
-import PlayerAvatar from "@/components/PlayerAvatar";
-import { ButtonLink, ChipButton, EmptyState, SectionLabel } from "@/components/ui";
-import { Trophy } from "lucide-react";
+import Icon from "@/components/ios/Icon";
+import MessageCard, { TryAgain } from "@/components/ios/MessageCard";
+import Monogram from "@/components/ios/Monogram";
+import PageTitle from "@/components/ios/PageTitle";
 import { supabase } from "@/lib/supabaseClient";
-import {
-  getLeaderboard,
-  RANKED_MIN_MATCHES,
-  type LeaderboardRow,
-} from "../leaderboard";
+import { getLeaderboard, RANKED_MIN_MATCHES, type LeaderboardRow } from "../leaderboard";
 
 type View = "rating" | "wins";
 
-// One line on the board. Rank is null for the "needs more matches" list.
+// One line on the board. Rank is null for players who aren't ranked yet.
 function BoardRow({
   row,
   rank,
   view,
-  delay = 0,
 }: {
   row: LeaderboardRow;
   rank: number | null;
   view: View;
-  delay?: number;
 }) {
-  const name = row.name || "Player";
+  const record = rank != null ? `${row.played} played · ${row.won} won` : `${row.played} of ${RANKED_MIN_MATCHES} matches`;
   return (
     <Link
       href={`/players/${row.id}`}
-      className="flex items-center gap-3 pl-card px-4 py-3 mb-2.5 pl-rise active:scale-[0.99] transition-transform duration-150 ease-out"
-      style={{ animationDelay: `${delay}ms` }}
+      className="ios-row ios-link"
+      style={{ padding: "8px 16px", "--ios-inset": rank != null ? "100px" : "68px" } as React.CSSProperties}
     >
-      <span className="t-display text-title text-tinta w-8 shrink-0 text-center">
-        {rank != null ? rank : "·"}
-      </span>
-      <PlayerAvatar
-        userId={row.id}
-        avatarUrl={row.avatar_url}
-        name={name}
-        className="size-10 shrink-0"
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block font-extrabold text-body text-tinta truncate">{name}</span>
-        <span className="t-mono block text-[9px] tracking-[0.1em] text-tinta/70 truncate mt-0.5">
-          {rank != null
-            ? `${row.played} played · ${row.won} won`
-            : `${row.played} of ${RANKED_MIN_MATCHES} confirmed matches`}
-          {row.home_club ? <> · {row.home_club}</> : null}
+      {rank != null && (
+        <span className="ios-hl" style={{ width: 20, flex: "none", textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+          {rank}
         </span>
-      </span>
-      <span className="shrink-0 text-right">
-        <span className="t-display block text-display-xs text-tinta">
-          {view === "rating" ? (row.rating ?? "—") : row.won}
+      )}
+      <Monogram name={row.name} photoUrl={row.avatar_url} />
+      <div className="ios-grow">
+        <div className="ios-bd ios-clip">{row.name || "Player"}</div>
+        <div className="ios-fn ios-sec ios-clip">{record}</div>
+      </div>
+      {rank != null && (
+        <span className="ios-hl" style={{ fontVariantNumeric: "tabular-nums" }}>
+          {view === "rating" ? (row.rating ?? "–") : row.won}
         </span>
-        <span className="t-mono block text-[9px] tracking-[0.1em] text-naranja-d mt-0.5">
-          {view === "rating" ? "Rating" : "Wins"}
-        </span>
+      )}
+      <span className="ios-chev">
+        <Icon name="chevron-right" size={13} />
       </span>
     </Link>
   );
@@ -75,7 +58,10 @@ function BoardRow({
 export default function LeaderboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const [view, setView] = useState<View>("rating");
   const [club, setClub] = useState<string | null>(null); // null = all clubs
 
@@ -87,17 +73,24 @@ export default function LeaderboardPage() {
         router.replace("/login");
         return;
       }
-      const board = await getLeaderboard();
-      if (!active) return;
-      setRows(board);
+      try {
+        const board = await getLeaderboard();
+        if (!active) return;
+        setRows(board);
+        setFailed(false);
+      } catch {
+        if (!active) return;
+        setFailed(true);
+      }
+      setUserId(data.user.id);
       setLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, attempt]);
 
-  // Every club that has at least one player, for the filter chips.
+  // Every club with at least one player, for the filter chips.
   const clubs = useMemo(() => {
     const set = new Set<string>();
     for (const r of rows) {
@@ -108,8 +101,8 @@ export default function LeaderboardPage() {
 
   const filtered = club ? rows.filter((r) => r.home_club === club) : rows;
 
-  // Ranked players sort by the active view (rating ties break on wins and
-  // vice versa); the not-yet-ranked list sorts by how close they are.
+  // Rating ties break on wins and vice versa. The unranked list sorts by how
+  // close each player is to being ranked.
   const ranked = filtered
     .filter((r) => r.played >= RANKED_MIN_MATCHES)
     .sort((a, b) =>
@@ -121,93 +114,92 @@ export default function LeaderboardPage() {
     .filter((r) => r.played < RANKED_MIN_MATCHES)
     .sort((a, b) => b.played - a.played || (b.rating ?? 0) - (a.rating ?? 0));
 
-  if (loading) {
-    return (
-      <main className="px-5 pt-6 relative">
-        <div className="rounded-field h-9 w-56 mt-2 pl-skeleton" />
-        <div className="mt-8 space-y-2.5">
-          <div className="rounded-card h-16 pl-skeleton" />
-          <div className="rounded-card h-16 pl-skeleton" />
-          <div className="rounded-card h-16 pl-skeleton" />
-        </div>
-        <BottomNav />
-      </main>
-    );
-  }
-
   return (
-    <main className="px-5 pt-6 relative">
-      <p className="t-mono text-micro text-papel/80 mt-2">La peña · Standings</p>
-      <h1 className="t-display text-display-md text-papel mt-1.5">
-        Leaderb<span className="text-lima">o</span>ard
-      </h1>
-      <p className="text-label font-medium text-papel/85 mt-1.5 mb-4">
-        Ranked on confirmed matches — nothing counts until everyone agrees.
-      </p>
+    <main className="ios">
+      <PageTitle title="Leaderboard" fallback={userId ? `/players/${userId}` : "/"} />
 
-      {/* View toggle: rating vs wins. */}
-      <div className="flex gap-2 mb-2.5">
-        <ChipButton active={view === "rating"} onClick={() => setView("rating")}>
-          By rating
-        </ChipButton>
-        <ChipButton active={view === "wins"} onClick={() => setView("wins")}>
-          By wins
-        </ChipButton>
-      </div>
-
-      {/* Club filter — only when there are clubs to filter by. */}
-      {clubs.length > 0 && (
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-5 px-5">
-          <ChipButton active={club === null} onClick={() => setClub(null)}>
-            All clubs
-          </ChipButton>
-          {clubs.map((c) => (
-            <ChipButton key={c} active={club === c} onClick={() => setClub(c)}>
-              {c}
-            </ChipButton>
-          ))}
+      {loading ? (
+        <div aria-hidden style={{ marginTop: 16 }}>
+          <div className="ios-skel" style={{ height: 32, borderRadius: 16, margin: "0 16px" }} />
+          <div className="ios-skel" style={{ height: 280, margin: "16px 16px 0" }} />
         </div>
-      )}
-
-      {ranked.length > 0 ? (
-        ranked.map((row, i) => (
-          <BoardRow
-            key={row.id}
-            row={row}
-            rank={i + 1}
-            view={view}
-            delay={Math.min(i, 8) * 40}
-          />
-        ))
-      ) : (
-        <EmptyState
-          icon={<Trophy size={22} strokeWidth={2.2} />}
-          title="No one's ranked yet."
-          body={`Play ${RANKED_MIN_MATCHES} confirmed matches and the board begins.`}
+      ) : failed ? (
+        <MessageCard
+          alert
+          title="Couldn’t Load the Leaderboard"
+          body="Check your connection and try again."
           action={
-            <ButtonLink href="/discover" variant="secondary" size="sm">
-              Find a game
-            </ButtonLink>
+            <TryAgain
+              onClick={() => {
+                setLoading(true);
+                setAttempt((n) => n + 1);
+              }}
+            />
           }
         />
-      )}
-
-      {unranked.length > 0 && (
+      ) : (
         <>
-          <SectionLabel>Needs more matches</SectionLabel>
-          {unranked.map((row, i) => (
-            <BoardRow
-              key={row.id}
-              row={row}
-              rank={null}
-              view={view}
-              delay={Math.min(i, 8) * 40}
+          <div className="ios-seg" role="group" aria-label="Rank by" style={{ margin: "10px 16px 0" }}>
+            <button type="button" aria-pressed={view === "rating"} onClick={() => setView("rating")}>
+              Rating
+            </button>
+            <button type="button" aria-pressed={view === "wins"} onClick={() => setView("wins")}>
+              Wins
+            </button>
+          </div>
+
+          {clubs.length > 1 && (
+            <div className="ios-chips" role="group" aria-label="Club">
+              <button type="button" className="ios-chip" data-on={club === null} aria-pressed={club === null} onClick={() => setClub(null)}>
+                All Clubs
+              </button>
+              {clubs.map((c) => (
+                <button key={c} type="button" className="ios-chip" data-on={club === c} aria-pressed={club === c} onClick={() => setClub(c)}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {ranked.length > 0 ? (
+            <section style={{ marginTop: 16 }}>
+              <div className="ios-list">
+                {ranked.map((row, i) => (
+                  <BoardRow key={row.id} row={row} rank={i + 1} view={view} />
+                ))}
+              </div>
+              <p className="ios-fn ios-sec" style={{ padding: "8px 32px 0" }}>
+                Only confirmed matches count.
+              </p>
+            </section>
+          ) : (
+            <MessageCard
+              title="No One’s Ranked Yet"
+              body={`Play ${RANKED_MIN_MATCHES} confirmed matches and the board begins.`}
+              action={
+                <Link href="/discover" className="ios-pill ios-press">
+                  Find a Game
+                </Link>
+              }
             />
-          ))}
+          )}
+
+          {unranked.length > 0 && (
+            <section style={{ marginTop: 16 }}>
+              <div className="ios-sect">
+                <h2 className="ios-t3">Needs More Matches</h2>
+              </div>
+              <div className="ios-list">
+                {unranked.map((row) => (
+                  <BoardRow key={row.id} row={row} rank={null} view={view} />
+                ))}
+              </div>
+            </section>
+          )}
         </>
       )}
 
-      <div className="h-4" />
+      <div style={{ height: 16 }} />
       <BottomNav />
     </main>
   );

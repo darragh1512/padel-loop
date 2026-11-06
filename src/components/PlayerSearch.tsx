@@ -1,91 +1,62 @@
 "use client";
 
-// A player-name search box with live results underneath, linking straight to
-// each match's profile — the shared "find a player" widget behind /search and
-// embedded on /connections.
+// A player-name search box with live results underneath, each linking to that
+// player's profile. Whatever is passed as children shows until someone types.
 
 import { useState, type ReactNode } from "react";
-import PlayerResultRow from "@/components/PlayerResultRow";
-import { EmptyState, ErrorState } from "@/components/ui";
-import { UserSearch } from "lucide-react";
+import Icon from "@/components/ios/Icon";
+import MessageCard, { TryAgain } from "@/components/ios/MessageCard";
+import PlayerRow from "@/components/ios/PlayerRow";
 import { usePlayerSearch } from "@/lib/usePlayerSearch";
 
 export default function PlayerSearch({
   placeholder = "Search by name",
   autoFocus = false,
-  emptyHint,
+  children,
 }: {
   placeholder?: string;
   autoFocus?: boolean;
-  // Shown under the box before the user has typed anything. Omit to show
-  // nothing (the box is embedded alongside other page content).
-  emptyHint?: ReactNode;
+  children?: ReactNode;
 }) {
   const [query, setQuery] = useState("");
   const { results, searching, searched, failed, retry } = usePlayerSearch(query);
+  const term = query.trim();
 
   return (
-    <div>
-      <div className="relative">
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tinta/45 pointer-events-none">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-            <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </span>
+    <>
+      <div className="ios-search" role="search">
+        <Icon name="search" size={20} />
         <input
-          type="text"
+          type="search"
+          autoComplete="off"
+          autoFocus={autoFocus}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
-          autoFocus={autoFocus}
-          className="w-full pl-surface rounded-full text-body font-medium text-tinta placeholder:text-tinta/45 pl-10 pr-9 py-2.5 focus:outline-none focus:border-naranja"
+          aria-label="Search players by name"
         />
         {query && (
-          <button
-            type="button"
-            onClick={() => setQuery("")}
-            aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-tinta/45 hover:text-tinta"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+          <button type="button" className="ios-search-btn" aria-label="Clear search" onClick={() => setQuery("")}>
+            <Icon name="clear" size={18} />
           </button>
         )}
       </div>
 
-      {query.trim() === "" ? (
-        emptyHint && (
-          <p className="t-mono text-micro text-papel/70 text-center mt-6">
-            {emptyHint}
-          </p>
-        )
-      ) : (
-        <div className="mt-4">
-          {searching ? (
-            <div className="space-y-3">
-              <div className="rounded-card h-18 pl-skeleton" />
-            </div>
-          ) : results.length > 0 ? (
-            results.map((person, i) => (
-              <PlayerResultRow key={person.id} person={person} delay={i * 40} />
-            ))
-          ) : failed ? (
-            <ErrorState
-              title="Search didn't work."
-              body="That's a connection problem, not an empty Loop. Try again."
-              onRetry={retry}
-            />
-          ) : searched ? (
-            <EmptyState
-              icon={<UserSearch size={22} strokeWidth={2.2} />}
-              title={`No players called “${query.trim()}”.`}
-              body="Try part of a name, or a different spelling."
-            />
-          ) : null}
+      {term === "" ? (
+        children
+      ) : searching ? (
+        <div className="ios-skel" aria-hidden style={{ height: 120, margin: "16px 16px 0" }} />
+      ) : failed ? (
+        <MessageCard alert title="Couldn’t Search Players" body="Check your connection and try again." action={<TryAgain onClick={retry} />} />
+      ) : results.length > 0 ? (
+        <div className="ios-list" style={{ marginTop: 16 }}>
+          {results.map((person) => (
+            <PlayerRow key={person.id} person={person} />
+          ))}
         </div>
-      )}
-    </div>
+      ) : searched ? (
+        <MessageCard title="No Players Found" body={`Nobody called “${term}”. Try part of a name, or a different spelling.`} />
+      ) : null}
+    </>
   );
 }

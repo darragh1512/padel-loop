@@ -50,11 +50,12 @@ export default function BottomNav() {
   const inProfile =
     pathname === "/profile" ||
     pathname.startsWith("/connections") ||
+    pathname.startsWith("/leaderboard") ||
     (userId != null && pathname === `/players/${userId}`);
   const inChats = pathname.startsWith("/chat") || pathname.startsWith("/groups");
   const inDiscover =
     !inProfile &&
-    (pathname.startsWith("/discover") || pathname.startsWith("/games") || pathname.startsWith("/players"));
+    (pathname.startsWith("/discover") || pathname.startsWith("/games") || pathname.startsWith("/players") || pathname.startsWith("/search"));
 
   return (
     <>
