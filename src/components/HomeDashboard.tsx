@@ -6,13 +6,14 @@
 // doesn't store yet, so it's left out rather than guessed. Court number and game
 // length appear on games that have them.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, ViewTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Court, { spotsFor } from "@/components/ios/Court";
 import Icon from "@/components/ios/Icon";
 import JoinPill from "@/components/ios/JoinPill";
 import NotificationBell from "@/components/NotificationBell";
+import { openDirections } from "@/lib/directions";
 import { supabase } from "@/lib/supabaseClient";
 import { getGame, initialsFrom, loadGames } from "@/lib/data";
 import { isFull, slotsLeft, skillTierOf, tierOfPlayer, type Game } from "@/lib/types";
@@ -32,17 +33,6 @@ function pickNearby(games: Game[], excluded: Set<string>, skill?: string | null)
     .sort((a, b) => a.rank - b.rank || a.order - b.order)
     .slice(0, NEARBY_ROWS)
     .map((x) => x.game);
-}
-
-// Opens the phone's own maps app on iPhone and Mac, and Google Maps elsewhere.
-function openDirections(query: string) {
-  const q = encodeURIComponent(query);
-  const apple = /iPhone|iPad|Macintosh/.test(navigator.userAgent);
-  window.open(
-    apple ? `https://maps.apple.com/?q=${q}` : `https://www.google.com/maps/search/?api=1&query=${q}`,
-    "_blank",
-    "noopener",
-  );
 }
 
 function place(game: Game): string {
@@ -67,12 +57,22 @@ function SectionTitle({ title, seeAllHref }: { title: string; seeAllHref?: strin
   );
 }
 
-function NextGameCard({ game, userId }: { game: Game; userId: string | null }) {
+function NextGameCard({ game }: { game: Game }) {
   const open = slotsLeft(game);
   return (
     <div className="ios-card" style={{ padding: "10px 10px 12px" }}>
-      <Link href={`/games/${game.id}`} className="ios-link ios-press" style={{ display: "block" }}>
-        <Court spots={spotsFor(game.players, game.maxPlayers, userId)} big radius={8.5} label={courtLabel(game)} />
+      <Link
+        href={`/games/${game.id}`}
+        transitionTypes={["open-game"]}
+        className="ios-link ios-press"
+        style={{ display: "block" }}
+      >
+        {/* The same court as the game page's header: tapping grows one into the other. */}
+        <ViewTransition name={`game-court-${game.id}`} share="court-morph" default="none">
+          <div>
+            <Court spots={spotsFor(game.players, game.maxPlayers, null)} big radius={8.5} label={courtLabel(game)} />
+          </div>
+        </ViewTransition>
         <div style={{ padding: "12px 6px 0" }}>
           <div className="ios-t2">{gameWhen(game.startsAt)}</div>
           <div className="ios-sh ios-sec" style={{ marginTop: 2 }}>
@@ -196,18 +196,29 @@ function NearbyRow({
   );
 }
 
+// What Home last showed. Coming back draws it straight away, then refreshes, so
+// the game's court has somewhere to shrink back into.
+type HomeData = {
+  userId: string | null;
+  profile: Profile | null;
+  nextGame: Game | null;
+  nearby: Game[];
+  today: string;
+};
+let lastHome: HomeData | null = null;
+
 export default function HomeDashboard() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(lastHome == null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [nextGame, setNextGame] = useState<Game | null>(null);
-  const [nearby, setNearby] = useState<Game[]>([]);
+  const [userId, setUserId] = useState<string | null>(lastHome?.userId ?? null);
+  const [profile, setProfile] = useState<Profile | null>(lastHome?.profile ?? null);
+  const [nextGame, setNextGame] = useState<Game | null>(lastHome?.nextGame ?? null);
+  const [nearby, setNearby] = useState<Game[]>(lastHome?.nearby ?? []);
   // Set after mounting, so the date is always the viewer's current day and
   // never one left over from when the page was built.
-  const [today, setToday] = useState("");
+  const [today, setToday] = useState(lastHome?.today ?? "");
 
   const loadNextGame = useCallback(async (uid: string) => {
     const upcoming = await getUpcomingGamesFor(uid); // soonest first
@@ -221,6 +232,11 @@ export default function HomeDashboard() {
       const { data } = await supabase.auth.getUser();
       const uid = data.user?.id ?? null;
       if (!active) return;
+      // Someone else signed in on this phone: never show the last person's games.
+      if (lastHome && lastHome.userId !== uid) {
+        lastHome = null;
+        setLoading(true);
+      }
       setToday(longDate());
       try {
         const [games, next, me, own] = await Promise.all([
@@ -239,7 +255,9 @@ export default function HomeDashboard() {
         setUserId(uid);
         setProfile(me);
         setNextGame(next);
-        setNearby(pickNearby(games, new Set(own), me?.skill_level));
+        const near = pickNearby(games, new Set(own), me?.skill_level);
+        setNearby(near);
+        lastHome = { userId: uid, profile: me, nextGame: next, nearby: near, today: longDate() };
         setFailed(false);
       } catch {
         if (!active) return;
@@ -311,7 +329,7 @@ export default function HomeDashboard() {
       {header}
       <section style={{ marginTop: 13 }}>
         <SectionTitle title="Your Next Game" />
-        {nextGame ? <NextGameCard game={nextGame} userId={userId} /> : <NoGameCard />}
+        {nextGame ? <NextGameCard game={nextGame} /> : <NoGameCard />}
       </section>
       <section style={{ marginTop: 20 }}>
         <SectionTitle title="Games Near You" seeAllHref="/discover" />

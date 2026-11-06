@@ -14,6 +14,14 @@ export type IconName =
   | "mic"
   | "chevron-down"
   | "chevron-right"
+  | "chevron-left"
+  | "share"
+  | "ellipsis"
+  | "clock"
+  | "pin"
+  | "level"
+  | "euro"
+  | "repeat"
   | "check"
   | "clear";
 
@@ -91,6 +99,68 @@ export default function Icon({ name, size = 18 }: { name: IconName; size?: numbe
       return (
         <svg {...common} fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8.5 4l8 8-8 8" />
+        </svg>
+      );
+    case "chevron-left":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M16 3.5 7.5 12l8.5 8.5" />
+        </svg>
+      );
+    case "share":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8.4 9.2H7.2A2.2 2.2 0 0 0 5 11.4v8.2a2.2 2.2 0 0 0 2.2 2.2h9.6a2.2 2.2 0 0 0 2.2-2.2v-8.2a2.2 2.2 0 0 0-2.2-2.2h-1.2M12 15V2.4M8.4 5.6 12 2.2l3.6 3.4" />
+        </svg>
+      );
+    case "ellipsis":
+      return (
+        <svg {...common} fill="currentColor">
+          <circle cx="5.2" cy="12" r="1.9" />
+          <circle cx="12" cy="12" r="1.9" />
+          <circle cx="18.8" cy="12" r="1.9" />
+        </svg>
+      );
+    case "clock":
+      return (
+        <svg {...common} fill="currentColor">
+          <path
+            fillRule="evenodd"
+            d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8zm.9 3.9v6.4H7.4v-1.8h3.7V6.5z"
+          />
+        </svg>
+      );
+    case "pin":
+      return (
+        <svg {...common} fill="currentColor">
+          <path d="M12 2a3.9 3.9 0 0 0-1 7.67V20.6a1 1 0 0 0 2 0V9.67A3.9 3.9 0 0 0 12 2z" />
+        </svg>
+      );
+    case "level":
+      return (
+        <svg {...common} fill="currentColor">
+          <rect x="0.8" y="9.8" width="6.6" height="10" rx="1.7" />
+          <rect x="8.7" y="7.4" width="6.6" height="12.4" rx="1.7" />
+          <rect x="16.6" y="4.2" width="6.6" height="15.6" rx="1.7" />
+        </svg>
+      );
+    case "euro":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9.4" fill="currentColor" />
+          <path
+            d="M15.4 8.5a3.9 3.9 0 0 0-6.2 3.5 3.9 3.9 0 0 0 6.2 3.5M7.6 10.8h5.2M7.6 13.2h4.6"
+            fill="none"
+            stroke="var(--ios-card)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "repeat":
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3.5 11V9.5a3 3 0 0 1 3-3h13M16.5 3l3.5 3.5-3.5 3.5M20.5 13v1.5a3 3 0 0 1-3 3h-13M7.5 21 4 17.5 7.5 14" />
         </svg>
       );
     case "check":

@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   // Hide the floating Next.js dev-tools badge during local development —
   // it has no effect on the deployed site (and keeps screenshots clean).
   devIndicators: false,
+  // Lets a link animate one screen into the next, such as Home's court growing
+  // into the game page's header.
+  experimental: {
+    viewTransition: true,
+  },
 };
 
 // Sentry's build step. Its only job here is SOURCE MAPS: without them a

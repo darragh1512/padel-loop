@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon, { type IconName } from "@/components/ios/Icon";
+import { recordPath } from "@/lib/navMemory";
 import { supabase } from "@/lib/supabaseClient";
 
 function Tab({
@@ -33,6 +34,7 @@ function Tab({
 
 export default function BottomNav() {
   const pathname = usePathname();
+  useEffect(() => recordPath(pathname), [pathname]);
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {

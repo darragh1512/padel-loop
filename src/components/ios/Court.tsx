@@ -42,7 +42,7 @@ export default function Court({
   const positions = POSITIONS[spots.length] ?? POSITIONS[4];
   const r = big ? 15 : 13;
   return (
-    <svg className="ios-court" viewBox="0 0 200 100" role="img" aria-label={label}>
+    <svg className={big ? "ios-court ios-court-big" : "ios-court"} viewBox="0 0 200 100" role="img" aria-label={label}>
       <rect width="200" height="100" rx={radius ?? (big ? 7 : 9)} fill="var(--ios-court)" />
       <path
         d="M30.5 0V100M169.5 0V100M30.5 50H169.5"

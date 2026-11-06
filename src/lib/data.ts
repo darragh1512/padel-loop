@@ -83,6 +83,7 @@ async function getPlayersForGame(
       name: p?.name ?? "Player",
       initials: initialsFrom(p?.name),
       level: skillToLevel(p?.skill_level),
+      skill: p?.skill_level ?? null,
       isOrganiser: createdBy != null && id === createdBy,
       avatarUrl: p?.avatar_url ?? null,
     } satisfies Player;
@@ -138,6 +139,7 @@ async function getPlayersForGames(
       name: profile?.name ?? "Player",
       initials: initialsFrom(profile?.name),
       level: skillToLevel(profile?.skill_level),
+      skill: profile?.skill_level ?? null,
       isOrganiser: createdBy != null && userId === createdBy,
       avatarUrl: profile?.avatar_url ?? null,
     };

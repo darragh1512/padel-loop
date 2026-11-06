@@ -5,6 +5,7 @@ export type Player = {
   name: string;
   initials: string;
   level: number;
+  skill?: string | null; // their own level in words, e.g. "Intermediate"
   gamesPlayed?: number;
   isOrganiser?: boolean;
   avatarUrl?: string | null; // uploaded photo URL, if they've set one

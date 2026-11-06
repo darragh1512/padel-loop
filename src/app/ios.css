@@ -13,6 +13,7 @@
   --ios-court: #1262a8;
   --ios-court-surround: #0b4a82;
   --ios-on-accent: #ffffff;
+  --ios-accent-fill: #1262a8;
   --ios-label: #000000;
   --ios-secondary: #66666b;
   --ios-sep: rgb(60 60 67 / 0.18);
@@ -25,6 +26,8 @@
   --ios-chevron: rgb(60 60 67 / 0.35);
   --ios-monogram: #6e6e73;
   --ios-badge: #ff3b30;
+  --ios-destructive: #d70015;
+  --ios-bar-sub: #3c3c43;
   --ios-glass: rgb(255 255 255 / 0.58);
   --ios-menu: rgb(250 250 252 / 0.84);
   --ios-glass-edge:
@@ -42,6 +45,9 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
+    --ios-destructive: #ff6961;
+    --ios-accent-fill: #1b6fc2;
+    --ios-bar-sub: #d1d1d6;
     --ios-accent: #64b0f5;
     --ios-accent-tint: #16324f;
     --ios-court: #1b6fc2;
@@ -120,6 +126,7 @@ body:has(.ios) {
 .ios-link { color: inherit; text-decoration: none; }
 .ios-sec { color: var(--ios-secondary); }
 .ios-acc { color: var(--ios-accent); }
+.ios-destructive { color: var(--ios-destructive); }
 .ios-sb { font-weight: 600; }
 .ios-md { font-weight: 500; }
 .ios-clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -273,6 +280,94 @@ body:has(.ios) {
 }
 .ios-chev { color: var(--ios-chevron); flex: none; }
 
+/* ── Game page ── */
+.ios-game-head {
+  position: relative; background: var(--ios-court-surround);
+  margin-top: calc(-1 * env(safe-area-inset-top));
+  padding: calc(env(safe-area-inset-top) + var(--ios-top-gap) + 52px) 16px 3px;
+}
+.ios-game-tools {
+  position: absolute; left: 16px; right: 16px;
+  top: calc(env(safe-area-inset-top) + var(--ios-top-gap));
+  display: flex; justify-content: space-between; color: #fff;
+}
+.ios-game-tools button { border: 0; padding: 0; background: transparent; color: inherit; cursor: pointer; }
+.ios-game-tools button.ios-glass-clear { background: rgb(255 255 255 / 0.18); }
+.ios-glass-clear {
+  background: rgb(255 255 255 / 0.18); color: #fff;
+  -webkit-backdrop-filter: blur(10px) saturate(1.5); backdrop-filter: blur(10px) saturate(1.5);
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.7), inset 0 0 0 0.5px rgb(255 255 255 / 0.28), 0 6px 18px rgb(0 0 0 / 0.12);
+}
+.ios-game-menu {
+  top: calc(env(safe-area-inset-top) + var(--ios-top-gap) + 52px); right: 16px;
+  transform-origin: top right;
+}
+.ios-menu-item[data-destructive] { color: var(--ios-destructive); }
+.ios-rico { width: 24px; flex: none; display: flex; justify-content: center; color: var(--ios-secondary); }
+.ios-pill-tint {
+  height: 34px; padding: 0 12px; border: 0; border-radius: 17px; flex: none; cursor: pointer;
+  background: var(--ios-accent-tint); color: var(--ios-accent);
+  font-size: 15px; font-weight: 600; letter-spacing: -0.23px;
+}
+.ios-pill-tint[data-destructive] { background: var(--ios-fill); color: var(--ios-destructive); }
+.ios-open-spot {
+  width: 40px; height: 40px; border-radius: 50%; flex: none; color: var(--ios-accent);
+  border: 1.5px dashed var(--ios-accent); display: flex; align-items: center; justify-content: center;
+}
+
+/* The floating bar with the page's one prominent button. */
+.ios-joinbar {
+  position: fixed; bottom: 91px; left: 50%; transform: translateX(-50%); z-index: 31;
+  width: min(100% - 32px, 416px); height: 64px; border-radius: 32px; padding: 0 8px 0 22px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.ios:has(.ios-joinbar) ~ .ios-edge, .ios:has(.ios-joinbar) .ios-edge { height: 190px; }
+.ios-bar-btn {
+  position: relative; flex: none; height: 48px; min-width: 96px; padding: 0; border: 0; border-radius: 24px; cursor: pointer;
+  background: var(--ios-accent-fill); color: var(--ios-on-accent);
+  font-size: 17px; font-weight: 600; letter-spacing: -0.43px;
+  transition: transform 120ms var(--ios-ease-out), width 200ms var(--ios-ease-out), background-color 200ms var(--ios-ease-out), color 200ms var(--ios-ease-out);
+}
+.ios-bar-btn:active:not(:disabled) { transform: scale(0.97); }
+.ios-bar-btn:disabled { cursor: default; }
+.ios-bar-btn[data-tone="tint"] { background: var(--ios-accent-tint); color: var(--ios-accent); }
+.ios-bar-face {
+  position: absolute; top: 0; bottom: 0; left: 50%; translate: -50% 0; width: max-content;
+  display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;
+  transition: opacity 200ms var(--ios-ease-out), filter 200ms var(--ios-ease-out);
+}
+.ios-bar-face[data-on="false"] { opacity: 0; filter: blur(2px); }
+.ios-toast {
+  position: fixed; bottom: 163px; left: 50%; transform: translateX(-50%); z-index: 32;
+  max-width: calc(100% - 32px); width: max-content; padding: 10px 16px; border-radius: 20px;
+  text-align: center; color: var(--ios-label);
+  animation: ios-fade 200ms linear;
+}
+/* Sections not rebuilt yet keep their old background so their colours stay readable. */
+.ios-legacy { margin: 18px 16px 0; padding: 4px 16px 16px; border-radius: 26px; background: #1c5bbf; }
+.ios-legacy:empty { display: none; }
+
+/* ── Alert ── */
+.ios-alert-wrap { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.ios-alert-scrim { position: absolute; inset: 0; border: 0; padding: 0; background: rgb(0 0 0 / 0.25); cursor: default; animation: ios-fade 200ms linear; }
+.ios-alert {
+  position: relative; width: min(100%, 300px); border-radius: 26px; overflow: hidden; text-align: center;
+  background: var(--ios-menu); color: var(--ios-label);
+  -webkit-backdrop-filter: blur(30px) saturate(1.6); backdrop-filter: blur(30px) saturate(1.6);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.22);
+  animation: ios-alert-in 200ms var(--ios-ease-out);
+}
+@keyframes ios-alert-in { from { opacity: 0; transform: scale(1.05); } }
+.ios-alert-body { display: flex; flex-direction: column; gap: 4px; padding: 20px 18px 16px; }
+.ios-alert-actions { display: flex; gap: 8px; padding: 0 12px 12px; }
+.ios-alert-btn {
+  flex: 1; min-height: 44px; border: 0; border-radius: 22px; padding: 0 8px; cursor: pointer;
+  background: var(--ios-fill); color: var(--ios-label);
+  font-size: 17px; letter-spacing: -0.43px; font-weight: 400;
+}
+.ios-alert-btn[data-bold] { font-weight: 600; }
+.ios-alert-btn[data-destructive] { color: var(--ios-destructive); font-weight: 600; }
+
 /* ── Court ── */
 .ios-court { display: block; flex: none; width: 100%; height: auto; }
 .ios-court-spot {
@@ -280,6 +375,30 @@ body:has(.ios) {
   transition: opacity 200ms var(--ios-ease-out), transform 200ms var(--ios-ease-out);
 }
 .ios-court-spot[data-on="false"] { opacity: 0; transform: scale(0.9); }
+/* On the big court, a player's initials settle in on a spring: 0.35 s, bounce 0.15. */
+.ios-court-big .ios-court-spot {
+  transition:
+    opacity 200ms var(--ios-ease-out),
+    transform 350ms linear(0, 0.03, 0.102, 0.198, 0.303, 0.409, 0.509, 0.601, 0.681, 0.75, 0.808, 0.856, 0.895, 0.925, 0.949, 0.967, 0.98, 0.99, 0.996, 1.001, 1.004, 1.005, 1.006, 1.006, 1);
+}
+
+/* ── Moving between screens ──
+   Screens swap instantly, as tabs do. Home's court into a game's header is the
+   exception: a spring of 0.4 s with no bounce, with the rest of the screen fading. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+html:active-view-transition-type(open-game, close-game)::view-transition-old(root) { animation: ios-fade-out 200ms linear both; }
+html:active-view-transition-type(open-game, close-game)::view-transition-new(root) { animation: ios-fade 200ms linear both; }
+@keyframes ios-fade-out { to { opacity: 0; } }
+::view-transition-group(.court-morph) {
+  z-index: 10; animation-duration: 400ms;
+  animation-timing-function: linear(0, 0.029, 0.097, 0.186, 0.282, 0.376, 0.466, 0.547, 0.619, 0.682, 0.736, 0.782, 0.821, 0.854, 0.881, 0.903, 0.921, 0.936, 0.949, 0.959, 0.967, 0.973, 0.979, 0.983, 1);
+}
+::view-transition-old(.court-morph), ::view-transition-new(.court-morph) { animation-duration: 400ms; height: 100%; }
+/* The tab bar stays where it is throughout. */
+.ios-tabbar { view-transition-name: ios-tabbar; }
+::view-transition-group(ios-tabbar) { animation: none; z-index: 100; }
+::view-transition-old(ios-tabbar) { display: none; }
+::view-transition-new(ios-tabbar) { animation: none; }
 
 /* ── Loading placeholders ── */
 .ios-skel { background: var(--ios-fill); border-radius: 26px; animation: ios-pulse 1.4s ease-in-out infinite; }
@@ -293,13 +412,21 @@ body:has(.ios) {
   .ios-court-spot { transition: opacity 200ms linear; }
   .ios-court-spot[data-on="false"] { transform: none; }
   .ios-skel { animation: none; }
-  .ios-menu { animation-name: ios-fade; animation-timing-function: linear; }
+  .ios-menu, .ios-alert { animation-name: ios-fade; animation-timing-function: linear; }
+  .ios-court-big .ios-court-spot { transition: opacity 200ms linear; }
+  .ios-bar-btn, .ios-bar-btn:active:not(:disabled) { transform: none; transition: background-color 200ms linear, color 200ms linear; }
+  .ios-joinbar, .ios-toast { transition: none; }
+  .ios-bar-face { transition: opacity 200ms linear; }
+  .ios-bar-face[data-on="false"] { filter: none; }
+  ::view-transition-group(.court-morph) { animation-duration: 0s; }
+  ::view-transition-old(.court-morph), ::view-transition-new(.court-morph) { animation-duration: 200ms; animation-timing-function: linear; }
 }
 @keyframes ios-fade { from { opacity: 0; } }
 
 /* ── Reduce Transparency: solid surfaces instead of glass ── */
 @media (prefers-reduced-transparency: reduce) {
   .ios-glass { background: var(--ios-card); -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .ios-menu { background: var(--ios-card); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .ios-menu, .ios-alert { background: var(--ios-card); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .ios-glass-clear { background: rgb(255 255 255 / 0.28); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .ios-edge { display: none; }
 }
