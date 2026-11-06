@@ -1,19 +1,20 @@
 "use client";
 
-// One report dialog, used from a player's profile and from a chat message.
+// One report sheet, used from a player's profile and from a chat message.
 // Same shape either way — only the context and the evidence differ.
 //
 // It offers to block at the same time, because a person who has just reported
 // somebody usually also wants to stop seeing them, and making that a second
-// journey through a second screen is how it ends up not happening. The box is
-// ticked by default for that reason, and can be unticked.
+// journey through a second screen is how it ends up not happening. The switch is
+// on by default for that reason, and can be turned off.
 //
 // The confirmation says the report was received and nothing about when anyone
 // will look at it. Promising a response time you cannot keep is worse than
 // promising nothing.
 
-import { useState } from "react";
-import { Button, Dialog } from "@/components/ui";
+import { useCallback, useState } from "react";
+import Icon from "@/components/ios/Icon";
+import Sheet, { SheetToggle, useSheetClosing } from "@/components/ios/Sheet";
 import { blockUser } from "@/app/blocks";
 import {
   REPORT_REASONS,
@@ -24,15 +25,7 @@ import {
 
 export default function ReportDialog({
   open,
-  onClose,
-  reporterId,
-  reportedId,
-  reportedName,
-  context,
-  messageId,
-  messageText,
-  alreadyBlocked = false,
-  onBlocked,
+  ...props
 }: {
   open: boolean;
   onClose: () => void;
@@ -46,22 +39,40 @@ export default function ReportDialog({
   alreadyBlocked?: boolean;
   onBlocked?: () => void;
 }) {
+  // Only mounted while open, so each report starts clean.
+  return open ? <ReportSheet {...props} /> : null;
+}
+
+function ReportSheet({
+  onClose,
+  reporterId,
+  reportedId,
+  reportedName,
+  context,
+  messageId,
+  messageText,
+  alreadyBlocked = false,
+  onBlocked,
+}: {
+  onClose: () => void;
+  reporterId: string;
+  reportedId: string;
+  reportedName: string | null;
+  context: ReportContext;
+  messageId?: number;
+  messageText?: string;
+  alreadyBlocked?: boolean;
+  onBlocked?: () => void;
+}) {
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState("");
   const [alsoBlock, setAlsoBlock] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [closing, close] = useSheetClosing(useCallback(() => onClose(), [onClose]));
 
   const who = reportedName ?? "this player";
-
-  function reset() {
-    setReason(null);
-    setDetails("");
-    setAlsoBlock(true);
-    setError(null);
-    setSent(false);
-  }
 
   async function handleSubmit() {
     if (!reason || sending) return;
@@ -94,152 +105,94 @@ export default function ReportDialog({
     setSending(false);
   }
 
-  // ── Received ──
+  const requestClose = () => {
+    if (!sending) close();
+  };
+
   if (sent) {
     return (
-      <Dialog
-        open={open}
-        onClose={() => {
-          reset();
-          onClose();
-        }}
-        title="Report received"
+      <Sheet
+        title="Report Received"
+        left={{ label: "Close", onPress: close }}
+        closing={closing}
+        onRequestClose={close}
       >
-        <p className="text-label font-medium text-tinta/70 mt-2">
-          Thanks — it&rsquo;s with us and someone will look at it.
-          {alsoBlock && !alreadyBlocked ? (
-            <> You&rsquo;ve also blocked {who}, so they won&rsquo;t show up for
-            you any more.</>
-          ) : null}
-        </p>
-        <p className="text-label font-medium text-tinta/55 mt-2">
-          We won&rsquo;t tell {who} that you reported them.
-        </p>
-
-        <Button
-          variant="secondary"
-          className="mt-5"
-          onClick={() => {
-            reset();
-            onClose();
-          }}
-        >
-          Done
-        </Button>
-      </Dialog>
+        <div className="ios-card ios-sh" style={{ marginTop: 12, padding: 16 }} role="status">
+          Thanks. It’s with us and someone will look at it.
+          {alsoBlock && !alreadyBlocked && ` You’ve also blocked ${who}, so they won’t show up for you any more.`}
+          <div className="ios-sec" style={{ marginTop: 8 }}>
+            We won’t tell {who} that you reported them.
+          </div>
+        </div>
+      </Sheet>
     );
   }
 
-  // ── The form ──
   return (
-    <Dialog
-      open={open}
-      onClose={() => {
-        if (sending) return;
-        reset();
-        onClose();
-      }}
-      title={context === "message" ? "Report this message" : `Report ${who}`}
+    <Sheet
+      title={context === "message" ? "Report Message" : `Report ${who}`}
+      left={{ label: "Cancel", onPress: requestClose }}
+      right={{ label: "Send", onPress: handleSubmit, disabled: reason == null, busy: sending }}
+      closing={closing}
+      onRequestClose={requestClose}
     >
       {context === "message" && messageText && (
-        <div className="pl-surface rounded-field px-3 py-2 mt-2">
-          <div className="t-mono text-micro tracking-[0.12em] text-tinta/55">
-            The message
-          </div>
-          <p className="text-label font-medium text-tinta/80 mt-1 break-words line-clamp-4">
-            {messageText}
-          </p>
+        <div className="ios-card ios-sh ios-sec" style={{ marginTop: 12, padding: 16 }}>
+          {messageText}
         </div>
       )}
 
-      <p className="t-mono text-micro tracking-[0.12em] text-tinta/70 mt-3">
-        What&rsquo;s wrong?
-      </p>
-      <div className="flex flex-col gap-1.5 mt-2">
+      <div className="ios-sect" style={{ marginTop: 18 }}>
+        <h2 className="ios-t3">What’s Wrong?</h2>
+      </div>
+      <div className="ios-list" role="radiogroup" aria-label="What’s wrong?">
         {REPORT_REASONS.map((r) => (
           <button
             key={r.value}
             type="button"
+            role="radio"
+            aria-checked={reason === r.value}
+            className="ios-row ios-toggle-row"
             onClick={() => setReason(r.value)}
-            aria-pressed={reason === r.value}
-            className={`text-left text-label font-semibold rounded-field border-2 px-3 py-2 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja ${
-              reason === r.value
-                ? "bg-lima text-tinta border-tinta"
-                : "bg-transparent text-tinta/75 border-tinta/25"
-            }`}
           >
-            {r.label}
+            <span className="ios-bd ios-grow">{r.label}</span>
+            {reason === r.value && (
+              <span className="ios-acc">
+                <Icon name="check" size={16} />
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      <label className="block mt-3">
-        <span className="t-mono text-micro tracking-[0.12em] text-tinta/70">
-          Anything else? (optional)
-        </span>
+      <div className="ios-list" style={{ marginTop: 12 }}>
         <textarea
+          className="ios-textarea"
           value={details}
           onChange={(e) => setDetails(e.target.value)}
           rows={3}
           maxLength={1000}
-          placeholder="What happened?"
-          className="w-full mt-1.5 pl-surface rounded-field px-3.5 py-2.5 text-body font-medium text-tinta placeholder:text-tinta/40 outline-none focus:border-naranja resize-none"
+          placeholder="Anything else? (Optional)"
+          aria-label="Anything else?"
         />
-      </label>
-
-      {!alreadyBlocked && (
-        <button
-          type="button"
-          onClick={() => setAlsoBlock((v) => !v)}
-          aria-pressed={alsoBlock}
-          className="flex items-start gap-2.5 w-full text-left mt-3 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-naranja"
-        >
-          <span
-            aria-hidden
-            className={`shrink-0 mt-0.5 size-5 rounded-field border-2 border-tinta grid place-items-center text-tinta text-label font-extrabold ${
-              alsoBlock ? "bg-lima" : "bg-transparent"
-            }`}
-          >
-            {alsoBlock ? "✓" : ""}
-          </span>
-          <span className="text-label font-medium text-tinta/75">
-            Block {who} as well — they won&rsquo;t be told, and they&rsquo;ll
-            disappear from your search, connections and chats.
-          </span>
-        </button>
-      )}
-
-      <div className="flex gap-2.5 mt-5">
-        <Button
-          variant="secondary"
-          className="flex-1"
-          onClick={() => {
-            reset();
-            onClose();
-          }}
-          disabled={sending}
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="destructive"
-          className="flex-1"
-          onClick={handleSubmit}
-          loading={sending}
-          disabled={reason == null}
-        >
-          Send report
-        </Button>
       </div>
 
-      <p
-        aria-live="polite"
-        className={`text-center text-label font-semibold text-naranja-d mt-3 ${
-          error ? "" : "hidden"
-        }`}
-      >
-        {error}
-      </p>
-    </Dialog>
+      {!alreadyBlocked && (
+        <>
+          <div className="ios-list" style={{ marginTop: 12 }}>
+            <SheetToggle label={`Block ${who} as Well`} on={alsoBlock} onChange={() => setAlsoBlock((v) => !v)} />
+          </div>
+          <div className="ios-fn ios-sec" style={{ padding: "8px 32px 0" }}>
+            They won’t be told, and they’ll disappear from your search, connections and chats.
+          </div>
+        </>
+      )}
+
+      {error && (
+        <div className="ios-fn ios-destructive" role="alert" style={{ padding: "8px 32px 0" }}>
+          {error}
+        </div>
+      )}
+    </Sheet>
   );
 }

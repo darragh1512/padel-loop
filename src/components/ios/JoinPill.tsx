@@ -12,7 +12,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { capture } from "@/lib/analytics";
 import { startAuthForJoin } from "@/lib/pendingIntent";
-import { joinGame } from "@/app/games";
+import { GAME_FULL, joinGame } from "@/app/games";
 
 export default function JoinPill({
   gameId,
@@ -27,7 +27,7 @@ export default function JoinPill({
   userId: string | null;
   priced: boolean;
   onJoined: () => void;
-  onFailed: () => void;
+  onFailed: (message: string) => void; // what to tell the player
 }) {
   const router = useRouter();
   const [joined, setJoined] = useState(false);
@@ -48,7 +48,7 @@ export default function JoinPill({
     setWorking(false);
     if ("error" in result) {
       setWidth(undefined);
-      onFailed();
+      onFailed(result.error === GAME_FULL ? GAME_FULL : "Couldn’t join. Try again.");
       return;
     }
     capture("game_joined", { game_id: gameId, priced });

@@ -16,6 +16,12 @@ export type IconName =
   | "chevron-down"
   | "chevron-right"
   | "updown"
+  | "gear"
+  | "people"
+  | "trophy"
+  | "medal"
+  | "qr"
+  | "check-circle"
   | "calendar"
   | "court"
   | "chevron-left"
@@ -103,6 +109,62 @@ export default function Icon({ name, size = 18 }: { name: IconName; size?: numbe
       return (
         <svg {...common} fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8.5 4l8 8-8 8" />
+        </svg>
+      );
+    case "gear":
+      return (
+        <svg {...common} fill="currentColor">
+          <path
+            fillRule="evenodd"
+            d="M10.3 1.9h3.4l.5 2.6c.6.2 1.2.5 1.7.8l2.2-1.5 2.4 2.4-1.5 2.2c.4.5.6 1.1.8 1.7l2.6.5v3.4l-2.6.5c-.2.6-.5 1.2-.8 1.7l1.5 2.2-2.4 2.4-2.2-1.5c-.5.4-1.1.6-1.7.8l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.8l-2.2 1.5-2.4-2.4 1.5-2.2c-.4-.5-.6-1.1-.8-1.7l-2.6-.5v-3.4l2.6-.5c.2-.6.5-1.2.8-1.7L3.5 6.2l2.4-2.4 2.2 1.5c.5-.4 1.1-.6 1.7-.8zM12 8.1a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8z"
+          />
+        </svg>
+      );
+    case "people":
+      return (
+        <svg {...common} fill="currentColor">
+          <circle cx="8.6" cy="8.2" r="3.7" />
+          <path d="M1.2 19c0-3.7 3.2-5.9 7.4-5.9s7.4 2.2 7.4 5.9c0 .6-.4 1-1 1H2.2c-.6 0-1-.4-1-1z" />
+          <circle cx="17" cy="8.8" r="3" />
+          <path d="M17.5 13.2c3.1.2 5.3 2 5.3 4.8 0 .6-.4 1-1 1h-3.9c0-2.4-1-4.4-2.8-5.5.7-.2 1.5-.3 2.4-.3z" />
+        </svg>
+      );
+    case "trophy":
+      return (
+        <svg {...common} fill="currentColor">
+          <path
+            fillRule="evenodd"
+            d="M6.5 2.5h11v1.6h3.1c.6 0 1 .4 1 1v2.1c0 2.6-1.9 4.7-4.5 5a6 6 0 0 1-4 2.7V18h2.6c1.1 0 2 .9 2 2v1.5H6.3V20c0-1.1.9-2 2-2H11v-3.1a6 6 0 0 1-4-2.7c-2.6-.3-4.5-2.4-4.5-5V5.1c0-.6.4-1 1-1h3zm0 3.5H4.3v1.2c0 1.3.9 2.5 2.2 2.9zm11 0v4.1c1.3-.4 2.2-1.6 2.2-2.9V6z"
+          />
+        </svg>
+      );
+    case "medal":
+      return (
+        <svg {...common} fill="currentColor">
+          <path d="M6 1.8h4.2L12 6l1.8-4.2H18l-2.9 6.6a7.2 7.2 0 0 0-6.2 0z" />
+          <path
+            fillRule="evenodd"
+            d="M12 8.2a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm0 2.6 1.3 2.7 3 .4-2.2 2.1.5 3-2.6-1.4-2.6 1.4.5-3-2.2-2.1 3-.4z"
+          />
+        </svg>
+      );
+    case "qr":
+      return (
+        <svg {...common} fill="currentColor">
+          <path
+            fillRule="evenodd"
+            d="M2.5 2.5h8v8h-8zm2 2v4h4v-4zm9-2h8v8h-8zm2 2v4h4v-4zm-13 9h8v8h-8zm2 2v4h4v-4z"
+          />
+          <path d="M5.7 5.7h1.6v1.6H5.7zM16.7 5.7h1.6v1.6h-1.6zM5.7 16.7h1.6v1.6H5.7zM13.5 13.5h3v3h-3zM18.5 13.5h3v3h-3zM13.5 18.5h3v3h-3zM18.5 18.5h3v3h-3zM16.5 16.5h2v2h-2z" />
+        </svg>
+      );
+    case "check-circle":
+      return (
+        <svg {...common} fill="currentColor">
+          <path
+            fillRule="evenodd"
+            d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8zm4.9 6.6-5.8 6.8a1 1 0 0 1-1.5 0l-2.7-3 1.5-1.3 2 2.2 5-5.9z"
+          />
         </svg>
       );
     case "updown":

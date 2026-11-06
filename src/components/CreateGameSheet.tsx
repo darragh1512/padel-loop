@@ -10,12 +10,12 @@
 // the game. "Players Already In" counts everyone already playing: anyone beyond
 // the real players is a guest, a friend who isn't on the app but holds a spot.
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Alert from "@/components/ios/Alert";
 import Court, { spotsFor } from "@/components/ios/Court";
 import Icon from "@/components/ios/Icon";
+import Sheet, { SheetToggle, useSheetClosing } from "@/components/ios/Sheet";
 import { getProfile } from "@/app/profiles";
 import { createGame, updateGame } from "@/app/games";
 import { initialsFrom, loadGames } from "@/lib/data";
@@ -28,8 +28,6 @@ import { shortDate } from "@/lib/when";
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 const LENGTHS = [60, 90, 120];
 const DAY_MS = 86_400_000;
-const FLICK = 0.5; // points per millisecond: faster than this dismisses, however short the drag
-const DRAG_DISTANCE = 0.35; // or dragging past this share of the sheet
 
 export type GameToEdit = {
   gameId: string;
@@ -59,17 +57,6 @@ type Form = {
   price: string;
   weekly: boolean;
 };
-
-const noSubscribe = () => () => {};
-
-function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: () => void }) {
-  return (
-    <button type="button" role="switch" aria-checked={on} className="ios-row ios-toggle-row" onClick={onChange}>
-      <span className="ios-bd ios-grow">{label}</span>
-      <span className="ios-toggle" data-on={on} />
-    </button>
-  );
-}
 
 function Segments({
   label,
@@ -126,13 +113,12 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
   const [problem, setProblem] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const [closing, setClosing] = useState(false);
 
-  // The sheet attaches to the top of the page, so it never recedes along with
-  // the screen behind it, wherever it was opened from.
-  const inBrowser = useSyncExternalStore(noSubscribe, () => true, () => false);
-  const sheet = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ y: number; time: number; dy: number } | null>(null);
+  const leave = useCallback(() => {
+    if (previousPath()) router.back();
+    else router.push(editing ? `/games/${editing.gameId}` : groupId ? `/groups/${groupId}/chat` : "/");
+  }, [router, editing, groupId]);
+  const [closing, close] = useSheetClosing(leave);
 
   const change = (patch: Partial<Form>) => {
     setTouched(true);
@@ -177,42 +163,9 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
     };
   }, [router, editing]);
 
-  // Recede the screen behind from where it's currently scrolled to, and darken
-  // the phone's bars to match the black around it.
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty("--ios-scroll", `${window.scrollY}px`);
-    const metas = [...document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')];
-    const before = metas.map((m) => m.content);
-    metas.forEach((m) => {
-      m.content = "#000000";
-    });
-    return () => metas.forEach((m, i) => {
-      m.content = before[i];
-    });
-  }, []);
-
-  function leave() {
-    if (previousPath()) router.back();
-    else router.push(editing ? `/games/${editing.gameId}` : groupId ? `/groups/${groupId}/chat` : "/");
-  }
-
-  function close() {
-    if (sheet.current) sheet.current.style.transform = "";
-    setClosing(true);
-    setTimeout(leave, 300);
-  }
-
   function requestClose() {
-    if (touched) {
-      if (sheet.current) {
-        sheet.current.style.transition = "";
-        sheet.current.style.transform = "";
-      }
-      setConfirmDiscard(true);
-    } else {
-      close();
-    }
+    if (touched) setConfirmDiscard(true);
+    else close();
   }
 
   async function submit() {
@@ -273,32 +226,6 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
     }
   }
 
-  /* Dragging the top of the sheet. Speed decides as well as distance, so a quick
-     flick dismisses it however short the drag was. */
-  function dragStart(e: React.PointerEvent) {
-    if ((e.target as HTMLElement).closest("button")) return;
-    drag.current = { y: e.clientY, time: e.timeStamp, dy: 0 };
-    e.currentTarget.setPointerCapture(e.pointerId);
-    if (sheet.current) sheet.current.style.transition = "none";
-  }
-  function dragMove(e: React.PointerEvent) {
-    if (!drag.current || !sheet.current) return;
-    drag.current.dy = Math.max(0, e.clientY - drag.current.y);
-    sheet.current.style.transform = `translateY(${drag.current.dy}px)`;
-  }
-  function dragEnd(e: React.PointerEvent) {
-    const moved = drag.current;
-    drag.current = null;
-    if (!moved || !sheet.current) return;
-    const speed = moved.dy / Math.max(e.timeStamp - moved.time, 1);
-    sheet.current.style.transition = "";
-    if (moved.dy > 4 && (speed > FLICK || moved.dy > sheet.current.offsetHeight * DRAG_DISTANCE)) {
-      requestClose();
-    } else {
-      sheet.current.style.transform = ""; // settle back into place
-    }
-  }
-
   const players = editing?.players ?? (userId ? [{ id: userId, initials: initials || " " }] : []);
   const alreadyIn = players.length + form.guests;
   const sizes = [...new Set([2, 4, form.size])].sort((a, b) => a - b);
@@ -306,56 +233,36 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
   const title = editing ? "Edit Game" : groupId ? "Propose Game" : "New Game";
   const action = editing ? "Save" : groupId ? "Propose" : "Post";
 
-  if (!inBrowser) return null;
-
-  // The hidden marker stays where the sheet was opened. Without one, Next.js looks
-  // for this page's first element and scrolls the screen behind to the wrong place.
   return (
-    <>
-      <span hidden />
-      {createPortal(
-    <div className="ios-sheet-root">
-      <div
-        ref={sheet}
-        className="ios-sheet"
-        data-closing={closing || undefined}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-      >
-        <div className="ios-sheet-top" onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}>
-          <div className="ios-grabber" />
-          {view === "form" ? (
-            <div className="ios-sheet-nav">
-              <button type="button" className="ios-sheet-btn ios-glass ios-press" onClick={requestClose}>
-                Cancel
-              </button>
-              <h1 className="ios-hl">{title}</h1>
-              <button
-                type="button"
-                className="ios-sheet-btn ios-press"
-                data-prominent
-                disabled={saving}
-                aria-busy={saving || undefined}
-                onClick={submit}
-              >
-                {action}
-              </button>
-            </div>
-          ) : (
-            <div className="ios-sheet-nav">
-              <button type="button" className="ios-sheet-btn ios-glass ios-press" onClick={() => setView("form")}>
-                Back
-              </button>
-              <h1 className="ios-hl">Club</h1>
-              <button type="button" className="ios-sheet-btn ios-press" data-prominent onClick={() => setView("form")}>
-                Done
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="ios-sheet-scroll">
+    <Sheet
+      title={view === "form" ? title : "Club"}
+      left={view === "form" ? { label: "Cancel", onPress: requestClose } : { label: "Back", onPress: () => setView("form") }}
+      right={
+        view === "form"
+          ? { label: action, onPress: submit, busy: saving }
+          : { label: "Done", onPress: () => setView("form") }
+      }
+      closing={closing}
+      onRequestClose={requestClose}
+      after={
+        <Alert
+        open={confirmDiscard}
+        onClose={() => setConfirmDiscard(false)}
+        title={editing ? "Discard Your Changes?" : "Discard This Game?"}
+        actions={[
+          { label: "Keep Editing", bold: true, onPress: () => setConfirmDiscard(false) },
+          {
+            label: "Discard",
+            destructive: true,
+            onPress: () => {
+              setConfirmDiscard(false);
+              close();
+            },
+          },
+        ]}
+      />
+      }
+    >
           {view === "club" ? (
             <div className="ios-sheet-page" key="club">
               <div className="ios-list" style={{ marginTop: 12 }}>
@@ -552,7 +459,7 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
 
               {!editing && (
                 <div className="ios-list" style={{ marginTop: 12 }}>
-                  <Toggle label="Repeat Weekly" on={form.weekly} onChange={() => change({ weekly: !form.weekly })} />
+                  <SheetToggle label="Repeat Weekly" on={form.weekly} onChange={() => change({ weekly: !form.weekly })} />
                 </div>
               )}
 
@@ -573,28 +480,6 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
               )}
             </div>
           )}
-        </div>
-      </div>
-
-      <Alert
-        open={confirmDiscard}
-        onClose={() => setConfirmDiscard(false)}
-        title={editing ? "Discard Your Changes?" : "Discard This Game?"}
-        actions={[
-          { label: "Keep Editing", bold: true, onPress: () => setConfirmDiscard(false) },
-          {
-            label: "Discard",
-            destructive: true,
-            onPress: () => {
-              setConfirmDiscard(false);
-              close();
-            },
-          },
-        ]}
-      />
-    </div>,
-    document.body,
-      )}
-    </>
+    </Sheet>
   );
 }

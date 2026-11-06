@@ -1,118 +1,49 @@
 "use client";
-// A player's public profile, at /players/[id]. Anyone can view it: avatar,
-// name, skill level, home club, form, badges and the games they have coming up.
+// A player's profile, at /players/[id]. Anyone can view it. The player themselves
+// also gets settings, editing, their QR code and My Games; everyone else can
+// connect, block or report.
 //
-// If the person viewing IS the player (their logged-in id matches the id in
-// the address), they also get an Edit mode to change their name, skill level,
-// home club and bio, and to upload an avatar photo.
-//
-// Layout follows the prototype: an identity band on the wall (avatar, name,
-// chips, quick actions), one stats poster, and a three-way segmented control
-// — Overview · Badges · Code — over a scrolling body.
+// Real data only. Each result's rating change isn't stored, so result rows don't
+// show one. The Rating figure rolls from the number you last saw to the new one
+// after a result, with the change beside it, once.
 //
 // Like the rest of the app this reads the player client-side using the shared
 // Supabase client, so the same auth/env setup applies everywhere.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
-import PlayerAvatar from "@/components/PlayerAvatar";
-import { publishAvatarChange } from "@/lib/avatarBus";
-import { blockUser, isBlocked, unblockUser } from "../../blocks";
-import ReportDialog from "@/components/ReportDialog";
+import EditProfileSheet from "@/components/EditProfileSheet";
+import Alert from "@/components/ios/Alert";
+import Court, { spotsFor } from "@/components/ios/Court";
+import Icon, { type IconName } from "@/components/ios/Icon";
+import Monogram from "@/components/ios/Monogram";
 import PlayerQRCode from "@/components/PlayerQRCode";
 import QRScanner from "@/components/QRScanner";
-import SkillLevelPicker from "@/components/SkillLevelPicker";
-import { Button, Dialog, ErrorState, Input, Skeleton, Textarea } from "@/components/ui";
+import ReportDialog from "@/components/ReportDialog";
+import { getGame as getGameWithPlayers } from "@/lib/data";
+import { previousPath } from "@/lib/navMemory";
 import { supabase } from "@/lib/supabaseClient";
-import {
-  getProfile,
-  removeAvatar,
-  savePlayerProfile,
-  uploadAvatar,
-  SKILL_LEVELS,
-  type Profile,
-} from "../../profiles";
-import { formatGameTime, getUpcomingGamesFor, type Game } from "../../games";
-import {
-  areConnected,
-  connect,
-  disconnect,
-  getConnectionCount,
-} from "../../connections";
+import { isFull, slotsLeft, type Game as GameCardData } from "@/lib/types";
+import { gameWhen, spotsOpenText } from "@/lib/when";
+import { computeBadges, longestWinStreak, type BadgeProgress } from "../../badges";
+import { blockUser, getBlockedIds, isBlocked, unblockUser } from "../../blocks";
+import { areConnected, connect, disconnect, getConnectionCount } from "../../connections";
+import { getUpcomingGamesFor } from "../../games";
 import {
   getPlayerMatchStats,
-  RELIABILITY_MIN_GAMES,
   getPlayerResultHistory,
+  getRecentResults,
+  RELIABILITY_MIN_GAMES,
   type PlayerMatchStats,
   type PlayerResultOutcome,
+  type RecentResult,
 } from "../../match-results";
-import { computeBadges, longestWinStreak, type BadgeProgress } from "../../badges";
+import { getProfile, type Profile } from "../../profiles";
 
-/* ── Small printed parts, straight from the prototype ─────────────────────*/
-
-// The section rule: a tracked-out mono label with an ink hairline running to
-// the edge of the board.
-function Rule({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2.5 mx-0.5 mb-2.5 mt-4">
-      <span className="t-mono text-tiny tracking-[0.2em] text-papel/72 whitespace-nowrap">
-        {children}
-      </span>
-      <span className="flex-1 h-0.5 bg-papel/18" />
-    </div>
-  );
-}
-
-// A progress bar: ink-outlined pill, lima fill.
-function Bar({ pct, className = "" }: { pct: number; className?: string }) {
-  return (
-    <span
-      className={`block border-2 border-tinta rounded-pill overflow-hidden bg-tinta/10 ${className}`}
-    >
-      <span
-        className="block h-full bg-lima"
-        style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
-      />
-    </span>
-  );
-}
-
-// One upcoming game, in the prototype's result-row shape: a coloured rail, a
-// round stamp, the venue in poster caps, and the when/where in printed mono.
-function UpcomingGameRow({ game }: { game: Game }) {
-  return (
-    <Link
-      href={`/games/${game.id}`}
-      className="pl-card pl-press relative flex items-center gap-3 py-2.5 pr-3.5 pl-4 overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-    >
-      <span className="absolute left-0 inset-y-0 w-1.5 bg-lima" aria-hidden />
-      <span className="flex-none size-7.5 rounded-pill grid place-items-center border-2 border-tinta bg-lima">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden>
-          <path
-            d="M4.5 6.5h15v13h-15zM8 4v4M16 4v4M4.5 11h15"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </span>
-      <span className="flex-1 min-w-0">
-        <span className="t-display block text-[0.875rem] text-tinta truncate">
-          {game.venue}
-        </span>
-        <span className="t-eyebrow block text-tiny tracking-[0.06em] text-tinta/55 mt-0.5 truncate">
-          {formatGameTime(game.game_time)}
-          {game.location ? ` · ${game.location}` : ""}
-        </span>
-      </span>
-      <span className="t-mono flex-none text-tiny text-tinta bg-lima border-2 border-tinta rounded-stamp px-1.5 py-1">
-        {game.skill_level}
-      </span>
-    </Link>
-  );
-}
+const UPCOMING_ROWS = 2;
+const RECENT_ROWS = 2;
 
 // Pull a player id out of a scanned code. Only accepts our own profile URL
 // shape (any origin — we never navigate to the scanned URL itself, just lift
@@ -127,7 +58,285 @@ function extractPlayerId(scanned: string): string | null {
   }
 }
 
-type Tab = "Overview" | "Badges" | "Code";
+/* The rating the player last saw, so a change only rolls once. */
+function seenRatingKey(id: string) {
+  return `rating-seen:${id}`;
+}
+function readSeenRating(id: string): number | null {
+  try {
+    const raw = localStorage.getItem(seenRatingKey(id));
+    return raw == null ? null : Number(raw);
+  } catch {
+    return null;
+  }
+}
+function writeSeenRating(id: string, rating: number) {
+  try {
+    localStorage.setItem(seenRatingKey(id), String(rating));
+  } catch {
+    // Private browsing can refuse this. The change just won't be shown.
+  }
+}
+
+/* Digits roll from the old number to the new one: 300 ms, easing out. */
+function RollingNumber({ from, to }: { from: number | null; to: number }) {
+  const format = (n: number) => n.toLocaleString("en-IE");
+  const next = format(to);
+  if (from == null || from === to) return <>{next}</>;
+  const old = format(from).padStart(next.length, " ");
+  return (
+    <span className="ios-roll" aria-label={next}>
+      {[...next].map((char, i) =>
+        old[i] === char ? (
+          <span key={i} aria-hidden>{char}</span>
+        ) : (
+          <span key={i} className="ios-roll-digit" aria-hidden>
+            <span>{old[i] === " " ? " " : old[i]}</span>
+            <span>{char}</span>
+          </span>
+        ),
+      )}
+    </span>
+  );
+}
+
+function Stat({ value, label, extra }: { value: React.ReactNode; label: string; extra?: React.ReactNode }) {
+  return (
+    <div style={{ flex: 1, textAlign: "center" }}>
+      <div className="ios-t2">{value}</div>
+      <div className="ios-fn ios-sec">
+        {label}
+        {extra}
+      </div>
+    </div>
+  );
+}
+
+function UpcomingRow({ game }: { game: GameCardData }) {
+  const open = slotsLeft(game);
+  const status = game.isManuallyClosed ? "Closed" : isFull(game) ? "Full" : `${open} open`;
+  return (
+    <Link
+      href={`/games/${game.id}`}
+      className="ios-row ios-link"
+      style={{ padding: "12px 16px", "--ios-inset": "100px" } as React.CSSProperties}
+    >
+      <div style={{ width: 72, flex: "none" }}>
+        <Court
+          spots={spotsFor(game.players, game.maxPlayers, null, game.guestCount)}
+          label={`Court with ${game.players.length + game.guestCount} of ${game.maxPlayers} spots taken, ${open > 0 ? spotsOpenText(open) : "full"}`}
+        />
+      </div>
+      <div className="ios-grow">
+        <div className="ios-hl">{gameWhen(game.startsAt)}</div>
+        <div className="ios-fn ios-sec">{game.venue}</div>
+      </div>
+      <div className={!isFull(game) && !game.isManuallyClosed ? "ios-fn ios-sb ios-acc" : "ios-fn ios-sec"} style={{ whiteSpace: "nowrap" }}>
+        {status}
+      </div>
+      <span className="ios-chev">
+        <Icon name="chevron-right" size={13} />
+      </span>
+    </Link>
+  );
+}
+
+function ListRow({
+  icon,
+  label,
+  value,
+  sub,
+  href,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  value?: string;
+  sub?: string;
+  href?: string;
+  onPress?: () => void;
+}) {
+  const inner = (
+    <>
+      <span className="ios-rico">
+        <Icon name={icon} size={22} />
+      </span>
+      <span className="ios-grow" style={{ textAlign: "left" }}>
+        <span className="ios-bd" style={{ display: "block" }}>{label}</span>
+        {sub && <span className="ios-fn ios-sec" style={{ display: "block" }}>{sub}</span>}
+      </span>
+      {value && <span className="ios-bd ios-sec">{value}</span>}
+      {(href || onPress) && (
+        <span className="ios-chev">
+          <Icon name="chevron-right" size={13} />
+        </span>
+      )}
+    </>
+  );
+  const style = { minHeight: 48, padding: sub ? "9px 16px" : "0 16px", "--ios-inset": "52px" } as React.CSSProperties;
+  if (href) {
+    return (
+      <Link href={href} className="ios-row ios-link" style={style}>
+        {inner}
+      </Link>
+    );
+  }
+  if (onPress) {
+    return (
+      <button type="button" className="ios-row ios-toggle-row" style={style} onClick={onPress}>
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <div className="ios-row" style={style}>
+      {inner}
+    </div>
+  );
+}
+
+function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="ios">
+      {children}
+      <BottomNav />
+    </main>
+  );
+}
+
+function ToolButton({ label, onPress, icon }: { label: string; onPress: () => void; icon: IconName }) {
+  return (
+    <button type="button" className="ios-gcap-i ios-glass ios-press" aria-label={label} onClick={onPress}>
+      <Icon name={icon} size={20} />
+    </button>
+  );
+}
+
+/* A page pushed from the profile: Badges or My Code. */
+function SubPage({ title, onBack, children }: { title: string; onBack: () => void; children: React.ReactNode }) {
+  return (
+    <PageShell>
+      <div className="ios-profile-tools">
+        <ToolButton label="Back to profile" icon="chevron-left" onPress={onBack} />
+      </div>
+      <h1 className="ios-lt" style={{ padding: "calc(var(--ios-top-gap) + 52px) 20px 8px" }}>
+        {title}
+      </h1>
+      {children}
+    </PageShell>
+  );
+}
+
+function BadgesPage({ badges, onBack }: { badges: BadgeProgress[]; onBack: () => void }) {
+  return (
+    <SubPage title="Badges" onBack={onBack}>
+      {badges.map((family) => (
+        <section key={family.family} style={{ marginTop: 10 }}>
+          <div className="ios-sect">
+            <h2 className="ios-t3">{family.label}</h2>
+            <div className="ios-fn ios-sec">{family.value}</div>
+          </div>
+          <div className="ios-list">
+            {family.earned.map((badge) => (
+              <div key={badge.id} className="ios-row" style={{ padding: "9px 16px" }}>
+                <div className="ios-grow">
+                  <div className="ios-bd">{badge.title}</div>
+                  <div className="ios-fn ios-sec">{badge.blurb}</div>
+                </div>
+                <span className="ios-acc" aria-label="Earned">
+                  <Icon name="check" size={16} />
+                </span>
+              </div>
+            ))}
+            {family.next && (
+              <div className="ios-row" style={{ padding: "9px 16px" }}>
+                <div className="ios-grow">
+                  <div className="ios-bd">{family.next.title}</div>
+                  <div
+                    className="ios-progress"
+                    role="progressbar"
+                    aria-valuenow={family.value}
+                    aria-valuemax={family.next.threshold}
+                    aria-label={`${family.value} of ${family.next.threshold}`}
+                  >
+                    <i style={{ width: `${Math.min(100, (family.value / family.next.threshold) * 100)}%` }} />
+                  </div>
+                </div>
+                <div className="ios-fn ios-sec" style={{ whiteSpace: "nowrap" }}>
+                  {family.value} of {family.next.threshold}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      ))}
+    </SubPage>
+  );
+}
+
+function CodePage({ playerId, name, onBack }: { playerId: string; name: string; onBack: () => void }) {
+  const router = useRouter();
+  const [panel, setPanel] = useState<"code" | "scan">("code");
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanKey, setScanKey] = useState(0); // bumped to restart the camera after a bad scan
+
+  function handleScan(text: string) {
+    const id = extractPlayerId(text);
+    if (id) router.push(`/players/${id}`);
+    else setScanError("That doesn’t look like a Padel Loop player code.");
+  }
+
+  return (
+    <SubPage title={panel === "code" ? "My Code" : "Scan a Code"} onBack={onBack}>
+      <div className="ios-card" style={{ padding: 20, marginTop: 6, textAlign: "center" }}>
+        {panel === "code" ? (
+          <>
+            <PlayerQRCode url={`${window.location.origin}/players/${playerId}`} />
+            <div className="ios-fn ios-sec" style={{ marginTop: 10 }}>
+              Scan to add {name}
+            </div>
+          </>
+        ) : (
+          <>
+            <QRScanner key={scanKey} onScan={handleScan} />
+            {scanError && (
+              <div style={{ marginTop: 10 }} role="alert">
+                <div className="ios-fn ios-destructive">{scanError}</div>
+                <button
+                  type="button"
+                  className="ios-cl ios-acc ios-md"
+                  style={{ border: 0, padding: 0, background: "none", cursor: "pointer", marginTop: 2 }}
+                  onClick={() => {
+                    setScanError(null);
+                    setScanKey((k) => k + 1); // remounts the scanner, which restarts the camera
+                  }}
+                >
+                  Scan Again
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 8, margin: "12px 16px 0" }}>
+        <button
+          type="button"
+          className="ios-pill ios-press"
+          style={{ border: 0, cursor: "pointer" }}
+          onClick={() => {
+            setPanel(panel === "code" ? "scan" : "code");
+            setScanError(null);
+          }}
+        >
+          {panel === "code" ? "Scan a Code" : "My Code"}
+        </button>
+        <Link href="/search" className="ios-pill ios-press">
+          Find by Name
+        </Link>
+      </div>
+    </SubPage>
+  );
+}
 
 export default function PlayerProfilePage() {
   const params = useParams<{ id: string }>();
@@ -135,105 +344,83 @@ export default function PlayerProfilePage() {
   const playerId = params.id;
 
   const [loading, setLoading] = useState(true);
+  // Separate from "player not found". A failed load rendering as a missing
+  // player tells somebody their friend deleted their account.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isOwner, setIsOwner] = useState(false);
-  const [games, setGames] = useState<Game[]>([]);
-  const [tab, setTab] = useState<Tab>("Overview");
-
-  // Connection state. currentUserId is whoever is logged in (null if nobody);
-  // connected is whether they're connected to the viewed player; connCount is
-  // the viewed player's total connections, shown on the profile.
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [connected, setConnected] = useState(false);
-  const [connCount, setConnCount] = useState(0);
-  const [connBusy, setConnBusy] = useState(false);
-
-  // The viewed player's match record (confirmed results only).
+  const [upcoming, setUpcoming] = useState<GameCardData[]>([]);
+  const [results, setResults] = useState<RecentResult[]>([]);
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const [matchStats, setMatchStats] = useState<PlayerMatchStats>({
     reliability: { recorded: 0, attended: 0, percent: null },
     played: 0,
     won: 0,
     lost: 0,
   });
-
-  // Their confirmed result history, oldest first. One query feeds both the
-  // form strip and the best-streak badge input.
   const [history, setHistory] = useState<PlayerResultOutcome[]>([]);
-
-  // Edit-mode state.
-  const [editing, setEditing] = useState(false);
-  const [fName, setFName] = useState("");
-  const [fSkill, setFSkill] = useState<string>(SKILL_LEVELS[0]);
-  const [fClub, setFClub] = useState("");
-  const [fBio, setFBio] = useState("");
-  const [fAvatarUrl, setFAvatarUrl] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [confirmingRemove, setConfirmingRemove] = useState(false);
-  // Blocking this player. One-directional: nothing here tells them.
+  const [connCount, setConnCount] = useState(0);
+  const [connected, setConnected] = useState(false);
+  const [connBusy, setConnBusy] = useState(false);
   const [blocked, setBlocked] = useState(false);
-  const [confirmingBlock, setConfirmingBlock] = useState(false);
   const [blockBusy, setBlockBusy] = useState(false);
-  const [blockError, setBlockError] = useState<string | null>(null);
+  const [confirmingBlock, setConfirmingBlock] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
-  // Separate from "player not found". A failed load rendering as a missing
-  // player tells somebody their friend deleted their account.
-  const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  const [removing, setRemoving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [editing, setEditing] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [page, setPage] = useState<"profile" | "badges" | "code">("profile");
+  const [ratingFrom, setRatingFrom] = useState<number | null>(null);
+  const moreButton = useRef<HTMLButtonElement>(null);
+  const profileScroll = useRef(0);
 
-  // "My code" panel — owner only. QR encodes the full profile URL, so it
-  // needs the browser's origin (not available during server rendering).
-  const [origin, setOrigin] = useState("");
-  const [qrPanel, setQrPanel] = useState<"code" | "scan">("code");
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [scanKey, setScanKey] = useState(0); // bumped to restart the camera after a bad scan
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+  const isOwner = currentUserId === playerId;
 
   useEffect(() => {
     let active = true;
     (async () => {
-      let auth, loadedProfile, upcoming, count, mStats, hist;
+      let auth, loaded, games, count, stats, hist;
       try {
-        [{ data: auth }, loadedProfile, upcoming, count, mStats, hist] =
-          await Promise.all([
-            supabase.auth.getUser(),
-            getProfile(playerId),
-            getUpcomingGamesFor(playerId),
-            getConnectionCount(playerId),
-            getPlayerMatchStats(playerId),
-            getPlayerResultHistory(playerId),
-          ]);
+        [{ data: auth }, loaded, games, count, stats, hist] = await Promise.all([
+          supabase.auth.getUser(),
+          getProfile(playerId),
+          getUpcomingGamesFor(playerId),
+          getConnectionCount(playerId),
+          getPlayerMatchStats(playerId),
+          getPlayerResultHistory(playerId),
+        ]);
       } catch {
         if (!active) return;
         setFailed(true);
         setLoading(false);
         return;
       }
-      if (!active) return;
-      setFailed(false);
-
       const viewerId = auth.user?.id ?? null;
-      setProfile(loadedProfile);
+      const [cards, recent, blockedList, isConn, viewerBlocked] = await Promise.all([
+        Promise.all(games.slice(0, UPCOMING_ROWS).map((g) => getGameWithPlayers(String(g.id)))),
+        getRecentResults(playerId, RECENT_ROWS),
+        getBlockedIds(viewerId),
+        viewerId && viewerId !== playerId ? areConnected(viewerId, playerId) : Promise.resolve(false),
+        viewerId && viewerId !== playerId ? isBlocked(viewerId, playerId) : Promise.resolve(false),
+      ]);
+      if (!active) return;
+
+      setFailed(false);
+      setProfile(loaded);
       setCurrentUserId(viewerId);
-      setIsOwner(viewerId === playerId);
-      setGames(upcoming);
+      setUpcoming(cards.filter((g): g is GameCardData => g != null));
+      setResults(recent);
+      setBlockedIds(blockedList);
       setConnCount(count);
-      setMatchStats(mStats);
+      setMatchStats(stats);
       setHistory(hist);
-
-      // Only the non-owner view needs to know if they're already connected.
-      if (viewerId && viewerId !== playerId) {
-        const isConn = await areConnected(viewerId, playerId);
-        if (!active) return;
-        setConnected(isConn);
+      setConnected(isConn);
+      setBlocked(viewerBlocked);
+      if (viewerId === playerId && loaded?.rating != null) {
+        const seen = readSeenRating(playerId);
+        if (seen != null && seen !== loaded.rating) setRatingFrom(seen);
       }
-
       setLoading(false);
     })();
     return () => {
@@ -241,60 +428,40 @@ export default function PlayerProfilePage() {
     };
   }, [playerId, attempt]);
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push("/login");
-  }
-
-  // Connect when not yet connected, disconnect when already connected. The
-  // viewed player's connection count moves with it. Sends logged-out visitors
-  // to log in first.
-  // Load whether this viewer has blocked this player.
+  // Remember the rating once it has been shown, so the same change never rolls twice.
   useEffect(() => {
-    let active = true;
-    (async () => {
-      if (!currentUserId || currentUserId === playerId) return;
-      const result = await isBlocked(currentUserId, playerId);
-      if (active) setBlocked(result);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [currentUserId, playerId]);
+    if (!isOwner || profile?.rating == null) return;
+    const rating = profile.rating;
+    const timer = setTimeout(() => writeSeenRating(playerId, rating), 1000);
+    return () => clearTimeout(timer);
+  }, [isOwner, playerId, profile?.rating]);
 
-  async function handleBlock() {
-    if (!currentUserId || blockBusy) return;
-    setBlockBusy(true);
-    setBlockError(null);
+  // Badges and My Code start at their top; coming back returns to the same place.
+  useLayoutEffect(() => {
+    window.scrollTo(0, page === "profile" ? profileScroll.current : 0);
+  }, [page]);
 
-    const result = await blockUser(currentUserId, playerId);
-
-    if ("ok" in result) {
-      setBlocked(true);
-      // Blocking drops any connection between the two in the database, so
-      // reflect that here rather than leaving a stale Connected button.
-      setConnected(false);
-      setConfirmingBlock(false);
-    } else {
-      setBlockError(result.error);
-    }
-    setBlockBusy(false);
+  function openPage(next: "badges" | "code") {
+    profileScroll.current = window.scrollY;
+    setPage(next);
   }
 
-  async function handleUnblock() {
-    if (!currentUserId || blockBusy) return;
-    setBlockBusy(true);
-    setBlockError(null);
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(null), 2500);
+    return () => clearTimeout(timer);
+  }, [message]);
 
-    const result = await unblockUser(currentUserId, playerId);
-
-    if ("ok" in result) {
-      setBlocked(false);
-    } else {
-      setBlockError(result.error);
-    }
-    setBlockBusy(false);
-  }
+  const badges: BadgeProgress[] = useMemo(
+    () =>
+      computeBadges({
+        connections: connCount,
+        gamesPlayed: matchStats.played,
+        bestStreak: longestWinStreak(history),
+      }),
+    [connCount, matchStats.played, history],
+  );
+  const earnedBadges = badges.reduce((n, family) => n + family.earned.length, 0);
 
   async function handleToggleConnect() {
     if (!currentUserId) {
@@ -303,401 +470,345 @@ export default function PlayerProfilePage() {
     }
     if (connBusy) return;
     setConnBusy(true);
-
     if (connected) {
       const result = await disconnect(currentUserId, playerId);
       if ("ok" in result) {
         setConnected(false);
         setConnCount((c) => Math.max(0, c - 1));
+      } else {
+        setMessage("Couldn’t disconnect. Try again.");
       }
     } else {
       const result = await connect(currentUserId, playerId);
       if ("ok" in result) {
         setConnected(true);
         setConnCount((c) => c + 1);
+      } else {
+        setMessage("Couldn’t connect. Try again.");
       }
     }
-
     setConnBusy(false);
   }
 
-  function handleScan(text: string) {
-    const id = extractPlayerId(text);
-    if (id) {
-      router.push(`/players/${id}`);
-      return;
-    }
-    setScanError("That doesn't look like a Padel Loop player code.");
-  }
-
-  function retryScan() {
-    setScanError(null);
-    setScanKey((k) => k + 1); // remounts QRScanner, which restarts the camera
-  }
-
-  function startEdit() {
-    if (!profile) return;
-    setFName(profile.name ?? "");
-    setFSkill(profile.skill_level || SKILL_LEVELS[0]);
-    setFClub(profile.home_club ?? "");
-    setFBio(profile.bio ?? "");
-    setFAvatarUrl(profile.avatar_url ?? null);
-    setError(null);
-    setEditing(true);
-  }
-
-  async function handlePickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // let the same file be re-picked later
-    if (!file || uploading) return;
-
-    setUploading(true);
-    setError(null);
-    const result = await uploadAvatar(playerId, file);
-    if ("url" in result) {
-      setFAvatarUrl(result.url);
-    } else {
-      setError("Couldn’t upload that photo. Please try again.");
-    }
-    setUploading(false);
-  }
-
-  // Delete the uploaded photo for good and drop back to the generated
-  // DiceBear picture. Unlike the text fields this commits straight away
-  // rather than waiting for Save, so we update the shown profile as well as
-  // the form state — otherwise backing out of the edit form would show the
-  // old photo again even though it is gone from the database.
-  async function handleRemovePhoto() {
-    if (removing) return;
-    setRemoving(true);
-    setError(null);
-
-    const result = await removeAvatar(playerId);
-
+  async function handleBlock() {
+    if (!currentUserId || blockBusy) return;
+    setBlockBusy(true);
+    const result = await blockUser(currentUserId, playerId);
     if ("ok" in result) {
-      setFAvatarUrl(null);
-      setProfile((prev) => (prev ? { ...prev, avatar_url: null } : prev));
-      // Nudge the screens that cached the old photo (nav, home greeting).
-      publishAvatarChange({ userId: playerId, avatarUrl: null });
-      setConfirmingRemove(false);
+      setBlocked(true);
+      // Blocking drops any connection between the two in the database.
+      setConnected(false);
     } else {
-      // Nothing changed — their photo is still there and still works.
-      setError("Couldn’t remove that photo. Please try again.");
+      setMessage(result.error);
     }
-    setRemoving(false);
+    setConfirmingBlock(false);
+    setBlockBusy(false);
   }
 
-  async function handleSave() {
-    if (saving) return;
-    setSaving(true);
-    setError(null);
-
-    const result = await savePlayerProfile(playerId, {
-      name: fName,
-      skill_level: fSkill,
-      home_club: fClub,
-      bio: fBio,
-      avatar_url: fAvatarUrl,
-    });
-
-    if ("ok" in result) {
-      // Reflect the saved values in the view without a full reload.
-      setProfile((prev) => ({
-        id: playerId,
-        name: fName,
-        skill_level: fSkill,
-        home_area: prev?.home_area ?? null,
-        home_club: fClub,
-        bio: fBio,
-        avatar_url: fAvatarUrl,
-        created_at: prev?.created_at,
-      }));
-      setEditing(false);
-      // A newly uploaded photo only reaches the database here, so tell the
-      // other screens about it too — same reason as in handleRemovePhoto.
-      publishAvatarChange({ userId: playerId, avatarUrl: fAvatarUrl });
-    } else {
-      setError("Couldn’t save. Please try again.");
-    }
-    setSaving(false);
+  async function handleUnblock() {
+    if (!currentUserId || blockBusy) return;
+    setBlockBusy(true);
+    const result = await unblockUser(currentUserId, playerId);
+    if ("ok" in result) setBlocked(false);
+    else setMessage(result.error);
+    setBlockBusy(false);
   }
 
-  // The last eight confirmed results, newest last — the form strip. The run of
-  // wins at the end of that history is the CURRENT streak (distinct from the
-  // best-ever streak the badges use).
-  const form = useMemo(() => history.slice(-8), [history]);
-  const currentStreak = useMemo(() => {
-    let run = 0;
-    for (let i = history.length - 1; i >= 0 && history[i].won; i--) run++;
-    return run;
-  }, [history]);
-  const bestStreak = useMemo(() => longestWinStreak(history), [history]);
-
-  const badges: BadgeProgress[] = useMemo(
-    () =>
-      computeBadges({
-        connections: connCount,
-        gamesPlayed: matchStats.played,
-        bestStreak,
-      }),
-    [connCount, matchStats.played, bestStreak],
-  );
+  function goBack() {
+    if (previousPath()) router.back();
+    else router.push("/discover"); // arrived from a shared link: nothing to go back to
+  }
 
   if (loading) {
-    // Skeletons in the shape of the identity band — avatar, name, stats card.
     return (
-      <main className="px-5 pt-4 relative">
-        <div className="flex items-center gap-3.5">
-          <Skeleton className="rounded-pill size-16 flex-none" />
-          <div className="flex-1">
-            <Skeleton className="rounded-field h-7 w-40" />
-            <Skeleton className="rounded-pill h-5 w-28 mt-2" />
-          </div>
+      <PageShell>
+        <div aria-hidden style={{ paddingTop: "calc(var(--ios-top-gap) + 30px)" }}>
+          <div className="ios-skel" style={{ width: 84, height: 84, borderRadius: "50%", margin: "0 auto" }} />
+          <div className="ios-skel" style={{ height: 76, margin: "60px 16px 0" }} />
+          <div className="ios-skel" style={{ height: 180, margin: "18px 16px 0" }} />
         </div>
-        <Skeleton className="rounded-card h-16 w-full mt-3.5" />
-        <Skeleton className="rounded-card h-9 w-full mt-3" />
-        <BottomNav />
-      </main>
+      </PageShell>
     );
   }
 
-  // Ordered BEFORE the not-found branch on purpose: a read that failed is
-  // not evidence that the player is gone.
+  // Ordered BEFORE the not-found branch on purpose: a read that failed is not
+  // evidence that the player is gone.
   if (failed) {
     return (
-      <main className="px-5 pt-6 relative">
-        <div className="mt-10">
-          <ErrorState
-            title="Couldn't load this profile."
-            body="The player is fine — this is us failing to fetch them."
-            onRetry={() => {
-              setLoading(true);
-              setAttempt((n) => n + 1);
-            }}
-          />
+      <PageShell>
+        <div className="ios-card" style={{ marginTop: "calc(var(--ios-top-gap) + 30px)", padding: 20 }} role="alert">
+          <div className="ios-t3">Couldn’t Load This Profile</div>
+          <div className="ios-sh ios-sec" style={{ marginTop: 4 }}>
+            Check your connection and try again.
+          </div>
+          <div style={{ display: "flex", marginTop: 14 }}>
+            <button
+              type="button"
+              className="ios-pill ios-press"
+              style={{ border: 0, cursor: "pointer" }}
+              onClick={() => {
+                setLoading(true);
+                setAttempt((n) => n + 1);
+              }}
+            >
+              Try Again
+            </button>
+          </div>
         </div>
-        <BottomNav />
-      </main>
+      </PageShell>
     );
   }
 
   if (!profile) {
     return (
-      <main className="px-5 pt-6 relative">
-        <h1 className="t-display text-display-md text-papel mt-2">
-          Player not found
-        </h1>
-        <p className="text-body font-medium text-papel/85 mt-1.5">
-          This player doesn&rsquo;t have a profile yet.
-        </p>
-        <Link
-          href="/"
-          className="t-mono inline-block text-lima text-body mt-4 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-        >
-          ← Back home
-        </Link>
-        <BottomNav />
-      </main>
+      <PageShell>
+        <div className="ios-card" style={{ marginTop: "calc(var(--ios-top-gap) + 30px)", padding: 20 }}>
+          <div className="ios-t3">Player Not Found</div>
+          <div className="ios-sh ios-sec" style={{ marginTop: 4 }}>
+            This player doesn’t have a profile yet.
+          </div>
+          <div style={{ display: "flex", marginTop: 14 }}>
+            <Link href="/" className="ios-pill ios-press">
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </PageShell>
     );
   }
 
-  const displayName = profile.name || "Player";
-  // While editing, preview the avatar the owner has chosen so far.
-  const shownAvatar = editing ? fAvatarUrl : profile.avatar_url;
+  const name = profile.name || "Player";
 
-  // The stats poster. "Rating" is the EARNED number (Elo-style, moved only by
-  // confirmed results — the database owns it) and takes the accent. "Played"
-  // and "Won" come from confirmed match results; "Mates" is the connection
-  // count, which links to /connections for the owner.
-  const stats: {
-    label: string;
-    value: string;
-    href?: string;
-    accent?: boolean;
-  }[] = [
-    {
-      label: "Rating",
-      value: profile.rating != null ? String(profile.rating) : "—",
-      accent: true,
-    },
-    { label: "Played", value: String(matchStats.played) },
-    { label: "Won", value: String(matchStats.won) },
-    // Turned up vs committed. Below the threshold there is no percentage —
-    // an em dash, with the shortfall spelled out under the poster, rather
-    // than a 0% that would read as a terrible record instead of no record.
-    {
-      label: "Reliable",
-      value:
-        matchStats.reliability.percent != null
-          ? `${matchStats.reliability.percent}%`
-          : "—",
-    },
-    {
-      label: "Mates",
-      value: String(connCount),
-      href: isOwner ? "/connections" : undefined,
-    },
-  ];
+  if (page === "badges") return <BadgesPage badges={badges} onBack={() => setPage("profile")} />;
+  if (page === "code" && isOwner) return <CodePage playerId={playerId} name={name} onBack={() => setPage("profile")} />;
 
-  // What to say under the poster about the reliability cell. Spelled out
-  // whenever there is no number, so an em dash never reads as a score of
-  // nothing — and everyone will be in this state for a while, because
-  // attendance is only recorded on results confirmed from now on.
+  const club = [profile.home_club, profile.home_area].filter(Boolean).join(", ");
+  const subtitle = [profile.skill_level || "Unrated", club].filter(Boolean).join(" · ");
+  const change = ratingFrom != null && profile.rating != null ? profile.rating - ratingFrom : 0;
+
+  // Spelled out whenever there is no number, so a blank never reads as a bad
+  // score: attendance is only recorded on results confirmed since it was added.
+  const reliability = matchStats.reliability;
   const reliabilityNote =
-    matchStats.reliability.percent != null
-      ? `Turned up to ${matchStats.reliability.attended} of ${matchStats.reliability.recorded} recorded games.`
-      : matchStats.reliability.recorded === 0
-        ? "No attendance recorded yet — it starts being tracked when a match result is confirmed."
-        : `Reliability needs ${RELIABILITY_MIN_GAMES} recorded games. ${matchStats.reliability.recorded} so far.`;
+    reliability.percent != null
+      ? `Turned up to ${reliability.attended} of ${reliability.recorded} recorded games.`
+      : reliability.recorded === 0
+        ? "Starts counting when a match result is confirmed."
+        : `Shows after ${RELIABILITY_MIN_GAMES} recorded games. ${reliability.recorded} so far.`;
 
   return (
-    <main className="px-5 pt-4 relative">
-      {/* ── Identity band ────────────────────────────────────────────────── */}
-      <header className="flex items-center gap-3.5">
-        <PlayerAvatar
-          userId={playerId}
-          avatarUrl={shownAvatar}
-          name={displayName}
-          className="size-16 flex-none border-2 border-tinta shadow-[4px_4px_0_rgb(6_20_58/0.4)]"
-        />
-        <div className="flex-1 min-w-0">
-          <h1 className="t-display text-[clamp(1.5rem,7vw,1.875rem)] leading-[0.95] text-white truncate">
-            {displayName}
-            <span className="text-naranja">.</span>
-          </h1>
-          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-            <span className="t-mono text-[0.5625rem] tracking-[0.14em] bg-tinta text-lima rounded-pill px-2 py-1 whitespace-nowrap">
-              {profile.skill_level || "Unrated"}
-            </span>
-            {profile.home_club && (
-              <span className="t-mono text-[0.5625rem] tracking-[0.14em] border-2 border-papel/40 text-papel/80 rounded-pill px-2 py-0.75 whitespace-nowrap max-w-full truncate">
-                {profile.home_club}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Quick actions — owner only: edit the profile, or open settings. */}
-        {isOwner && !editing && (
-          <div className="flex flex-col gap-1.75 flex-none">
-            <button
-              type="button"
-              onClick={startEdit}
-              aria-label="Edit profile"
-              className="size-8.5 rounded-pill border-2 border-papel/35 bg-white/8 hover:bg-white/18 grid place-items-center transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-            >
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden>
-                <path
-                  d="M15.5 5.5l3 3L9 18H6v-3z"
-                  stroke="var(--color-papel)"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+    <PageShell>
+      <div className="ios-profile-tools">
+        {isOwner ? (
+          <>
+            <Link href="/profile" aria-label="Settings" className="ios-gcap-i ios-glass ios-press">
+              <Icon name="gear" size={24} />
+            </Link>
+            <button type="button" className="ios-sheet-btn ios-glass ios-press" onClick={() => setEditing(true)}>
+              Edit
             </button>
-            <Link
-              href="/profile"
-              aria-label="Settings"
-              className="size-8.5 rounded-pill border-2 border-papel/35 bg-white/8 hover:bg-white/18 grid place-items-center transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-            >
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden>
-                <circle cx="12" cy="12" r="3.2" stroke="var(--color-papel)" strokeWidth="2" />
-                <path
-                  d="M12 3v2.4M12 18.6V21M21 12h-2.4M5.4 12H3M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7M18.4 18.4l-1.7-1.7M7.3 7.3L5.6 5.6"
-                  stroke="var(--color-papel)"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </Link>
-          </div>
-        )}
-      </header>
-
-      {/* ── Stats poster ─────────────────────────────────────────────────── */}
-      <div className="pl-card flex mt-3.5 overflow-hidden">
-        {stats.map((s, i) => {
-          const inner = (
-            <>
-              <div
-                className={`t-display text-[1.1875rem] leading-none truncate ${
-                  s.accent ? "text-naranja" : "text-tinta"
-                }`}
+          </>
+        ) : (
+          <>
+            <ToolButton label="Back" icon="chevron-left" onPress={goBack} />
+            {currentUserId && (
+              <button
+                ref={moreButton}
+                type="button"
+                className="ios-gcap-i ios-glass ios-press"
+                aria-label="More"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen(true)}
               >
-                {s.value}
-              </div>
-              <div className="t-mono text-[0.5625rem] tracking-[0.14em] text-tinta/55 mt-1 whitespace-nowrap">
-                {s.label}
-              </div>
-            </>
-          );
-          const cell = `flex-1 min-w-0 text-center px-1 py-2.75 ${
-            i ? "border-l-2 border-tinta/15" : ""
-          }`;
-          return s.href ? (
-            <Link
-              key={s.label}
-              href={s.href}
-              className={`${cell} hover:bg-lima/25 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja`}
-            >
-              {inner}
-            </Link>
-          ) : (
-            <div key={s.label} className={cell}>
-              {inner}
-            </div>
-          );
-        })}
+                <Icon name="ellipsis" size={24} />
+              </button>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Says in words what the Reliable cell means — always shown, because an
-          em dash on its own would read as a bad score rather than no score. */}
-      <p className="text-label font-medium text-papel/75 mt-2 px-0.5">
-        {reliabilityNote}
-      </p>
-
-      {/* Connect / Connected — only on someone else's profile. */}
-      {!isOwner && (
-        <Button
-          variant={connected ? "secondary" : "primary"}
-          className="mt-3"
-          onClick={handleToggleConnect}
-          loading={connBusy}
-        >
-          {connected ? "Connected ✓" : "Connect"}
-        </Button>
-      )}
-
-      {/* Block / Unblock — quiet, under Connect, and only on somebody
-          else's profile. Nothing here is visible to them. */}
-      {!isOwner && currentUserId && (
+      {menuOpen && (
         <>
           <button
             type="button"
-            onClick={() =>
-              blocked ? handleUnblock() : setConfirmingBlock(true)
-            }
-            disabled={blockBusy}
-            className="t-mono block w-full text-center text-micro tracking-[0.12em] text-papel/60 hover:text-papel/90 underline underline-offset-4 mt-3 rounded-field disabled:opacity-50 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+            className="ios-menu-scrim"
+            aria-label="Close menu"
+            tabIndex={-1}
+            onClick={() => {
+              setMenuOpen(false);
+              moreButton.current?.focus();
+            }}
+          />
+          <div
+            className="ios-menu ios-game-menu"
+            role="menu"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setMenuOpen(false);
+                moreButton.current?.focus();
+              }
+            }}
           >
-            {blocked ? "Unblock this player" : "Block this player"}
-          </button>
+            <button
+              type="button"
+              role="menuitem"
+              autoFocus
+              className="ios-menu-item"
+              style={{ paddingLeft: 14 }}
+              disabled={blockBusy}
+              onClick={() => {
+                setMenuOpen(false);
+                if (blocked) handleUnblock();
+                else setConfirmingBlock(true);
+              }}
+            >
+              {blocked ? "Unblock" : "Block"}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="ios-menu-item"
+              style={{ paddingLeft: 14 }}
+              data-destructive
+              onClick={() => {
+                setMenuOpen(false);
+                setReporting(true);
+              }}
+            >
+              Report
+            </button>
+          </div>
+        </>
+      )}
+
+      <header className="ios-profile-head">
+        <Monogram name={name} photoUrl={profile.avatar_url} size={84} />
+        <h1 className="ios-t1" style={{ marginTop: 8 }}>{name}</h1>
+        <div className="ios-sh ios-sec">{subtitle}</div>
+        {profile.bio && (
+          <p className="ios-sh" style={{ margin: "6px 20px 0", whiteSpace: "pre-line" }}>
+            {profile.bio}
+          </p>
+        )}
+      </header>
+
+      <div className="ios-card" style={{ marginTop: 14, padding: "12px 0", display: "flex" }}>
+        <Stat
+          value={profile.rating != null ? <RollingNumber from={ratingFrom} to={profile.rating} /> : "—"}
+          label="Rating"
+          extra={
+            change !== 0 && (
+              <span className={change > 0 ? "ios-rating-change ios-acc ios-sb" : "ios-rating-change ios-sb"}>
+                {" "}
+                {change > 0 ? `+${change}` : `−${Math.abs(change)}`}
+              </span>
+            )
+          }
+        />
+        <div style={{ width: 0.5, background: "var(--ios-sep)", margin: "6px 0" }} />
+        <Stat value={matchStats.played.toLocaleString("en-IE")} label="Played" />
+        <div style={{ width: 0.5, background: "var(--ios-sep)", margin: "6px 0" }} />
+        <Stat value={matchStats.won.toLocaleString("en-IE")} label="Won" />
+      </div>
+
+      {!isOwner && (
+        <div style={{ display: "flex", margin: "12px 16px 0" }}>
           <button
             type="button"
-            onClick={() => setReporting(true)}
-            className="t-mono block w-full text-center text-micro tracking-[0.12em] text-papel/60 hover:text-papel/90 underline underline-offset-4 mt-2 rounded-field transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
+            className="ios-wide-btn"
+            data-tone={connected ? "tint" : "fill"}
+            disabled={connBusy || blocked}
+            aria-busy={connBusy || undefined}
+            onClick={handleToggleConnect}
           >
-            Report this player
+            {blocked ? "Blocked" : connected ? "Connected" : "Connect"}
+            {connected && <Icon name="check" size={15} />}
           </button>
-          <p
-            aria-live="polite"
-            className={`text-center text-label font-semibold text-naranja-d mt-1.5 ${
-              blockError ? "" : "hidden"
-            }`}
-          >
-            {blockError}
-          </p>
-        </>
+        </div>
+      )}
+
+      <section style={{ marginTop: 18 }}>
+        <div className="ios-sect">
+          <h2 className="ios-t3">Upcoming</h2>
+          {isOwner && (
+            <Link href="/my-games" className="ios-cl ios-acc ios-md ios-link">
+              See All
+            </Link>
+          )}
+        </div>
+        {upcoming.length > 0 ? (
+          <div className="ios-list">
+            {upcoming.map((game) => (
+              <UpcomingRow key={game.id} game={game} />
+            ))}
+          </div>
+        ) : (
+          <div className="ios-card ios-sh ios-sec" style={{ padding: 16 }}>
+            {isOwner ? "Nothing coming up. Your next game is waiting on Discover." : `${name} has no games coming up.`}
+          </div>
+        )}
+      </section>
+
+      <section style={{ marginTop: 18 }}>
+        <div className="ios-sect">
+          <h2 className="ios-t3">Recent Results</h2>
+        </div>
+        {results.length > 0 ? (
+          <div className="ios-list">
+            {results.map((result) => {
+              const partner = result.partner && !blockedIds.has(result.partner.id) ? result.partner.name : null;
+              return (
+                <div key={result.id} className="ios-row" style={{ padding: "9px 16px" }}>
+                  <div className="ios-grow">
+                    <div className="ios-bd">
+                      <span className="ios-sb">{result.won ? "Won" : "Lost"}</span> {result.score}
+                    </div>
+                    <div className="ios-fn ios-sec">
+                      {[result.when, result.venue, partner && `with ${partner}`].filter(Boolean).join(" · ")}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="ios-card ios-sh ios-sec" style={{ padding: 16 }}>
+            No confirmed results yet.
+          </div>
+        )}
+      </section>
+
+      <div className="ios-list" style={{ marginTop: 12 }}>
+        <ListRow icon="people" label="Connections" value={String(connCount)} href={isOwner ? "/connections" : undefined} />
+        <ListRow icon="trophy" label="Leaderboard" href="/leaderboard" />
+      </div>
+
+      <div className="ios-list" style={{ marginTop: 12 }}>
+        <ListRow icon="medal" label="Badges" value={String(earnedBadges)} onPress={() => openPage("badges")} />
+        {isOwner && <ListRow icon="qr" label="My Code" onPress={() => openPage("code")} />}
+        <ListRow
+          icon="check-circle"
+          label="Turns Up"
+          value={reliability.percent != null ? `${reliability.percent}%` : undefined}
+          sub={reliabilityNote}
+        />
+      </div>
+
+      <div style={{ height: 16 }} />
+
+      {message && (
+        <div className="ios-toast ios-glass ios-fn" style={{ bottom: 91 }} role="status">
+          {message}
+        </div>
+      )}
+
+      {editing && (
+        <EditProfileSheet
+          profile={profile}
+          onClose={() => setEditing(false)}
+          onChanged={(patch) => setProfile((p) => (p ? { ...p, ...patch } : p))}
+        />
       )}
 
       {currentUserId && (
@@ -716,456 +827,21 @@ export default function PlayerProfilePage() {
         />
       )}
 
-      <Dialog
+      <Alert
         open={confirmingBlock}
-        onClose={() => !blockBusy && setConfirmingBlock(false)}
-        title="Block this player?"
+        onClose={() => {
+          if (!blockBusy) setConfirmingBlock(false);
+        }}
+        title={`Block ${name}?`}
+        actions={[
+          { label: "Cancel", bold: true, disabled: blockBusy, onPress: () => setConfirmingBlock(false) },
+          { label: "Block", destructive: true, busy: blockBusy, onPress: handleBlock },
+        ]}
       >
-        <p className="text-label font-medium text-tinta/70 mt-2">
-          They won&rsquo;t be told, and nothing changes for them.
-        </p>
-
-        <p className="t-mono text-micro tracking-[0.12em] text-tinta/70 mt-3">
-          For you, they disappear from
-        </p>
-        <ul className="text-label font-medium text-tinta/70 mt-1 space-y-0.5 list-disc pl-4">
-          <li>Player search and your connections</li>
-          <li>Chat threads, including messages already sent</li>
-        </ul>
-
-        <p className="t-mono text-micro tracking-[0.12em] text-tinta/70 mt-3">
-          What blocking can&rsquo;t do
-        </p>
-        <p className="text-label font-medium text-tinta/70 mt-1">
-          It won&rsquo;t take either of you out of a game you&rsquo;ve both
-          joined — padel is four people on one court, so you&rsquo;d still be
-          playing together. In a shared game they stay on the roster, marked
-          as blocked, and you can leave the game if you&rsquo;d rather not.
-        </p>
-
-        <p className="text-label font-medium text-tinta/70 mt-3">
-          Any connection between you is removed.
-        </p>
-
-        <div className="flex gap-2.5 mt-5">
-          <Button
-            variant="secondary"
-            className="flex-1"
-            onClick={() => setConfirmingBlock(false)}
-            disabled={blockBusy}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            className="flex-1"
-            onClick={handleBlock}
-            loading={blockBusy}
-          >
-            Block
-          </Button>
-        </div>
-      </Dialog>
-
-      {/* ── Segmented control ────────────────────────────────────────────── */}
-      {!editing && (
-        <div
-          role="tablist"
-          aria-label="Profile sections"
-          className="flex gap-1.5 mt-3 bg-[rgb(6_20_58/0.35)] border-2 border-papel/22 rounded-[3px] p-1"
-        >
-          {(["Overview", "Badges", "Code"] as Tab[])
-            // The code panel is the owner's own sharing tool.
-            .filter((t) => t !== "Code" || isOwner)
-            .map((t) => (
-              <button
-                key={t}
-                type="button"
-                role="tab"
-                aria-selected={tab === t}
-                onClick={() => setTab(t)}
-                className={`t-mono flex-1 py-2 px-1 rounded-stamp text-micro transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-lima ${
-                  tab === t ? "bg-papel text-tinta" : "text-papel/65 hover:text-papel"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-        </div>
-      )}
-
-      {/* ── Edit form — owner only, replaces the panels while open ───────── */}
-      {editing && (
-        <div className="pl-card p-4 mt-3.5">
-          <div className="flex items-center gap-4">
-            <PlayerAvatar
-              userId={playerId}
-              avatarUrl={fAvatarUrl}
-              name={fName || displayName}
-              className="size-14 border-2 border-tinta"
-            />
-            <div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                loading={uploading}
-              >
-                {uploading ? "Uploading…" : "Change photo"}
-              </Button>
-              <p className="text-label font-medium text-tinta/45 mt-1.5">
-                JPG or PNG. Replaces your current photo.
-              </p>
-              {/* Only offered when there is an uploaded photo to remove — on
-                  the generated picture there is nothing to delete. */}
-              {fAvatarUrl && (
-                <button
-                  type="button"
-                  onClick={() => setConfirmingRemove(true)}
-                  disabled={uploading}
-                  className="t-mono text-micro text-naranja-d underline underline-offset-2 mt-2 rounded-field disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-                >
-                  Remove photo
-                </button>
-              )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handlePickFile}
-              className="hidden"
-            />
-          </div>
-
-          <label className="block mt-4">
-            <span className="t-mono text-micro text-tinta/70">Display name</span>
-            <Input
-              type="text"
-              value={fName}
-              onChange={(e) => setFName(e.target.value)}
-              placeholder="Your name"
-              className="mt-1.5"
-            />
-          </label>
-
-          <div className="mt-3">
-            <span className="t-mono text-micro text-tinta/70">Skill level</span>
-            <div className="mt-1.5">
-              <SkillLevelPicker value={fSkill} onChange={setFSkill} />
-            </div>
-          </div>
-
-          <label className="block mt-3">
-            <span className="t-mono text-micro text-tinta/70">Home club</span>
-            <Input
-              type="text"
-              value={fClub}
-              onChange={(e) => setFClub(e.target.value)}
-              placeholder="e.g. Malahide Padel Club"
-              className="mt-1.5"
-            />
-          </label>
-
-          <label className="block mt-3">
-            <span className="t-mono text-micro text-tinta/70">Bio</span>
-            <Textarea
-              value={fBio}
-              onChange={(e) => setFBio(e.target.value)}
-              placeholder="A line or two about your game."
-              rows={3}
-              className="mt-1.5 resize-none"
-            />
-          </label>
-
-          <div className="flex gap-2.5 mt-4">
-            <Button
-              className="flex-1"
-              onClick={handleSave}
-              loading={saving}
-              disabled={uploading}
-            >
-              {saving ? "Saving…" : "Save"}
-            </Button>
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onClick={() => setEditing(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-          <p
-            aria-live="polite"
-            className={`text-center text-label font-semibold text-naranja-d mt-2 ${error ? "" : "hidden"}`}
-          >
-            {error}
-          </p>
-        </div>
-      )}
-
-      {/* ── Overview ─────────────────────────────────────────────────────── */}
-      {!editing && tab === "Overview" && (
-        <>
-          {/* Form — the last eight confirmed results as stamped cells, with
-              the current run called out in riso orange. */}
-          <div className="pl-card px-3.5 py-3.25 mt-3">
-            <div className="flex items-baseline justify-between gap-2.5">
-              <span className="t-mono text-tiny tracking-[0.18em] text-tinta/55 whitespace-nowrap">
-                Form · last {form.length || 8}
-              </span>
-              <span className="t-mono text-micro text-naranja whitespace-nowrap">
-                {currentStreak > 0 ? `W${currentStreak} streak` : "No streak"}
-              </span>
-            </div>
-
-            {form.length > 0 ? (
-              <div className="flex gap-1.25 mt-2.5">
-                {form.map((r, i) => (
-                  <span
-                    key={i}
-                    className={`t-mono flex-1 text-center py-1.5 rounded-stamp text-micro border-2 border-tinta ${
-                      r.won ? "bg-lima text-tinta" : "bg-transparent text-tinta/45"
-                    }`}
-                  >
-                    {r.won ? "W" : "L"}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-label font-medium text-tinta/55 mt-2.5">
-                No confirmed results yet — play a game and log the score.
-              </p>
-            )}
-
-            {/* Where this player's earned rating sits inside its 100-point
-                band, with the next hundred as the target. */}
-            {profile.rating != null && (
-              <div className="flex items-center gap-2.5 mt-3 pt-2.75 border-t-2 border-dashed border-tinta/22">
-                <span className="t-mono text-micro text-tinta/60 whitespace-nowrap">
-                  {profile.rating}
-                </span>
-                <Bar pct={profile.rating % 100} className="flex-1 h-2" />
-                <span className="t-mono text-micro text-tinta/60 whitespace-nowrap">
-                  {Math.floor(profile.rating / 100) * 100 + 100}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <Rule>Upcoming games</Rule>
-          {games.length > 0 ? (
-            <div className="flex flex-col gap-2.25">
-              {games.map((game) => (
-                <UpcomingGameRow key={game.id} game={game} />
-              ))}
-            </div>
-          ) : (
-            <div className="pl-surface rounded-card px-4 py-5 text-center text-body font-medium text-tinta/70">
-              {isOwner
-                ? "Nothing coming up — your next game is waiting on Discover."
-                : `${displayName} has no games coming up.`}
-            </div>
-          )}
-
-          <Rule>About</Rule>
-          <div className="pl-card p-3.5">
-            <div className="flex items-center gap-2 text-body font-medium text-tinta/70">
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden
-                className="shrink-0 text-naranja-d"
-              >
-                <path
-                  d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" />
-              </svg>
-              <span>{profile.home_club || "No home club set"}</span>
-            </div>
-            {profile.bio && (
-              <p className="text-body font-medium text-tinta whitespace-pre-line mt-3 pt-3 border-t-2 border-tinta/15">
-                {profile.bio}
-              </p>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* ── Badges ───────────────────────────────────────────────────────── */}
-      {!editing && tab === "Badges" && (
-        <>
-          <div className="grid grid-cols-3 gap-2.25 mt-3">
-            {badges.flatMap((fam) =>
-              // Every rung of every family: the ones cleared are printed
-              // posters, the rest are dashed outlines waiting to be earned.
-              [...fam.earned, ...(fam.next ? [fam.next] : [])].map((b) => {
-                const earned = fam.value >= b.threshold;
-                return (
-                  <div
-                    key={b.id}
-                    title={b.blurb}
-                    className={`flex flex-col items-center gap-1.75 px-1.5 py-3 rounded-card border-2 ${
-                      earned
-                        ? "border-solid border-tinta bg-papel shadow-[4px_4px_0_rgb(6_20_58/0.4)]"
-                        : "border-dashed border-papel/35 bg-white/6"
-                    }`}
-                  >
-                    <span
-                      className={`size-9.5 rounded-pill grid place-items-center text-[1.125rem] border-2 ${
-                        earned
-                          ? "border-tinta bg-naranja text-white"
-                          : "border-papel/35 text-papel/45"
-                      }`}
-                      aria-hidden
-                    >
-                      {b.family === "games" ? "⬢" : b.family === "streak" ? "⚡" : "★"}
-                    </span>
-                    <span
-                      className={`t-mono text-[0.5625rem] tracking-[0.08em] text-center leading-tight ${
-                        earned ? "text-tinta" : "text-papel/55"
-                      }`}
-                    >
-                      {b.title}
-                    </span>
-                  </div>
-                );
-              }),
-            )}
-          </div>
-
-          <Rule>Next up</Rule>
-          <div className="flex flex-col gap-2.25">
-            {badges
-              .filter((fam) => fam.next)
-              .map((fam) => (
-                <div key={fam.family} className="pl-card px-3.5 py-2.75">
-                  <div className="flex items-baseline justify-between gap-2.5">
-                    <span className="t-display text-[0.875rem] text-tinta truncate">
-                      {fam.next!.title}
-                    </span>
-                    <span className="t-mono text-micro text-tinta/60 whitespace-nowrap">
-                      {fam.value} / {fam.next!.threshold}
-                    </span>
-                  </div>
-                  <Bar
-                    pct={(fam.value / fam.next!.threshold) * 100}
-                    className="h-2.25 mt-2.25"
-                  />
-                </div>
-              ))}
-            {badges.every((fam) => !fam.next) && (
-              <div className="pl-surface rounded-card px-4 py-5 text-center text-body font-medium text-tinta/70">
-                Every badge earned. Nothing left to chase.
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* ── Code — owner only ────────────────────────────────────────────── */}
-      {!editing && tab === "Code" && isOwner && (
-        <>
-          <div className="pl-card shadow-poster p-4.5 text-center mt-3">
-            {qrPanel === "code" ? (
-              <>
-                {origin && <PlayerQRCode url={`${origin}/players/${playerId}`} />}
-                <div className="t-mono text-tiny tracking-[0.18em] text-tinta/55 mt-3.5">
-                  Scan to add {displayName}
-                </div>
-              </>
-            ) : (
-              <>
-                <QRScanner key={scanKey} onScan={handleScan} />
-                {scanError && (
-                  <div className="mt-3">
-                    <p className="text-label font-semibold text-naranja-d">
-                      {scanError}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={retryScan}
-                      className="t-mono text-micro text-tinta/70 underline mt-1.5"
-                    >
-                      Scan again
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5 mt-3">
-            <button
-              type="button"
-              onClick={() => {
-                setQrPanel(qrPanel === "code" ? "scan" : "code");
-                setScanError(null);
-              }}
-              className="t-mono pena-riso flex items-center justify-center gap-2 bg-lima text-tinta border-2 border-tinta rounded-card py-3.25 px-2.5 text-micro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-papel"
-            >
-              {qrPanel === "code" ? "Scan" : "My code"}
-            </button>
-            <Link
-              href="/search"
-              className="t-mono flex items-center justify-center gap-2 bg-transparent text-papel border-2 border-papel/45 hover:border-lima hover:text-lima rounded-card py-3.25 px-2.5 text-micro transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-            >
-              Find by name
-            </Link>
-          </div>
-        </>
-      )}
-
-      {/* Log out — the one destructive action, kept quiet and dashed. */}
-      {isOwner && !editing && (
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="t-mono w-full mt-4 bg-transparent hover:bg-naranja/12 border-2 border-dashed border-naranja/70 text-naranja rounded-card py-3 text-micro tracking-[0.16em] transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-        >
-          Log out
-        </button>
-      )}
-
-      <div className="h-4" />
-      {/* Removing a photo is destructive and immediate, so it asks first —
-          a centred confirm card, same as cancelling a game. */}
-      <Dialog
-        open={confirmingRemove}
-        onClose={() => !removing && setConfirmingRemove(false)}
-        title="Remove your photo?"
-      >
-        <p className="text-label font-medium text-tinta/70 mt-2">
-          Your photo will be deleted and you&rsquo;ll go back to your generated
-          Padel Loop picture. You can upload a new one any time.
-        </p>
-
-        <div className="flex gap-2.5 mt-5">
-          <Button
-            variant="secondary"
-            className="flex-1"
-            onClick={() => setConfirmingRemove(false)}
-            disabled={removing}
-          >
-            Keep photo
-          </Button>
-          <Button
-            variant="destructive"
-            className="flex-1"
-            onClick={handleRemovePhoto}
-            loading={removing}
-          >
-            Remove
-          </Button>
-        </div>
-      </Dialog>
-
-      <BottomNav />
-    </main>
+        They won’t be told. They’ll disappear from your search, connections and chats, and any connection between you is
+        removed. It can’t take either of you out of a game you’ve both joined: they stay on the player list, marked as
+        blocked, and you can leave if you’d rather not play.
+      </Alert>
+    </PageShell>
   );
 }

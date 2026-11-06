@@ -10,7 +10,7 @@ function fmt(d: Date, options: Intl.DateTimeFormatOptions): string {
 }
 
 /* "Today, 20:00" · "Tomorrow, 19:00" · "Sat, 10:00" · "Tue 10 Nov, 20:30".
-   The weekday alone is used only within the coming week, where it can't be
+   The weekday alone is used only up to four days ahead, where it can't be
    mistaken for another date. */
 export function gameWhen(iso: string, now: Date = new Date()): string {
   const d = new Date(iso);
@@ -21,7 +21,7 @@ export function gameWhen(iso: string, now: Date = new Date()): string {
   );
   if (days === 0) return `Today, ${time}`;
   if (days === 1) return `Tomorrow, ${time}`;
-  if (days > 1 && days < 7) return `${fmt(d, { weekday: "short" })}, ${time}`;
+  if (days > 1 && days < 5) return `${fmt(d, { weekday: "short" })}, ${time}`;
   const date = `${fmt(d, { weekday: "short" })} ${fmt(d, { day: "numeric" })} ${fmt(d, { month: "short" })}`;
   return `${date}, ${time}`;
 }

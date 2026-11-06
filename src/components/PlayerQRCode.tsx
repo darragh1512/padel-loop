@@ -1,9 +1,7 @@
 "use client";
 
-// A player's profile as a scannable code — printed straight onto a poster
-// scrap so it reads as part of the peña, not a bolted-on utility widget. The
-// QR itself is drawn with tinta ink on a transparent field so the card's own
-// paper grain shows through the light modules, like it was actually printed.
+// A player's profile as a scannable code. Always black on white, in dark mode too,
+// because that's what phone cameras read most reliably.
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
@@ -25,7 +23,7 @@ export default function PlayerQRCode({ url }: { url: string }) {
     QRCode.toCanvas(canvas, url, {
       width: SIZE,
       margin: 1,
-      color: { dark: "#191407ff", light: "#f3e9d200" },
+      color: { dark: "#000000ff", light: "#ffffffff" },
     })
       .then(() => {
         if (active) setReady(true);
@@ -40,7 +38,7 @@ export default function PlayerQRCode({ url }: { url: string }) {
   }, [url]);
 
   return (
-    <div className="pl-card pena-staples pena-tilt-a p-5 pt-7 flex flex-col items-center text-center">
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <div className="relative" style={{ width: SIZE, height: SIZE }}>
         <canvas
           ref={canvasRef}
@@ -49,18 +47,14 @@ export default function PlayerQRCode({ url }: { url: string }) {
           className={ready ? "" : "invisible"}
         />
         {!ready && !failed && (
-          <div aria-hidden className="absolute inset-0 rounded-field pl-skeleton" />
+          <div aria-hidden className="ios-skel" style={{ position: "absolute", inset: 0, borderRadius: 12 }} />
         )}
       </div>
       {failed ? (
-        <p className="text-label font-medium text-naranja-d mt-3">
-          Couldn&rsquo;t generate a code. Please try again.
+        <p className="ios-fn ios-destructive" style={{ marginTop: 10 }} role="alert">
+          Couldn’t make a code. Try again.
         </p>
-      ) : (
-        <p className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 mt-3">
-          Scan to view this profile
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }

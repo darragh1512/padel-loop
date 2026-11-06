@@ -17,6 +17,8 @@
 // Nothing client-side ever decides a winner.
 
 import { supabase } from "@/lib/supabaseClient";
+import { dublinDateKey } from "@/lib/time";
+import { shortDate } from "@/lib/when";
 
 // One set's score: how many games each team won (0–7).
 export type ResultSet = {
@@ -446,4 +448,80 @@ export async function getPlayerResultHistory(
     confirmedAt: (res.confirmed_at as string | null) ?? null,
     won: teamByResult.get(String(res.id)) === (res.winning_team as number | null),
   }));
+}
+
+// One confirmed result, told from this player's side: their team's games first.
+export type RecentResult = {
+  id: string;
+  won: boolean;
+  score: string; // "6–4, 6–3"
+  when: string; // "Tue 3 Nov"
+  venue: string | null;
+  partner: { id: string; name: string } | null;
+};
+
+// A player's latest confirmed results, newest first. Read failures return
+// nothing: the rest of the profile is still worth showing.
+export async function getRecentResults(userId: string, limit: number): Promise<RecentResult[]> {
+  const { data: mine, error } = await supabase
+    .from("match_result_participants")
+    .select("result_id, team")
+    .eq("user_id", userId);
+  if (error || !mine || mine.length === 0) {
+    if (error) console.error("Could not load match participation:", error.message);
+    return [];
+  }
+  const myTeam = new Map(mine.map((r) => [String(r.result_id), r.team as number]));
+
+  const { data: rows, error: rowsError } = await supabase
+    .from("match_results")
+    .select("id, game_id, winning_team, confirmed_at")
+    .in("id", [...myTeam.keys()])
+    .eq("status", "confirmed")
+    .order("confirmed_at", { ascending: false })
+    .limit(limit);
+  if (rowsError || !rows || rows.length === 0) {
+    if (rowsError) console.error("Could not load confirmed results:", rowsError.message);
+    return [];
+  }
+
+  const ids = rows.map((r) => r.id);
+  const [{ data: sets }, { data: people }, { data: games }] = await Promise.all([
+    supabase.from("match_result_sets").select("result_id, set_number, team1_games, team2_games").in("result_id", ids).order("set_number"),
+    supabase.from("match_result_participants").select("result_id, user_id, team").in("result_id", ids),
+    supabase.from("games").select("id, venue, game_time").in("id", rows.map((r) => r.game_id)),
+  ]);
+
+  const partnerByResult = new Map<string, string>();
+  for (const p of people ?? []) {
+    const result = String(p.result_id);
+    if (p.user_id !== userId && p.team === myTeam.get(result)) partnerByResult.set(result, p.user_id as string);
+  }
+  const partnerIds = [...new Set(partnerByResult.values())];
+  const { data: profiles } = partnerIds.length
+    ? await supabase.from("profiles").select("id, name").in("id", partnerIds)
+    : { data: [] };
+  const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.name as string | null]));
+  const gameOf = new Map((games ?? []).map((g) => [String(g.id), g]));
+
+  return rows.map((row) => {
+    const id = String(row.id);
+    const team = myTeam.get(id);
+    const score = (sets ?? [])
+      .filter((s) => String(s.result_id) === id)
+      .map((s) => (team === 2 ? `${s.team2_games}–${s.team1_games}` : `${s.team1_games}–${s.team2_games}`))
+      .join(", ");
+    const game = gameOf.get(String(row.game_id));
+    const stamp = (game?.game_time ?? row.confirmed_at) as string | null;
+    const partnerId = partnerByResult.get(id);
+    const partnerName = partnerId ? nameOf.get(partnerId) : null;
+    return {
+      id,
+      won: team === row.winning_team,
+      score,
+      when: stamp ? shortDate(dublinDateKey(stamp)) : "",
+      venue: (game?.venue as string | undefined) ?? null,
+      partner: partnerId && partnerName ? { id: partnerId, name: partnerName } : null,
+    };
+  });
 }

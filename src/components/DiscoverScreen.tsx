@@ -221,7 +221,7 @@ function GameCard({
   now: Date;
 }) {
   const [joined, setJoined] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const players = useMemo(
     () => (joined && userId ? [...game.players, { id: userId, initials: viewerInitials }] : game.players),
     [joined, game.players, userId, viewerInitials],
@@ -231,7 +231,7 @@ function GameCard({
   const price = formatPrice(game.pricePerPlayer);
   // Full and closed games stay listed, because their page offers the waitlist.
   const joinable = joined || (!isFull(game) && !game.isManuallyClosed);
-  const status = failed ? "Couldn’t join. Try again." : game.isManuallyClosed ? "Closed" : open > 0 ? spotsOpenText(open) : "Full";
+  const status = failed ?? (game.isManuallyClosed ? "Closed" : open > 0 ? spotsOpenText(open) : "Full");
   const statusIsOpen = !failed && !game.isManuallyClosed && open > 0;
 
   return (
@@ -278,9 +278,9 @@ function GameCard({
             gameLabel={`${dayHeading(game.startsAt, now)}, ${time} at ${game.venue}`}
             userId={userId}
             priced={game.pricePerPlayer != null}
-            onFailed={() => setFailed(true)}
+            onFailed={setFailed}
             onJoined={() => {
-              setFailed(false);
+              setFailed(null);
               setJoined(true);
             }}
           />

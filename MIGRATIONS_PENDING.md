@@ -25,7 +25,9 @@ from the top.
 
 ## Pending
 
-None.
+| File | What it adds | Depends on |
+|---|---|---|
+| `20261106190000_full_game_rule.sql` | The database refuses a player joining a game that is already full, counting guests as taken spots. Weekly copies and waitlist moves aren't affected. Nothing existing is edited or replaced. | `20261106120000` (it stops if guests aren't there). No pre-flight. Safe in either order relative to the app deploy. |
 
 ## Applied
 

@@ -146,7 +146,7 @@ function NearbyRow({
   onJoined: () => void;
 }) {
   const [joined, setJoined] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const players = useMemo(
     () => (joined && userId ? [...game.players, { id: userId, initials: viewerInitials }] : game.players),
     [joined, game.players, userId, viewerInitials],
@@ -171,7 +171,7 @@ function NearbyRow({
           <div className="ios-fn ios-sec">{place(game)}</div>
           {failed ? (
             <div className="ios-fn ios-sec" role="status">
-              Couldn’t join. Try again.
+              {failed}
             </div>
           ) : (
             <div className="ios-fn ios-sb ios-acc" aria-live="polite">
@@ -185,9 +185,9 @@ function NearbyRow({
         gameLabel={`${when} at ${game.venue}`}
         userId={userId}
         priced={priced}
-        onFailed={() => setFailed(true)}
+        onFailed={setFailed}
         onJoined={() => {
-          setFailed(false);
+          setFailed(null);
           setJoined(true);
           onJoined();
         }}

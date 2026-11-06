@@ -95,8 +95,8 @@ export default function QRScanner({
   }, []);
 
   return (
-    <div className="pl-card pena-staples pena-tilt-b p-4 flex flex-col items-center text-center">
-      <div className="relative w-full aspect-square max-w-[280px] rounded-field overflow-hidden bg-tinta">
+    <div className="flex flex-col items-center text-center">
+      <div className="relative w-full aspect-square max-w-[280px] rounded-2xl overflow-hidden bg-black">
         <video
           ref={videoRef}
           playsInline
@@ -105,25 +105,25 @@ export default function QRScanner({
         />
         {status !== "scanning" && (
           <div className="absolute inset-0 flex items-center justify-center px-5">
-            {status === "starting" && <Spinner className="text-papel" />}
+            {status === "starting" && <Spinner className="text-white" />}
             {status === "denied" && (
-              <p className="text-label font-medium text-papel">
+              <p className="text-label font-medium text-white">
                 Camera access is off. Allow it in your browser settings to scan a code.
               </p>
             )}
             {status === "unsupported" && (
-              <p className="text-label font-medium text-papel">
+              <p className="text-label font-medium text-white">
                 Scanning isn&rsquo;t supported in this browser.
               </p>
             )}
           </div>
         )}
         {status === "scanning" && (
-          <div aria-hidden className="absolute inset-6 rounded-field border-2 border-lima" />
+          <div aria-hidden className="absolute inset-6 rounded-2xl border-2 border-white" />
         )}
       </div>
       <canvas ref={canvasRef} className="hidden" />
-      <p className="t-mono text-[9px] tracking-[0.1em] text-tinta/70 mt-3">
+      <p className="ios-fn ios-sec mt-3">
         Point your camera at a player&rsquo;s code
       </p>
     </div>

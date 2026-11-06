@@ -321,6 +321,9 @@ export async function getGamePlayerProfiles(
 
 // Add the logged-in user to a game (they tapped "Join"). Returns { ok: true }
 // on success, or { error } with a message if something went wrong.
+// What the database says when the last spot has already gone.
+export const GAME_FULL = "This game has just filled up.";
+
 export async function joinGame(
   gameId: string,
   userId: string,
@@ -331,7 +334,7 @@ export async function joinGame(
 
   if (error) {
     console.error("Could not join game:", error.message);
-    return { error: error.message };
+    return { error: /game is full/i.test(error.message) ? GAME_FULL : error.message };
   }
 
   return { ok: true };

@@ -14,6 +14,7 @@ import { capture } from "@/lib/analytics";
 import { clearPendingJoin, hasPendingJoin, startAuthForJoin } from "@/lib/pendingIntent";
 import { supabase } from "@/lib/supabaseClient";
 import {
+  GAME_FULL,
   getGamePlayers,
   getWaitlist,
   joinGame,
@@ -190,8 +191,9 @@ export function useJoinControl({
     setError(null);
     const result = await joinGame(gameId, userId);
     if ("error" in result) {
-      setError("Couldn’t take that spot. Try again.");
+      setError(result.error === GAME_FULL ? GAME_FULL : "Couldn’t take that spot. Try again.");
       setWorking(false);
+      if (result.error === GAME_FULL) router.refresh(); // show the full game and its waitlist
       return;
     }
     // The bottom of the funnel. game_id is an id, priced is a boolean —
