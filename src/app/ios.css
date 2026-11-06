@@ -663,6 +663,7 @@ html:active-view-transition-type(open-game, close-game)::view-transition-new(roo
 ::view-transition-new(ios-tabbar) { animation: none; }
 
 /* ── Loading placeholders ── */
+.ios-court-blank .ios-court g { display: none; }
 .ios-skel { background: var(--ios-fill); border-radius: 26px; animation: ios-pulse 1.4s ease-in-out infinite; }
 @keyframes ios-pulse { 50% { opacity: 0.55; } }
 

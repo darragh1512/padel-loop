@@ -268,6 +268,19 @@ export async function getGame(id: string): Promise<Game | null> {
   return null;
 }
 
+// getGame for the pages that open a game. A failed read throws, so it reaches the
+// error page and its Try Again, rather than telling someone the game doesn't exist.
+// Null means it really isn't there: no such row, or an id that can't be one.
+export async function getGameOrThrow(id: string): Promise<Game | null> {
+  const { data, error } = await supabase.from("games").select("*").eq("id", id).single();
+  if (error) {
+    if (error.code === "PGRST116" || error.code === "22P02") return null;
+    throw new Error(error.message);
+  }
+  const players = await getPlayersForGame(String(data.id), data.created_by);
+  return rowToGame(data, players);
+}
+
 // Every game proposed inside ONE group — same UI Game shape as getGames(),
 // same batched player-loading, just filtered by group_id instead of
 // "upcoming and off Discover". Ordered oldest-proposed first so the group

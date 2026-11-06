@@ -21,6 +21,9 @@ import StartMatchSheet from "./start-match-sheet";
 
 const TEAMS = [1, 2];
 
+// Players sometimes start early, so Start Match appears this long before the game.
+const START_MATCH_EARLY_MS = 60 * 60 * 1000;
+
 // Exactly what the server compares: the same sets in the same order.
 function sameSheet(a: ResultSet[], b: ResultSet[]): boolean {
   return a.length === b.length && a.every((s, i) => s.team1Games === b[i].team1Games && s.team2Games === b[i].team2Games);
@@ -135,12 +138,14 @@ export default function LogResult({
   createdBy,
   maxPlayers,
   cancelled,
+  startsAt,
 }: {
   gameId: string;
   players: Player[];
   createdBy?: string;
   maxPlayers: number;
   cancelled: boolean;
+  startsAt: string;
 }) {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
@@ -152,6 +157,17 @@ export default function LogResult({
   // Who this player says didn't turn up, sent with their scores. It's only a report:
   // the database records an absence when everyone who submits names the same person.
   const [absent, setAbsent] = useState<string[]>([]);
+  const opensAt = Date.parse(startsAt) - START_MATCH_EARLY_MS;
+  const [startOpen, setStartOpen] = useState(() => Date.now() >= opensAt);
+
+  // Appears by itself if the page is left open until then. The longest wait a timer
+  // can hold is about 24 days, and a game further off than that just stays hidden.
+  useEffect(() => {
+    const wait = opensAt - Date.now();
+    if (wait <= 0 || wait > 2 ** 31 - 1) return;
+    const timer = setTimeout(() => setStartOpen(true), wait);
+    return () => clearTimeout(timer);
+  }, [opensAt]);
 
   // After any change, ours or anyone else's. If this read fails, the last good
   // result stays on screen rather than the section disappearing.
@@ -311,7 +327,7 @@ export default function LogResult({
     );
   } else {
     // Results need four real players, so guests and 2-player games can't record one.
-    const canStart = isOwner && !cancelled && maxPlayers === 4 && players.length === 4;
+    const canStart = isOwner && !cancelled && startOpen && maxPlayers === 4 && players.length === 4;
     if (!canStart) return null;
     body = (
       <section style={{ marginTop: 18 }}>

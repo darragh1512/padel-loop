@@ -4,7 +4,7 @@ import ChatHeader from "@/components/ChatHeader";
 import { ChatPinButton } from "@/components/ChatPin";
 import Icon from "@/components/ios/Icon";
 import { gameWhen } from "@/lib/when";
-import { getGame } from "../../../games";
+import { getGameOrThrow } from "../../../games";
 import ChatThread from "../chat-thread";
 
 // Full-screen chat for one game. The tab bar isn't shown here, and the message
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export default async function GameChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const game = await getGame(id);
+  const game = await getGameOrThrow(id);
   if (!game) notFound();
 
   return (

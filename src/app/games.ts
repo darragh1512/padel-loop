@@ -84,6 +84,17 @@ export async function getGame(id: string): Promise<Game | null> {
   return data;
 }
 
+// For a page that opens a game: a failed read throws, so it reaches the error page
+// rather than saying the game doesn't exist. Null means it really isn't there.
+export async function getGameOrThrow(id: string): Promise<Game | null> {
+  const { data, error } = await supabase.from("games").select("*").eq("id", id).single();
+  if (error) {
+    if (error.code === "PGRST116" || error.code === "22P02") return null;
+    throw new Error(error.message);
+  }
+  return data;
+}
+
 // ---------------------------------------------------------------------------
 // Players — everything below works with the "game_players" table, where each
 // row links one user (user_id) to one game (game_id).

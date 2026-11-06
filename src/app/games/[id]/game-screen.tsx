@@ -331,7 +331,7 @@ export default function GameScreen({
 
       {/* The organiser starts the match once the game is full, then every player
           enters the score separately. The server confirms it when they all match. */}
-      <LogResult gameId={game.id} players={game.players} createdBy={game.createdBy} maxPlayers={game.maxPlayers} cancelled={cancelled} />
+      <LogResult gameId={game.id} players={game.players} createdBy={game.createdBy} maxPlayers={game.maxPlayers} cancelled={cancelled} startsAt={game.startsAt} />
 
       <div style={{ height: 72 }} />
 

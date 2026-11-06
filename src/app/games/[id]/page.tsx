@@ -1,5 +1,5 @@
 import BottomNav from "@/components/BottomNav";
-import { getGame } from "@/lib/data";
+import { getGameOrThrow } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { hasMatchResult } from "../../match-results";
 import { getWaitlistPlayers } from "../../games";
@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 // generateMetadata and the page body both need the game. React's cache()
 // dedupes them within a single request, so a link preview scrape costs one
 // database read rather than two.
-const loadGame = cache(getGame);
+const loadGame = cache(getGameOrThrow);
 
 // The WhatsApp link preview. Title is the club, description is date, time,
 // level and spots left; the picture is generated next door in
@@ -33,7 +33,10 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const game = await loadGame(id);
+  // A failed read says nothing about the game, so the preview stays neutral. The
+  // page itself shows the error.
+  const game = await loadGame(id).catch(() => undefined);
+  if (game === undefined) return { title: "Padel Loop" };
 
   if (!game) {
     return {

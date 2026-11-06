@@ -1,29 +1,18 @@
 import { ImageResponse } from "next/og";
-import { getGame } from "@/lib/data";
+import { getGameOrThrow } from "@/lib/data";
 import { shareStateOf, shareWhen, spotsPhrase } from "./share-copy";
 
-// The link preview card, drawn per game in the peña palette.
+// The picture shown when a game's link is shared, drawn per game.
 //
-// READABLE AS A THUMBNAIL, which is the actual design constraint here. This is
-// not a poster that happens to be small — WhatsApp renders it around 300–400px
-// wide in a chat, roughly a third of full size, and smaller again in a reply
-// quote. Three rules follow from that:
+// It has to read as a thumbnail: WhatsApp shows it around 300–400px wide, about a
+// third of full size. So there are only the venue, the time and the spots, sized so
+// the smallest text still clears about 12px once shrunk. The court shows how full
+// the game is, the same way it does in the app.
 //
-//   1. Three elements only — venue, when, spots. Anything else is noise at
-//      1/3 scale.
-//   2. Type is sized so the SMALLEST element still clears ~12px once scaled:
-//      the venue at 92px lands near 30px, the spots pill near 15px.
-//   3. Everything sits in the middle 640px, so a platform that centre-crops to
-//      a square keeps the whole card rather than slicing the venue in half.
+// Fonts are the ImageResponse defaults on purpose. Fetching any others would put a
+// network call, and a way to fail, in front of a preview with seconds to render.
 //
-// Palette straight from globals.css: pista wall, papel poster, tinta ink,
-// lima for a live game, naranja-d for one nobody can join.
-//
-// Fonts are the ImageResponse defaults on purpose. The brand faces are loaded
-// through next/font, which gives no raw font data to hand to satori, and
-// fetching them from Google on every scrape would put a network call — and a
-// failure mode — in front of a preview that has seconds to render. Weight and
-// scale carry the identity here; the palette does the rest.
+// Colours are the light-mode values from ios.css, since an image can't read them.
 
 export const alt = "Padel Loop game";
 export const size = { width: 1200, height: 630 };
@@ -32,24 +21,44 @@ export const contentType = "image/png";
 // Spots left is live data, so this must never be prerendered at build time.
 export const dynamic = "force-dynamic";
 
-const PISTA = "#1A4FC4";
-const PISTA_D = "#0F1C3F";
-const PAPEL = "#F4EEE0";
-const TINTA = "#10214A";
-const NARANJA_D = "#C93E0F";
-const LIMA = "#C6E63F";
+const SURROUND = "#0b4a82";
+const COURT = "#1262a8";
+const CARD = "#ffffff";
+const LABEL = "#000000";
+const SECONDARY = "#60606a";
+const FILL = "#e5e5ea";
+const DESTRUCTIVE = "#d70015";
 
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+// Where players stand on the app's court: a near and far pair, or one each side.
+const SPOTS: Record<number, [number, number][]> = {
+  2: [[62, 50], [138, 50]],
+  4: [[62, 27], [62, 73], [138, 27], [138, 73]],
+};
+
+function MiniCourt({ taken, places }: { taken: number; places: number }) {
+  return (
+    <svg width="240" height="120" viewBox="0 0 200 100">
+      <rect width="200" height="100" rx="9" fill={COURT} />
+      <path d="M30.5 0V100M169.5 0V100M30.5 50H169.5" fill="none" stroke="#fff" strokeOpacity=".78" strokeWidth="1.5" />
+      <path d="M100 0V100" stroke="#fff" strokeWidth="2.6" />
+      {(SPOTS[places] ?? SPOTS[4]).map(([x, y], i) =>
+        i < taken ? (
+          <circle key={i} cx={x} cy={y} r="13" fill="#fff" />
+        ) : (
+          <circle key={i} cx={x} cy={y} r="11.6" fill="none" stroke="#fff" strokeWidth="2.6" />
+        ),
+      )}
+    </svg>
+  );
+}
+
+export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const game = await getGame(id);
+  const game = await getGameOrThrow(id).catch(() => undefined);
 
-  // The game was deleted, or never existed, after the link was shared. Give a
-  // real card rather than a 500: a scraper that gets an error shows no image
-  // at all, which looks like a broken site instead of a finished game.
+  // The game was deleted, or the read failed. A scraper that gets an error shows no
+  // image at all, which looks like a broken site, so it always gets a real card, and
+  // a failed read doesn't claim the game has gone.
   if (!game) {
     return new ImageResponse(
       (
@@ -61,18 +70,14 @@ export default async function Image({
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            background: PISTA_D,
-            color: PAPEL,
-            fontSize: 64,
-            letterSpacing: "0.02em",
+            background: SURROUND,
+            color: "#fff",
           }}
         >
-          <div style={{ display: "flex", fontSize: 88, fontWeight: 800 }}>
-            PADEL LOOP
-          </div>
-          <div style={{ display: "flex", marginTop: 24, opacity: 0.85 }}>
-            This game is no longer listed
-          </div>
+          <div style={{ display: "flex", fontSize: 88, fontWeight: 700 }}>Padel Loop</div>
+          {game === null && (
+            <div style={{ display: "flex", fontSize: 52, marginTop: 24, opacity: 0.85 }}>This game is no longer listed</div>
+          )}
         </div>
       ),
       { ...size, headers: cacheHeaders() },
@@ -80,11 +85,9 @@ export default async function Image({
   }
 
   const state = shareStateOf(game);
-  const live = state === "open";
-  // A game nobody can join reads in the dark orange; a live one in lima. The
-  // colour is the fastest signal at thumbnail size — faster than the words.
-  const pillBg = live ? LIMA : NARANJA_D;
-  const pillFg = live ? TINTA : PAPEL;
+  const cancelled = state === "cancelled";
+  const open = state === "open";
+  const places = game.maxPlayers === 2 ? 2 : 4;
 
   return new ImageResponse(
     (
@@ -95,76 +98,53 @@ export default async function Image({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: `linear-gradient(160deg, ${PISTA} 0%, ${PISTA_D} 100%)`,
+          background: SURROUND,
           padding: 56,
         }}
       >
-        {/* The poster. Fixed width so it stays inside a square centre-crop. */}
         <div
           style={{
-            width: 940,
+            width: 1000,
             display: "flex",
             flexDirection: "column",
-            background: PAPEL,
-            border: `10px solid ${TINTA}`,
-            borderRadius: 28,
-            padding: "56px 56px 48px",
+            background: CARD,
+            borderRadius: 48,
+            padding: "48px 56px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              fontSize: 30,
-              letterSpacing: "0.34em",
-              color: NARANJA_D,
-              fontWeight: 700,
-            }}
-          >
-            PADEL LOOP
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", fontSize: 40, fontWeight: 600, color: COURT }}>Padel Loop</div>
+            <MiniCourt taken={game.players.length + game.guestCount} places={places} />
           </div>
 
-          {/* Venue — the one thing that must survive any amount of shrinking. */}
+          {/* Two lines at most: a third would squeeze everything below it. */}
           <div
             style={{
               display: "flex",
-              fontSize: 92,
-              lineHeight: 1.04,
-              fontWeight: 800,
-              color: TINTA,
-              marginTop: 20,
-              // Two lines maximum, then clipped — a third line would shrink
-              // everything below it out of legibility.
-              maxHeight: 200,
+              fontSize: 84,
+              lineHeight: 1.06,
+              fontWeight: 700,
+              color: LABEL,
+              marginTop: 16,
+              maxHeight: 180,
               overflow: "hidden",
             }}
           >
             {game.venue}
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              fontSize: 46,
-              color: TINTA,
-              opacity: 0.75,
-              marginTop: 22,
-            }}
-          >
-            {shareWhen(game)}
-          </div>
+          <div style={{ display: "flex", fontSize: 44, color: SECONDARY, marginTop: 12 }}>{shareWhen(game)}</div>
 
-          {/* Spots — colour first, words second. */}
-          <div style={{ display: "flex", marginTop: 34 }}>
+          <div style={{ display: "flex", marginTop: 28 }}>
             <div
               style={{
                 display: "flex",
-                background: pillBg,
-                color: pillFg,
-                border: `6px solid ${TINTA}`,
+                background: open ? COURT : FILL,
+                color: open ? "#fff" : cancelled ? DESTRUCTIVE : LABEL,
                 borderRadius: 999,
-                padding: "16px 36px",
+                padding: "14px 36px",
                 fontSize: 44,
-                fontWeight: 700,
+                fontWeight: 600,
               }}
             >
               {spotsPhrase(game)}
@@ -177,12 +157,11 @@ export default async function Image({
   );
 }
 
-/* Spots left changes as people join and leave, so this is deliberately short.
-   It governs our own CDN and any repeat scrape — it cannot reach into a
-   preview a chat app has already cached and stored against the URL. */
+/* Spots left changes as people join and leave, so this is deliberately short. It
+   governs our own CDN and any repeat scrape, but can't reach a preview a chat app
+   has already stored against the URL. */
 function cacheHeaders(): Record<string, string> {
   return {
-    "Cache-Control":
-      "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+    "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
   };
 }
