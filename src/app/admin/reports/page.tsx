@@ -16,19 +16,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
-import { ButtonLink, EmptyState, ErrorState, SectionLabel, Skeleton } from "@/components/ui";
-import { Flag } from "lucide-react";
+import MessageCard, { TryAgain } from "@/components/ios/MessageCard";
+import PageTitle from "@/components/ios/PageTitle";
 import { supabase } from "@/lib/supabaseClient";
-import {
-  amIAdmin,
-  getReports,
-  setReportStatus,
-  REPORT_REASONS,
-  type ReportRow,
-} from "@/app/reports";
+import { amIAdmin, getReports, setReportStatus, REPORT_REASONS, type ReportRow } from "@/app/reports";
 
 const STATUSES = ["open", "reviewing", "closed"] as const;
 type Status = (typeof STATUSES)[number];
+
+const LABEL: Record<Status, string> = { open: "Open", reviewing: "Reviewing", closed: "Closed" };
 
 function reasonLabel(value: string): string {
   return REPORT_REASONS.find((r) => r.value === value)?.label ?? value;
@@ -36,18 +32,34 @@ function reasonLabel(value: string): string {
 
 function when(iso: string): string {
   const d = new Date(iso);
-  return isNaN(d.getTime())
-    ? iso
-    : d.toLocaleString("en-IE", { dateStyle: "medium", timeStyle: "short" });
+  return isNaN(d.getTime()) ? iso : d.toLocaleString("en-IE", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function Skeleton() {
+  return <div className="ios-skel" aria-hidden style={{ height: 160, margin: "16px 16px 0" }} />;
+}
+
+function Quote({ label, text }: { label: string; text: string }) {
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div className="ios-fn ios-sec">{label}</div>
+      <p className="ios-sh" style={{ marginTop: 2, overflowWrap: "anywhere" }}>
+        {text}
+      </p>
+    </div>
+  );
 }
 
 export default function AdminReportsPage() {
   const [checking, setChecking] = useState(true);
   const [admin, setAdmin] = useState(false);
+  const [checkFailed, setCheckFailed] = useState(false);
+  const [checkAttempt, setCheckAttempt] = useState(0);
   const [tab, setTab] = useState<Status>("open");
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [moveFailedId, setMoveFailedId] = useState<number | null>(null);
   // A queue that failed to load must not read as a clean queue — that is
   // the one mistake a moderation screen cannot afford.
   const [failed, setFailed] = useState(false);
@@ -64,15 +76,22 @@ export default function AdminReportsPage() {
         }
         return;
       }
-      const yes = await amIAdmin();
-      if (!active) return;
-      setAdmin(yes);
+      try {
+        const yes = await amIAdmin();
+        if (!active) return;
+        setAdmin(yes);
+        setCheckFailed(false);
+      } catch {
+        // Read as "not an admin", this would tell a moderator there's nothing here.
+        if (!active) return;
+        setCheckFailed(true);
+      }
       setChecking(false);
     })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [checkAttempt]);
 
   useEffect(() => {
     let active = true;
@@ -98,19 +117,41 @@ export default function AdminReportsPage() {
   async function move(id: number, status: Status) {
     if (busyId) return;
     setBusyId(id);
+    setMoveFailedId(null);
     const result = await setReportStatus(id, status);
-    if ("ok" in result) {
-      // It leaves the list it was in.
-      setReports((rows) => rows.filter((r) => r.id !== id));
-    }
+    // It leaves the list it was in.
+    if ("ok" in result) setReports((rows) => rows.filter((r) => r.id !== id));
+    else setMoveFailedId(id);
     setBusyId(null);
   }
 
   if (checking) {
     return (
-      <main className="px-5 pt-6 relative">
-        <Skeleton className="rounded-field h-9 w-48 mt-2" />
-        <Skeleton className="rounded-card h-24 w-full mt-4" />
+      <main className="ios">
+        <PageTitle title="Reports" fallback="/" />
+        <Skeleton />
+        <BottomNav />
+      </main>
+    );
+  }
+
+  if (checkFailed) {
+    return (
+      <main className="ios">
+        <PageTitle title="Reports" fallback="/" />
+        <MessageCard
+          alert
+          title="Couldn’t Open Reports"
+          body="Reports may be waiting. Check your connection and try again."
+          action={
+            <TryAgain
+              onClick={() => {
+                setChecking(true);
+                setCheckAttempt((n) => n + 1);
+              }}
+            />
+          }
+        />
         <BottomNav />
       </main>
     );
@@ -120,146 +161,114 @@ export default function AdminReportsPage() {
   // whether the page exists or who can see it.
   if (!admin) {
     return (
-      <main className="px-5 pt-6 relative">
-        <h1 className="t-display text-display-md text-papel mt-2">Nothing here</h1>
-        <p className="text-body font-medium text-papel/85 mt-1.5">
-          This page isn&rsquo;t available to your account.
-        </p>
-        <Link
-          href="/"
-          className="t-mono inline-block text-lima text-body mt-4 rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-        >
-          ← Back home
-        </Link>
+      <main className="ios">
+        <header className="ios-nav">
+          <h1 className="ios-lt">Nothing Here</h1>
+        </header>
+        <MessageCard
+          title="Not Available"
+          body="This page isn’t available to your account."
+          action={
+            <Link href="/" className="ios-pill ios-press">
+              Back to Home
+            </Link>
+          }
+        />
         <BottomNav />
       </main>
     );
   }
 
   return (
-    <main className="px-5 pt-6 relative">
-      <h1 className="t-display text-display-md text-papel mt-2">Reports</h1>
+    <main className="ios">
+      <PageTitle title="Reports" fallback="/" />
 
-      <div className="pl-surface flex rounded-full p-1 mt-4">
+      <div className="ios-seg" role="group" aria-label="Show" style={{ margin: "10px 16px 0" }}>
         {STATUSES.map((s) => (
           <button
             key={s}
             type="button"
+            aria-pressed={tab === s}
             onClick={() => {
               setLoading(true);
+              setMoveFailedId(null);
               setTab(s);
             }}
-            className={`flex-1 text-center text-label py-2 rounded-full capitalize transition-colors duration-150 ease-out ${
-              tab === s
-                ? "bg-lima text-tinta font-extrabold border-[1.5px] border-tinta"
-                : "text-tinta/70 font-semibold border-[1.5px] border-transparent"
-            }`}
           >
-            {s}
+            {LABEL[s]}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <Skeleton className="rounded-card h-28 w-full mt-4" />
+        <Skeleton />
       ) : failed ? (
-        <div className="mt-4">
-          <ErrorState
-            title="Couldn't load the queue."
-            body="Reports may be waiting — this is a loading failure, not an empty queue."
-            onRetry={() => {
-              setLoading(true);
-              setAttempt((n) => n + 1);
-            }}
-          />
-        </div>
+        <MessageCard
+          alert
+          title="Couldn’t Load Reports"
+          body="Reports may be waiting. This is a loading failure, not an empty queue."
+          action={
+            <TryAgain
+              onClick={() => {
+                setLoading(true);
+                setAttempt((n) => n + 1);
+              }}
+            />
+          }
+        />
       ) : reports.length === 0 ? (
-        <div className="mt-4">
-          <EmptyState
-            icon={<Flag size={22} strokeWidth={2.2} />}
-            title={`Nothing ${tab}.`}
-            body="Reports land here as soon as somebody files one."
-            action={
-              <ButtonLink href="/" variant="secondary" size="sm">
-                Back home
-              </ButtonLink>
-            }
-          />
-        </div>
+        <MessageCard title={`Nothing ${LABEL[tab]}`} body="Reports land here as soon as someone files one." />
       ) : (
-        <>
-          <SectionLabel>
-            {reports.length} {tab}
-          </SectionLabel>
-          <div className="flex flex-col gap-2.5">
-            {reports.map((r) => (
-              <div key={r.id} className="pl-card p-4">
-                <div className="flex items-baseline justify-between gap-3">
-                  <div className="t-mono text-micro tracking-[0.14em] text-naranja-d">
-                    {reasonLabel(r.reason)}
-                  </div>
-                  <div className="t-mono text-[9px] tracking-[0.1em] text-tinta/55 whitespace-nowrap">
-                    {when(r.createdAt)}
-                  </div>
-                </div>
-
-                <p className="text-body font-extrabold text-tinta mt-1.5">
-                  <Link
-                    href={`/players/${r.reportedId}`}
-                    className="underline underline-offset-2"
-                  >
-                    {r.reportedName ?? "Player"}
-                  </Link>{" "}
-                  <span className="font-medium text-tinta/60">reported by</span>{" "}
-                  <Link
-                    href={`/players/${r.reporterId}`}
-                    className="underline underline-offset-2"
-                  >
-                    {r.reporterName ?? "Player"}
-                  </Link>
-                </p>
-
-                {/* The evidence — the copy taken when the report was filed, so
-                    it survives the message being deleted. */}
-                {r.context === "message" && (
-                  <div className="pl-surface rounded-field px-3 py-2 mt-2.5">
-                    <div className="t-mono text-micro tracking-[0.12em] text-tinta/55">
-                      Reported message
-                    </div>
-                    <p className="text-label font-medium text-tinta/80 mt-1 break-words">
-                      {r.messageText ?? "(no copy stored)"}
-                    </p>
-                  </div>
-                )}
-
-                {r.details && (
-                  <div className="mt-2.5">
-                    <div className="t-mono text-micro tracking-[0.12em] text-tinta/55">
-                      They said
-                    </div>
-                    <p className="text-label font-medium text-tinta/80 mt-1 break-words">
-                      {r.details}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-2 mt-3.5">
-                  {STATUSES.filter((s) => s !== r.status).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => move(r.id, s)}
-                      disabled={busyId === r.id}
-                      className="t-mono flex-1 text-micro tracking-[0.12em] text-tinta border-2 border-tinta rounded-pill py-1.5 capitalize disabled:opacity-50 active:scale-[0.98] transition-transform duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima"
-                    >
-                      {busyId === r.id ? "…" : `Mark ${s}`}
-                    </button>
-                  ))}
+        <section style={{ marginTop: 16 }}>
+          {reports.map((r) => (
+            <div key={r.id} className="ios-card" style={{ padding: 16, marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+                <div className="ios-hl">{reasonLabel(r.reason)}</div>
+                <div className="ios-fn ios-sec" style={{ whiteSpace: "nowrap" }}>
+                  {when(r.createdAt)}
                 </div>
               </div>
-            ))}
-          </div>
-        </>
+
+              <p className="ios-sh ios-sec" style={{ marginTop: 4 }}>
+                <Link href={`/players/${r.reportedId}`} className="ios-link ios-acc ios-sb">
+                  {r.reportedName ?? "Player"}
+                </Link>{" "}
+                reported by{" "}
+                <Link href={`/players/${r.reporterId}`} className="ios-link ios-acc ios-sb">
+                  {r.reporterName ?? "Player"}
+                </Link>
+              </p>
+
+              {/* The evidence — the copy taken when the report was filed, so
+                  it survives the message being deleted. */}
+              {r.context === "message" && <Quote label="Reported Message" text={r.messageText ?? "No copy stored."} />}
+              {r.details && <Quote label="They Said" text={r.details} />}
+
+              {moveFailedId === r.id && (
+                <p className="ios-fn ios-destructive" role="alert" style={{ marginTop: 10 }}>
+                  Couldn’t update that report. Check your connection and try again.
+                </p>
+              )}
+
+              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                {STATUSES.filter((s) => s !== r.status).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className="ios-wide-btn"
+                    data-tone="tint"
+                    style={{ height: 40, fontSize: 15 }}
+                    disabled={busyId === r.id}
+                    aria-busy={busyId === r.id || undefined}
+                    onClick={() => move(r.id, s)}
+                  >
+                    Mark {LABEL[s]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
       )}
 
       <BottomNav />

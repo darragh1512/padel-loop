@@ -18,41 +18,26 @@
 
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import LegalBack from "./legal-back";
 import { marked } from "marked";
 import BottomNav from "@/components/BottomNav";
+import PageTitle from "@/components/ios/PageTitle";
 
 export default async function LegalPage({ slug }: { slug: "terms" | "privacy" }) {
-  const source = await readFile(
-    join(process.cwd(), "content", `${slug}.md`),
-    "utf8",
-  );
+  const source = await readFile(join(process.cwd(), "content", `${slug}.md`), "utf8");
   const html = await marked.parse(source);
 
+  // The file's own heading becomes the page title, so it isn't shown twice.
+  const heading = /<h1[^>]*>(.*?)<\/h1>/.exec(html);
+  const title = heading?.[1] ?? "Padel Loop";
+  const body = heading ? html.replace(heading[0], "") : html;
+
   return (
-    <main className="px-5 pt-6 relative">
-      <LegalBack />
-
-      {/* One papel poster holding the whole document. The prose styles live
-          here rather than in globals.css because this is the only place in the
-          app that renders markdown — everything else is hand-built JSX. */}
-      <article
-        className="pl-card p-5 mt-4 mb-6 text-tinta
-          [&_h1]:t-display [&_h1]:text-display-sm [&_h1]:leading-tight [&_h1]:mb-4
-          [&_h2]:t-display [&_h2]:text-title [&_h2]:mt-6 [&_h2]:mb-2
-          [&_h3]:t-mono [&_h3]:text-label [&_h3]:tracking-[0.12em] [&_h3]:mt-5 [&_h3]:mb-1.5
-          [&_p]:text-body [&_p]:font-medium [&_p]:text-tinta/80 [&_p]:leading-relaxed [&_p]:mb-3
-          [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_ul]:space-y-1
-          [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3 [&_ol]:space-y-1
-          [&_li]:text-body [&_li]:font-medium [&_li]:text-tinta/80 [&_li]:leading-relaxed
-          [&_strong]:font-extrabold [&_strong]:text-tinta
-          [&_em]:not-italic [&_em]:t-mono [&_em]:text-micro [&_em]:tracking-[0.1em] [&_em]:text-tinta/55
-          [&_a]:text-naranja-d [&_a]:underline [&_a]:underline-offset-2
-          [&_hr]:border-tinta/20 [&_hr]:my-5
-          [&_code]:t-mono [&_code]:text-micro [&_code]:bg-tinta/8 [&_code]:rounded [&_code]:px-1"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-
+    <main className="ios">
+      {/* From sign-up, Back returns to the half-filled form. Opened from a link,
+          there's nowhere to go back to, so it goes to Settings. */}
+      <PageTitle title={title} fallback="/profile" />
+      <article className="ios-card ios-prose" style={{ marginTop: 16, padding: "4px 20px 20px" }} dangerouslySetInnerHTML={{ __html: body }} />
+      <div style={{ height: 16 }} />
       <BottomNav />
     </main>
   );

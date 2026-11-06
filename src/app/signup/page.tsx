@@ -9,11 +9,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AuthHeader, { useAuthSearch } from "@/components/AuthHeader";
 import Icon from "@/components/ios/Icon";
 import SkillLevelPicker from "@/components/SkillLevelPicker";
 import { capture, identify } from "@/lib/analytics";
+import { recordPath } from "@/lib/navMemory";
 import { readAuthParams } from "@/lib/pendingIntent";
 import { supabase } from "@/lib/supabaseClient";
 import { createProfile } from "../profiles";
@@ -30,6 +31,10 @@ export default function SignupPage() {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // This screen has no tab bar, which is what normally remembers where someone has
+  // been. Without this, Back from the Terms would send them to Log In instead.
+  useEffect(() => recordPath("/signup"), []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

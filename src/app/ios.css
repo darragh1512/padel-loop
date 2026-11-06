@@ -355,6 +355,20 @@ body:has(.ios) {
   animation: ios-fade 200ms linear;
 }
 /* Sections not rebuilt yet keep their old background so their colours stay readable. */
+/* ── Legal pages: the only markdown in the app ── */
+.ios-prose { font-size: 15px; line-height: 21px; letter-spacing: -0.23px; }
+.ios-prose h2 { margin-top: 20px; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.43px; }
+.ios-prose h3 { margin-top: 16px; font-size: 15px; font-weight: 600; }
+.ios-prose p, .ios-prose ul, .ios-prose ol { margin-top: 8px; color: var(--ios-secondary); }
+.ios-prose > :first-child { margin-top: 16px; }
+.ios-prose ul { list-style: disc; padding-left: 20px; }
+.ios-prose ol { list-style: decimal; padding-left: 20px; }
+.ios-prose li { margin-top: 4px; }
+.ios-prose strong { font-weight: 600; color: var(--ios-label); }
+.ios-prose em { font-style: normal; font-size: 13px; }
+.ios-prose a { color: var(--ios-accent); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.ios-prose hr { margin: 20px 0; border: 0; border-top: 0.5px solid var(--ios-sep); }
+
 /* ── Match result ── */
 .ios-board { padding-bottom: 14px; }
 .ios-board-row { display: flex; align-items: center; gap: 4px; padding: 12px 16px 0; }

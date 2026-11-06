@@ -111,7 +111,7 @@ export async function amIAdmin(): Promise<boolean> {
   const { data, error } = await supabase.rpc("is_admin");
   if (error) {
     console.error("Could not check admin:", error.message);
-    return false;
+    throw new DataError("Could not check admin", error.message);
   }
   return data === true;
 }
