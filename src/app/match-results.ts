@@ -175,9 +175,11 @@ export async function getResultDetail(
     .eq("game_id", gameId)
     .maybeSingle();
 
+  // Failures throw: read as "no match yet", they'd offer Start Match on a game that
+  // already has a result, and read as no scores, they'd ask for scores twice.
   if (error) {
     console.error("Could not load match result:", error.message);
-    return null;
+    throw new Error(error.message);
   }
   if (!result) return null;
 
@@ -190,6 +192,7 @@ export async function getResultDetail(
     .eq("result_id", resultId);
   if (partError) {
     console.error("Could not load result participants:", partError.message);
+    throw new Error(partError.message);
   }
 
   // 3. Every scoresheet row. RLS returns these only to the match's own
@@ -201,6 +204,7 @@ export async function getResultDetail(
     .order("set_number");
   if (entryError) {
     console.error("Could not load scoresheets:", entryError.message);
+    throw new Error(entryError.message);
   }
 
   const setsByUser = new Map<string, ResultSet[]>();
@@ -253,6 +257,7 @@ export async function getResultDetail(
     .order("set_number");
   if (setsError) {
     console.error("Could not load result sets:", setsError.message);
+    throw new Error(setsError.message);
   }
 
   const sets: ResultSet[] = (setRows ?? []).map((s) => ({

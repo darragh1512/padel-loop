@@ -329,14 +329,9 @@ export default function GameScreen({
         </div>
       )}
 
-      {/* The owner starts the match once the game is full, then every player
-          enters the score independently; the server confirms the result when
-          all the scoresheets match. This section gets the new look in the
-          match results step; until then it keeps its old background, where its
-          old colours stay readable. */}
-      <div className="ios-legacy">
-        <LogResult gameId={game.id} players={game.players} createdBy={game.createdBy} maxPlayers={game.maxPlayers} />
-      </div>
+      {/* The organiser starts the match once the game is full, then every player
+          enters the score separately. The server confirms it when they all match. */}
+      <LogResult gameId={game.id} players={game.players} createdBy={game.createdBy} maxPlayers={game.maxPlayers} cancelled={cancelled} />
 
       <div style={{ height: 72 }} />
 
