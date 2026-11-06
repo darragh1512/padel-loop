@@ -24,7 +24,7 @@ begin
     raise exception 'STOPPED, nothing changed: apply_result_rating does not exist. Send this message to Claude.';
   end if;
   -- Already has it: a re-run of this file, which is fine.
-  if position('rating_change' in v_body) = 0 and md5(v_body) <> 'a1709a1bfbe3376fc808d32edb302ce0' then
+  if position('rating_change' in v_body) = 0 and md5(v_body) <> '5e1b578b69987a0f5c673f155f62a081' then
     raise exception 'STOPPED, nothing changed: the live apply_result_rating differs from the expected version. Send this message to Claude.';
   end if;
 end;
@@ -34,8 +34,9 @@ $check$;
 alter table public.match_result_participants add column if not exists rating_change integer;
 
 -- ── c) record it when a result is confirmed ──────────────────────────────
--- Identical to the 20260812000000 version except for the three lines marked NEW
--- and the variable that holds the change. The sum and the rating are the same.
+-- Built from the function as it is live, which has the same logic as the
+-- 20260812000000 file without its comments. The only additions are the variable
+-- that holds the change and the update marked NEW. The sum and the rating are the same.
 create or replace function public.apply_result_rating(p_result_id bigint)
 returns void
 language plpgsql
@@ -45,8 +46,8 @@ as $$
 declare
   v_applied boolean;
   v_winner  smallint;
-  v_avg1    numeric;  -- average rating of team 1, before this result
-  v_avg2    numeric;  -- average rating of team 2, before this result
+  v_avg1    numeric;
+  v_avg2    numeric;
   p         record;
   v_opp_avg numeric;
   v_score   numeric;
@@ -60,11 +61,9 @@ begin
   for update;
 
   if not found or v_applied or v_winner is null then
-    return;  -- not confirmed, already applied, or nothing to score
+    return;
   end if;
 
-  -- Both teams' average ratings BEFORE any of this result's changes, so the
-  -- four updates below all use the same pre-match numbers.
   select avg(coalesce(pr.rating, public.skill_base_rating(pr.skill_level)))
     into v_avg1
   from match_result_participants mrp
@@ -78,7 +77,7 @@ begin
   where mrp.result_id = p_result_id and mrp.team = 2;
 
   if v_avg1 is null or v_avg2 is null then
-    return;  -- participants without profiles; nothing sensible to score
+    return;
   end if;
 
   for p in
