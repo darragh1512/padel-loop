@@ -20,7 +20,7 @@ Jobs that have to be done before Padel Loop goes properly public. Tick them off 
 - [ ] **Check the top-of-screen fade on a real iPhone.** On longer screens, content slides under the time and battery with nothing to soften it. If it looks wrong on a real phone, add a soft fade at the top of every screen.
 - [ ] **Test a real account deletion with a throwaway account.** Create an account, join a game, then delete it from Settings and check the login, profile and chat messages are gone. So far this has only been tested against a stand-in database.
 
-- [ ] **Replace the placeholder Terms and Privacy Policy with real ones.** Both pages currently say "PLACEHOLDER" at the top, and people tick a box agreeing to them at sign-up. Have the real wording checked by a solicitor. When the text changes, update the "Last updated" date in each file and the matching version in `src/app/terms-acceptance.ts`, which records who agreed to which version. The Privacy Policy should also name every service that handles people's data; it currently lists only PostHog and Sentry, and the email service will need adding.
+- [ ] **Replace the placeholder Terms and Privacy Policy with real ones.** Both pages currently say "PLACEHOLDER" at the top, and people tick a box agreeing to them at sign-up. Drafts exist and are waiting on the company number and a contact email. Have the real wording checked by a solicitor. When the text changes, update the "Last updated" date in each file and the matching version in `src/app/terms-acceptance.ts`, which records who agreed to which version. The Privacy Policy should also name every service that handles people's data; it currently lists only PostHog and Sentry, and the email service will need adding.
 
 ## After launch
 

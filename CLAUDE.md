@@ -1,8 +1,9 @@
 # Padel Loop
 
 ## Design context (read before any UI work)
-- **PRODUCT.md** (project root) — who this is for, brand personality ("THE PEÑA — warm, loud, physical, social; the club corkboard"), anti-references, and the 5 design principles.
-- **DESIGN.md** (project root) — the visual system: THE PEÑA (pista court-blue wall, papel posters, tinta ink, naranja/lima riso accents; Bricolage Grotesque 800 caps + Space Mono labels), signature devices (staples, tilt, ticket, stamp, marquee, riso shadows) and hard Do's & Don'ts. Source of truth for the identity: `design-lab/landing-pena.html` + `design-lab/wildcard-en.html`. The tokens themselves live in `src/app/globals.css` (`@theme`) — that file is normative; DESIGN.md explains how to use it. The earlier bone/sage "Members' Club" system is superseded — peña is final.
+- **PRODUCT.md** (project root): who this is for, brand personality, anti-references and design principles.
+- **DESIGN.md** (project root): the visual system, a native iPhone look. The images in `mockups/` are the source of truth, and the tokens and components live in `src/app/ios.css` and `src/components/ios/`.
+- **LAUNCH_CHECKLIST.md** (project root): jobs that must be done before launch and soon after.
 
 ## What this project is
 Padel Loop is a mobile/web app that helps padel players **find and join a padel game near them, at their level**.
@@ -59,6 +60,12 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
+- iPhone-style rebuild (on branch `redesign/ios-native`, not yet live). Every screen
+  was rebuilt to match `mockups/`, keeping the existing data and sign-in plumbing;
+  the earlier poster-style design and its fonts were removed. Players now show a
+  photo or initials through `ios/Monogram`, and older entries below that mention
+  `PlayerAvatar` or DiceBear describe code that has since gone. App icons and splash
+  screens are still the old ones until the owner chooses a new icon.
 - Account deletion FIX (CODE DONE 2026-10-12 — migration
   `20261012010000_delete_account_storage_api.sql` APPLIED 2026-10-12). Deletion had been
   failing for every account: Supabase now refuses `delete from
@@ -74,7 +81,7 @@ To stay focused, we are deliberately leaving these for later:
   has a required "I agree to the Terms of Use and Privacy Policy" checkbox
   above Sign up; the button is disabled until it's ticked and handleSubmit
   also refuses unticked. Replaces the old passive "Creating an account means
-  you accept…" line (which was also papel-on-papel, near invisible).
+  you accept…" line (which was also near invisible).
   Acceptance is recorded (CODE DONE 2026-10-12 — migration
   `20261012000000_terms_acceptances.sql` APPLIED 2026-10-12): after createProfile,
   signup calls `recordTermsAcceptance()` (`src/app/terms-acceptance.ts`),
@@ -90,17 +97,17 @@ To stay focused, we are deliberately leaving these for later:
   3-pin cap is a BEFORE INSERT trigger with a per-user advisory lock;
   leaving a game/group deletes that pin. Client: `src/app/chat-pins.ts`
   (pinKey = "game:ID"/"group:ID" since ids can collide across kinds),
-  `src/components/ChatPin.tsx` (PinToggle — lima when pinned; PinLimitDialog;
+  `src/components/ChatPin.tsx` (PinToggle; PinLimitDialog;
   self-contained ChatPinButton for the full-screen chat headers). Chat tab:
-  "Pinned · N of 3" section on top (pinned cards wear .pena-tape), pinned
+  "Pinned · N of 3" section on top, pinned
   chats are lifted out of their normal section/Past; filter applies to it.
   Before the migration runs, getPinnedKeys returns empty and pinning shows
   "Couldn't pin that chat".
 - Organiser removes a player (CODE DONE 2026-09-28 — migration
-  `20260928000000_organiser_removes_player.sql` APPLIED 2026-10-12). Organiser sees a dashed-naranja "Remove" pill next
+  `20260928000000_organiser_removes_player.sql` APPLIED 2026-10-12). Organiser sees a "Remove" pill next
   to every other player in the roster (`game-roster.tsx`), hidden once a
-  match result exists or the game is cancelled; tapping opens the stapled
-  Dialog "Remove [name] from this game?". The real rule is the SECURITY
+  match result exists or the game is cancelled; tapping opens the
+  alert "Remove [name] from this game?". The real rule is the SECURITY
   DEFINER RPC `remove_player_from_game` (organiser-only, no self-removal, no
   removal once a match_results row exists) — the game_players DELETE policy
   is still own-row-only, so there's no direct-API bypass. It records the
@@ -119,9 +126,8 @@ To stay focused, we are deliberately leaving these for later:
   and "retroactive" is automatic (an existing player's history IS the
   input). src/app/badges.ts holds the thresholds + pure computeBadges()
   and longestWinStreak(); getBestWinStreak() is the one extra query (via
-  the new getPlayerResultHistory in match-results.ts). BadgeShelf.tsx
-  renders earned tiers as lima riso stamps and each family's next rung as
-  a progress strip. Verified the logic (empty history, maxed families,
+  the new getPlayerResultHistory in match-results.ts). The Badges page on the profile shows earned tiers and each
+  family's next rung with its progress. Verified the logic (empty history, maxed families,
   streak survives a later loss) and both UI states in-browser.
 - Leaderboard (COMPLETE, no migration needed). New /leaderboard route
   (src/app/leaderboard/page.tsx + data helper src/app/leaderboard.ts):
@@ -226,40 +232,6 @@ To stay focused, we are deliberately leaving these for later:
     in-progress board is participants + owner only. RLS stance: scoresheets
     are participant-private; the result row/teams/canonical sets stay readable
     by any signed-in user because profile stats and the game page need them.
-- THE PEÑA re-skin (style/markup only — zero logic/data/routing changes), on
-  the `pena-reskin` branch. The bone/sage "Members' Club" system was replaced
-  app-wide by the peña system extracted from `design-lab/landing-pena.html` +
-  `wildcard-en.html`: court-blue corkboard wall (pista #1C5BBF/#14459A gradient
-  + dot grain + painted court lines via `<CourtPaint/>`), papel (#F3E9D2)
-  poster cards with paper grain/staples/tilt (`.pl-card`, `.pena-staples`,
-  `.pena-tilt-*`), tinta (#191407) ink text/borders, naranja (#FF5A1F, dark cut
-  #C93E0F for small text/danger) actives + FAB, lima (#D8E24A) primary CTAs
-  with hard riso offset shadows (`.pena-riso`). Fonts: Bricolage Grotesque
-  (variable, opsz+wdth; `.t-display` = 800 caps condensed) + Space Mono
-  (`.t-mono` = 700 caps tracked); Instrument Serif/Sans removed. NO ITALICS.
-  DESIGN.md rewritten as the peña law (incl. brand architecture: Loop = parent
-  brand; FLOODLIT reserved for future sibling products); PRODUCT.md brand
-  sections updated. Every screen swept (home, discover, my-games, game detail,
-  create/edit, match results, chat list/thread/full-screen, profiles,
-  connections, search, notifications, auth, landing, bottom nav). Verified with
-  a clean `next build`. NOTE: `/public/landing/*.png` screenshots still show
-  the old bone/sage UI — recapture after the reskin deploys.
-  old navy/#1e5cff "startup tech" look was replaced with a premium
-  wellness-lifestyle system: warm bone background (#FAF8F3), white cards with
-  1px hairline borders (no drop shadows except the one ambient sheet/modal
-  shadow), deep sage accent (#5A6B4D) used sparingly, warm ink text, muted
-  terracotta for danger. Fonts: Instrument Serif (screen titles, hero numbers,
-  the Home greeting — regular weight, sentence case) + Instrument Sans
-  (everything else, weights 400/500/600); Unbounded and DM Sans removed. All
-  colour/type/radius/shadow flows from tokens in `src/app/globals.css`
-  (@theme) — `.pl-card` = white card + border + 16px radius, `.pl-surface` =
-  sunken bone field. Buttons are full-round pills (accent primary / sunken
-  secondary / transparent-terracotta destructive). DiceBear avatars keep the
-  same seeds but get palette bone/sage/clay background tints. Every screen was
-  swept (home, discover, my-games, game detail, score entry, chat, profile,
-  connections, search, create/edit, notifications, auth); the auth screens
-  gained the lowercase serif "padel loop" wordmark + tagline. Verified with a
-  clean `next build` and in-browser screens.
 - Match results (COMPLETE keystone): a full submit → confirm → finalise flow on
   the game detail page, across `src/app/match-results.ts` (data + RPC wrapper),
   `src/app/games/[id]/log-result.tsx` (entry + consensus UI), and three Supabase

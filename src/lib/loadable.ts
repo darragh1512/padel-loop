@@ -5,7 +5,7 @@
 // THE PROBLEM THIS EXISTS TO FIX: nearly every read in this app logs its error
 // and returns an empty array, so by the time a screen renders it cannot tell
 // "nobody has posted a game" from "the request failed". Both arrive as `[]`,
-// and the screen says "the board is empty" either way — telling somebody the
+// and the screen says "no games" either way — telling somebody the
 // Loop is dead when the network merely blinked.
 //
 // So the loaders passed in here THROW on failure instead of returning empty,

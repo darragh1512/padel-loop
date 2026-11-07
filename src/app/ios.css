@@ -98,10 +98,12 @@
 }
 
 /* A screen in the new look. */
-html:has(.ios),
-body:has(.ios) {
+html,
+body {
   background: var(--ios-bg);
   color: var(--ios-label);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 .ios {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

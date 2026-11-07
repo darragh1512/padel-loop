@@ -20,6 +20,10 @@ import { supabase } from "@/lib/supabaseClient";
 import { createProfile } from "../profiles";
 import { recordTermsAcceptance } from "../terms-acceptance";
 
+// Opening the Terms unmounts this form, so what was typed is held for this tab until
+// they come back. The password is never stored, so they retype it.
+const DRAFT_KEY = "padel-loop:signup-draft";
+
 export default function SignupPage() {
   const router = useRouter();
   const search = useAuthSearch();
@@ -35,6 +39,30 @@ export default function SignupPage() {
   // This screen has no tab bar, which is what normally remembers where someone has
   // been. Without this, Back from the Terms would send them to Log In instead.
   useEffect(() => recordPath("/signup"), []);
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (!saved) return;
+      sessionStorage.removeItem(DRAFT_KEY);
+      const draft = JSON.parse(saved) as { name?: string; skillLevel?: string; email?: string };
+      // Read after loading, because storage only exists in the browser.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (draft.name) setName(draft.name);
+      if (draft.skillLevel) setSkillLevel(draft.skillLevel);
+      if (draft.email) setEmail(draft.email);
+    } catch {
+      // Storage can be unavailable, for example in private browsing. The form just starts empty.
+    }
+  }, []);
+
+  function saveDraft() {
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ name, skillLevel, email }));
+    } catch {
+      // As above: they'd retype it, which is no worse than without this.
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -155,11 +183,11 @@ export default function SignupPage() {
             </span>
             <label htmlFor="signup-terms" className="ios-sh ios-grow" style={{ cursor: "pointer" }}>
               I agree to the{" "}
-              <Link href="/terms" className="ios-link ios-acc ios-sb">
+              <Link href="/terms" className="ios-link ios-acc ios-sb" onClick={saveDraft}>
                 Terms of Use
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="ios-link ios-acc ios-sb">
+              <Link href="/privacy" className="ios-link ios-acc ios-sb" onClick={saveDraft}>
                 Privacy Policy
               </Link>
               .

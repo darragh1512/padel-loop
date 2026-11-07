@@ -4,9 +4,8 @@ import type { MetadataRoute } from "next";
 // to their home screen. Next serves this at /manifest.webmanifest and links it
 // from every page automatically.
 //
-// Colours are the peña palette: pista-d is the app's own background, so the
-// launch and the first paint are the same colour and there is no white flash
-// between them.
+// The background is the app's own light background, so the launch and the first
+// paint are the same colour.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Padel Loop",
@@ -19,8 +18,8 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     orientation: "portrait",
 
-    background_color: "#0F1C3F", // pista-d — matches the splash screens
-    theme_color: "#0F1C3F", // the iOS status bar / Android title bar
+    background_color: "#F2F2F7",
+    theme_color: "#F2F2F7", // the iOS status bar / Android title bar
 
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

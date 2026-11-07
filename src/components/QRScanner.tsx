@@ -7,7 +7,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
-import { Spinner } from "@/components/ui";
 
 type Status = "starting" | "scanning" | "denied" | "unsupported";
 
@@ -105,14 +104,14 @@ export default function QRScanner({
         />
         {status !== "scanning" && (
           <div className="absolute inset-0 flex items-center justify-center px-5">
-            {status === "starting" && <Spinner className="text-white" />}
+            {status === "starting" && <p className="ios-sh text-white">Starting camera…</p>}
             {status === "denied" && (
-              <p className="text-label font-medium text-white">
+              <p className="ios-sh text-white">
                 Camera access is off. Allow it in your browser settings to scan a code.
               </p>
             )}
             {status === "unsupported" && (
-              <p className="text-label font-medium text-white">
+              <p className="ios-sh text-white">
                 Scanning isn&rsquo;t supported in this browser.
               </p>
             )}

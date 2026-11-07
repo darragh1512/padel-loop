@@ -20,24 +20,23 @@ Deliberately out of scope for now: payments/court booking, rankings/tournaments,
 
 ## Brand Personality
 
-**THE PEÑA: warm, loud, physical, social.** A neighbourhood Spanish padel club's corkboard, not a software product: blue court paint, riso-printed match posters, ticket stubs, the club stamp. Confidence comes from shouting the right things in condensed capitals and printing the details in letterspaced mono — never from gradients or gloss. Voice is plain, friendly and short, with a wink of club Spanish where natural ("Game on?", "¿Jugamos?", "+ you?", "Count me in"). See DESIGN.md — the peña system is final; the earlier wellness/Members' Club exploration is dead.
-
-**Brand architecture:** Loop is the parent brand; Padel Loop = THE PEÑA. Future sibling products (e.g. a 5-a-side football app) get their own names and identities — the FLOODLIT direction in /design-lab is reserved for those, never Padel Loop.
+**Clear, familiar, useful.** Padel Loop should feel like an app that came with the iPhone: calm, quick and obvious, so attention stays on finding a game. Character comes from the padel court, which is how every game is shown, and from a voice that's plain, friendly and short. See DESIGN.md.
 
 ## Anti-references
 
-- **Corporate / bland SaaS**: the generic blue-and-white dashboard that could be any software product. The app's original navy `#1e5cff` "startup tech" look was explicitly rejected — never drift back toward it. (The peña's pista blue is court paint with grain and posters on it, not a SaaS ground.)
-- **Sports-tech gloss**: glassy gradients, glow effects, dark-mode neon.
-- Badge clutter, promo banners, confetti gamification — the board carries real games, not engagement bait.
+- **Game-like or heavily themed looks.** They got in the way of finding and booking a game, so useful comes first.
+- **Corporate, bland software.** Warmth comes from plain wording and real people, not decoration.
+- **Sports-tech gloss.** No glow effects or neon.
+- **Badge clutter, promo banners and engagement bait.** Screens carry real games and real people.
 
 ## Design Principles
 
 1. **One job per screen.** Every screen answers one question (home: "what's my next game?"; discover: "what can I join?"). If an element doesn't serve the screen's job, it goes.
-2. **Fast to a game.** The primary action (find / join / create a game) is always the most prominent thing on screen. Minimise taps and decisions between "I want to play" and "I'm in".
-3. **Everything is paper on the wall.** Content lives on papel posters — stapled, tilted, grained — against the painted court wall. Depth is the poster's shadow and the hard riso offset, never soft decorative glow.
-4. **Shout the headline, print the details.** Bricolage Grotesque 800 caps for the few big words; Space Mono 700 caps for dates, labels and metadata; body stays sentence-case 500. Weight, case and family do all the contrast work — no italics, ever.
-5. **Explain like a friend.** UX copy in plain, warm English — no jargon, no corporate voice. (Mirrors how the project itself is built: the owner is a first-time builder.)
+2. **Fast to a game.** The primary action (find, join or create a game) is the most prominent thing on screen. Minimise taps and decisions between "I want to play" and "I'm in".
+3. **Build on what people know.** Use familiar iPhone patterns for navigation, lists, sheets and alerts, so nothing needs explaining.
+4. **Tell the truth.** Real data only. Hide what isn't known, and never let a failed load look like an empty list.
+5. **Explain like a friend.** UX copy is in plain, warm English, with no jargon or corporate voice. (This mirrors how the project is built: the owner is a first-time builder.)
 
 ## Accessibility & Inclusion
 
-WCAG AA as the baseline: body text ≥ 4.5:1 contrast against its background (tinta on papel is ~15:1; watch reduced-alpha text — `tinta/70` on papel and `papel/80` on pista are the muted floors, and naranja-d, not naranja, is the orange for small text on papel), large text ≥ 3:1. Every animation respects `prefers-reduced-motion` (slap, stamp spin and marquee all render static). Mobile-first and one-hand usable: primary actions in thumb reach, tap targets ≥ 44px. No meaning carried by colour alone (e.g. confirmation states pair the tick with the tint; the winning team gets the word "Winner", not just lima).
+WCAG AA is the baseline: body text at least 4.5:1 contrast against its background and large text at least 3:1, with light, dark and increased-contrast values defined in `src/app/ios.css`. Every animation respects Reduce Motion. It's mobile-first and one-hand usable, with primary actions in thumb reach and tap targets of at least 44 points. Colour never carries meaning alone: a winning team also gets the word "Winner", and a taken spot is a solid disc where an open one is a ring.

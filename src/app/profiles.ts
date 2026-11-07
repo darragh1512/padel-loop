@@ -211,7 +211,7 @@ export async function uploadAvatar(
 }
 
 // Remove a person's uploaded avatar, putting them back on the generated
-// DiceBear picture (PlayerAvatar seeds that from their user id, so this
+// initials circle (Monogram draws that from their name, so this
 // restores exactly the avatar they had before they ever uploaded).
 //
 // ORDER MATTERS, because these are two separate systems that can fail
@@ -220,7 +220,7 @@ export async function uploadAvatar(
 //   1. Clear avatar_url in the database FIRST. If this fails we stop and
 //      change nothing — their photo is still there and still works.
 //   2. Only then delete the file from storage. If THIS fails, the column is
-//      already null, so every screen has already fallen back to DiceBear and
+//      already null, so every screen has already fallen back to initials and
 //      the person sees the right thing. The leftover file is a harmless
 //      orphan: uploadAvatar always writes the same `<userId>/avatar` path
 //      with upsert, so their next upload overwrites it anyway.
@@ -250,7 +250,7 @@ export async function removeAvatar(
     .remove([`${userId}/avatar`]);
 
   if (storageError) {
-    // Not fatal — see the note above. The person is already back on DiceBear.
+    // Not fatal — see the note above. The person is already back on their initials.
     console.warn(
       "Avatar cleared, but its file could not be deleted:",
       storageError.message,

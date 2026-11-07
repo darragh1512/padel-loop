@@ -16,7 +16,7 @@ const AVATAR_CHANGED = "padel-loop:avatar-changed";
 
 type AvatarChange = {
   userId: string;
-  avatarUrl: string | null; // null = back to the generated DiceBear picture
+  avatarUrl: string | null; // null = back to their initials
 };
 
 /* Tell every listening screen that `userId` now has `avatarUrl`. */
