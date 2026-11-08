@@ -26,4 +26,5 @@ Jobs that have to be done before Padel Loop goes properly public. Tick them off 
 ## After launch
 
 - [ ] **Make the Leaderboard count every match.** Supabase normally returns at most 1,000 rows per request, and each match uses 4 rows, so counts could come up short after about 250 confirmed matches. Fix before the app gets near that number.
+- [ ] **Let Discover page through more than 200 games.** Discover loads the 200 soonest upcoming games (it used to be 20, which hid games further out). If there are ever more than 200 upcoming games at once, the rest won't show until earlier ones pass. Fix before the app gets near that number.
 - [ ] **Decide how guest and 2-player games record results.** Results currently need four real players on the app, so these games have no results section. For example, three friends plus a guest can't record their match. Needs a decision first on how guests affect ratings.

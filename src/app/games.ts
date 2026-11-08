@@ -229,13 +229,22 @@ export async function getUpcomingGamesFor(userId: string): Promise<Game[]> {
 }
 
 // The ids of every game the user is already in — games they've JOINED (a row in
-// game_players) or CREATED (their id in created_by). The discovery list uses
-// this to hide games the user can't join again, so it only shows genuinely
-// joinable games. Games they were REMOVED from are included too — they can't
+// game_players) or CREATED (their id in created_by). Home's Games Near You
+// uses this to hide games the user can't join again, so it only suggests
+// genuinely joinable games. Games they were REMOVED from are included too — they can't
 // rejoin those. Returns a de-duplicated list of ids as strings.
 export async function getJoinedOrCreatedGameIds(
   userId: string,
 ): Promise<string[]> {
+  const mine = await getMyGameIds(userId);
+  return Array.from(new Set([...mine.joined, ...mine.created, ...mine.removed]));
+}
+
+// The same three lists kept apart, for Discover: it shows games you created or
+// joined (marked as yours) but never one you were removed from.
+export async function getMyGameIds(
+  userId: string,
+): Promise<{ joined: string[]; created: string[]; removed: string[] }> {
   const [joined, created, removed] = await Promise.all([
     supabase.from("game_players").select("game_id").eq("user_id", userId),
     supabase.from("games").select("id").eq("created_by", userId),
@@ -249,13 +258,13 @@ export async function getJoinedOrCreatedGameIds(
     console.error("Could not load created games:", created.error.message);
   }
 
-  const ids = new Set<string>();
-  for (const row of joined.data ?? []) ids.add(String(row.game_id));
-  for (const row of created.data ?? []) ids.add(String(row.id));
-  // No error log here: before the removals migration runs the table is
-  // missing, and "removed from nothing" is the right answer.
-  for (const row of removed.data ?? []) ids.add(String(row.game_id));
-  return Array.from(ids);
+  return {
+    joined: (joined.data ?? []).map((row) => String(row.game_id)),
+    created: (created.data ?? []).map((row) => String(row.id)),
+    // No error log here: before the removals migration runs the table is
+    // missing, and "removed from nothing" is the right answer.
+    removed: (removed.data ?? []).map((row) => String(row.game_id)),
+  };
 }
 
 // Get all games the logged-in user CREATED (their id is in created_by).

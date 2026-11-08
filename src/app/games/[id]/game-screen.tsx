@@ -17,6 +17,7 @@ import Icon, { type IconName } from "@/components/ios/Icon";
 import { getProfile, type Profile } from "@/app/profiles";
 import { initialsFrom } from "@/lib/data";
 import { openDirections } from "@/lib/directions";
+import { takeJustPosted } from "@/lib/justPosted";
 import { previousPath } from "@/lib/navMemory";
 import {
   formatPrice,
@@ -173,6 +174,12 @@ export default function GameScreen({
     const timer = setTimeout(() => setToast(null), 2500);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  // Straight after Post, say so, so it's clear the game is out there.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read once from this visit's storage
+    if (takeJustPosted(game.id)) setToast("Game Posted");
+  }, [game.id]);
 
   function showCopyResult(result: { copied: true } | { url: string }) {
     if ("url" in result) setLinkToCopy(result.url);

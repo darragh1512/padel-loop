@@ -19,6 +19,7 @@ import Sheet, { SheetToggle, useSheetClosing } from "@/components/ios/Sheet";
 import { getProfile } from "@/app/profiles";
 import { createGame, updateGame } from "@/app/games";
 import { initialsFrom, loadGames } from "@/lib/data";
+import { markJustPosted } from "@/lib/justPosted";
 import { previousPath } from "@/lib/navMemory";
 import { supabase } from "@/lib/supabaseClient";
 import { dublinDateKey, dublinToUtc } from "@/lib/time";
@@ -219,6 +220,7 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
     }
     const result = await createGame({ ...details, group_id: groupId, recurs_weekly: form.weekly }, userId);
     if ("id" in result) {
+      if (!groupId) markJustPosted(result.id);
       router.replace(groupId ? `/groups/${groupId}/chat` : `/games/${result.id}`);
     } else {
       setProblem("Couldn’t post the game. Try again.");

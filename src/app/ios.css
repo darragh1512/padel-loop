@@ -189,6 +189,13 @@ body {
 }
 .ios-join-face + .ios-join-face { position: absolute; inset: 0; }
 .ios-join-face[data-on="false"] { opacity: 0; filter: blur(2px); }
+/* Your own game in a list: a quiet grey label where Join would be. */
+.ios-mine-tag {
+  flex: none; height: 34px; padding: 0 14px; border-radius: 17px;
+  display: flex; align-items: center; gap: 4px; white-space: nowrap;
+  background: var(--ios-fill); color: var(--ios-secondary);
+  font-size: 15px; font-weight: 600; letter-spacing: -0.23px;
+}
 
 /* ── Liquid Glass: floating controls only, never content ── */
 .ios-glass {

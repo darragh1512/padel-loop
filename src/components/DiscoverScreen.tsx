@@ -1,7 +1,8 @@
 "use client";
 
-// Discover: every game you could join, by day, with filters for your level, the
-// date, the area and the time of day.
+// Discover: every upcoming game, by day, with filters for your level, the date,
+// the area and the time of day. Your own games are listed too, as others see
+// them, with "Your Game" or "Joined" where the Join button would be.
 //
 // Real data only. The mockup also shows distance and a "Within 10 km" filter,
 // which need club locations the app doesn't store yet, so the Area filter takes
@@ -20,7 +21,7 @@ import PlayerRow from "@/components/ios/PlayerRow";
 import { usePlayerSearch } from "@/lib/usePlayerSearch";
 import { clockTime, dayHeading, dublinHour, spotsOpenText } from "@/lib/when";
 import { getConnections } from "@/app/connections";
-import { getJoinedOrCreatedGameIds } from "@/app/games";
+import { getMyGameIds } from "@/app/games";
 import { getProfile, type ProfileSearchResult } from "@/app/profiles";
 
 const DAY_MS = 86_400_000;
@@ -209,16 +210,36 @@ function FilterChip({
   );
 }
 
+type Mine = "created" | "joined" | null;
+
+// Where the Join button would be. Grey, not blue, so it doesn't look tappable.
+function MineLabel({ mine }: { mine: "created" | "joined" }) {
+  return (
+    <span className="ios-mine-tag">
+      {mine === "created" ? (
+        "Your Game"
+      ) : (
+        <>
+          Joined
+          <Icon name="check" size={12} />
+        </>
+      )}
+    </span>
+  );
+}
+
 function GameCard({
   game,
   userId,
   viewerInitials,
   now,
+  mine,
 }: {
   game: Game;
   userId: string | null;
   viewerInitials: string;
   now: Date;
+  mine: Mine;
 }) {
   const [joined, setJoined] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
@@ -272,7 +293,9 @@ function GameCard({
             {price && ` · ${price}`}
           </span>
         </div>
-        {joinable && (
+        {mine ? (
+          <MineLabel mine={mine} />
+        ) : joinable && (
           <JoinPill
             gameId={game.id}
             gameLabel={`${dayHeading(game.startsAt, now)}, ${time} at ${game.venue}`}
@@ -331,7 +354,9 @@ export default function DiscoverScreen() {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [games, setGames] = useState<Game[]>([]);
-  const [own, setOwn] = useState<Set<string>>(new Set());
+  const [created, setCreated] = useState<Set<string>>(new Set());
+  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [connected, setConnected] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
   const [viewerInitials, setViewerInitials] = useState("");
@@ -350,9 +375,9 @@ export default function DiscoverScreen() {
       const { data } = await supabase.auth.getUser();
       const uid = data.user?.id ?? null;
       try {
-        const [all, ownIds, me, connections] = await Promise.all([
+        const [all, mine, me, connections] = await Promise.all([
           loadGames(),
-          uid ? getJoinedOrCreatedGameIds(uid) : Promise.resolve([] as string[]),
+          uid ? getMyGameIds(uid) : Promise.resolve({ joined: [], created: [], removed: [] }),
           uid ? getProfile(uid) : Promise.resolve(null),
           // Only one filter needs these, so a failure mustn't cost the whole list.
           uid ? getConnections(uid).catch(() => []) : Promise.resolve([]),
@@ -367,7 +392,9 @@ export default function DiscoverScreen() {
           setView((v) => ({ ...v, level: tierOfPlayer(me?.skill_level) }));
         }
         setGames(all);
-        setOwn(new Set(ownIds));
+        setCreated(new Set(mine.created));
+        setJoinedIds(new Set(mine.joined));
+        setRemoved(new Set(mine.removed));
         setConnected(new Set(connections.map((p) => p.id)));
         setUserId(uid);
         setViewerInitials(initialsFrom(me?.name));
@@ -408,14 +435,15 @@ export default function DiscoverScreen() {
     const q = view.query.trim().toLowerCase();
     return games.filter(
       (g) =>
-        !own.has(g.id) &&
+        !removed.has(g.id) && // an organiser took them out, so it isn't theirs to see
+
         (view.level == null || skillTierOf(g) === view.level) &&
         (view.area == null || g.area === view.area) &&
         matchesTime(g, view.time) &&
         (!view.connectionsOnly || (g.createdBy != null && connected.has(g.createdBy))) &&
         (q === "" || g.venue.toLowerCase().includes(q) || (g.area ?? "").toLowerCase().includes(q)),
     );
-  }, [games, own, connected, view.query, view.level, view.area, view.time, view.connectionsOnly]);
+  }, [games, removed, connected, view.query, view.level, view.area, view.time, view.connectionsOnly]);
 
   const shown = useMemo(() => candidates.filter((g) => matchesDates(g, view.dates, now)), [candidates, view.dates, now]);
   const later = view.dates === DEFAULT_DATES ? candidates.length - shown.length : 0;
@@ -431,7 +459,7 @@ export default function DiscoverScreen() {
     return groups;
   }, [shown, now]);
 
-  const anyGames = games.some((g) => !own.has(g.id));
+  const anyGames = games.some((g) => !removed.has(g.id));
 
   return (
     <>
@@ -526,7 +554,14 @@ export default function DiscoverScreen() {
                 </div>
               </div>
               {day.games.map((game) => (
-                <GameCard key={game.id} game={game} userId={userId} viewerInitials={viewerInitials} now={new Date(now)} />
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  userId={userId}
+                  viewerInitials={viewerInitials}
+                  now={new Date(now)}
+                  mine={created.has(game.id) ? "created" : joinedIds.has(game.id) ? "joined" : null}
+                />
               ))}
             </section>
           ))}

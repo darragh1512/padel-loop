@@ -115,11 +115,16 @@ async function getPlayersForGames(
   if (error || !links || links.length === 0) return byGame;
 
   // 2. One profile lookup for every player that appears (name + skill).
+  // In batches, because every id goes into the request's web address and a
+  // long list of players would make it too long.
   const userIds = Array.from(new Set(links.map((l) => l.user_id as string)));
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, name, skill_level, avatar_url")
-    .in("id", userIds);
+  const batches: string[][] = [];
+  for (let i = 0; i < userIds.length; i += 100) batches.push(userIds.slice(i, i + 100));
+  const profiles = (
+    await Promise.all(
+      batches.map((ids) => supabase.from("profiles").select("id, name, skill_level, avatar_url").in("id", ids)),
+    )
+  ).flatMap((r) => r.data ?? []);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const profileById = new Map<string, any>();
   for (const p of profiles ?? []) profileById.set(p.id as string, p);
@@ -212,6 +217,8 @@ export function isToday(game: Game): boolean {
   return key !== "" && key === dublinDateKey(new Date());
 }
 
+const MAX_LISTED_GAMES = 200;
+
 // For screens that can tell "no games" apart from "couldn't load": a failed
 // read throws, so it never claims there are no games when it doesn't know.
 export async function loadGames(): Promise<Game[]> {
@@ -222,7 +229,9 @@ export async function loadGames(): Promise<Game[]> {
     .is("group_id", null) // group games are proposed inside a group's own thread
     // only — never on the public Discover list.
     .order("game_time", { ascending: true }) // soonest first
-    .limit(20);
+    // Discover lists every upcoming game, so this has to reach well past a busy
+    // week. It was 20, which hid any game beyond the twentieth soonest.
+    .limit(MAX_LISTED_GAMES);
   if (error) throw error;
   if (!data || data.length === 0) return [];
 
