@@ -4,8 +4,8 @@ import type { MetadataRoute } from "next";
 // to their home screen. Next serves this at /manifest.webmanifest and links it
 // from every page automatically.
 //
-// The background is the app's own light background, so the launch and the first
-// paint are the same colour.
+// The background is the court blue of the icon and splash screens, which is what
+// Android shows behind the icon while the app starts.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Padel Loop",
@@ -13,12 +13,11 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Find and join a padel game near you, at your level.",
 
     start_url: "/",
-    // No browser chrome. This is the setting that makes the back button
-    // disappear — see the standalone notes in README-PWA.md.
+    // No browser chrome. This is the setting that makes the back button disappear.
     display: "standalone",
     orientation: "portrait",
 
-    background_color: "#F2F2F7",
+    background_color: "#1262A8",
     theme_color: "#F2F2F7", // the iOS status bar / Android title bar
 
     icons: [

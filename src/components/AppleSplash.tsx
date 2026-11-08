@@ -3,8 +3,8 @@
 // Next has no metadata API for these, so the <link> tags are emitted by hand.
 // iOS matches each one by an EXACT media query on device width, height and
 // pixel ratio — a size that is off by a single pixel simply does not match,
-// and the app launches to a white flash instead. The list mirrors
-// scripts/generate-pwa-assets.mjs; regenerate both together.
+// and the app launches to a white flash instead. Each size needs a matching image
+// in public/splash, drawn from the artwork in public/icons/padel-loop-icon.svg.
 
 const SPLASHES = [
   { w: 750, h: 1334, ratio: 2 }, // SE / 6-8

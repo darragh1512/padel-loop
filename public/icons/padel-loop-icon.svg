@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs>
+<linearGradient id="ib" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1262a8"/><stop offset="1" stop-color="#0b4a82"/></linearGradient>
+<linearGradient id="iy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9f25a"/><stop offset="1" stop-color="#cfe034"/></linearGradient>
+<mask id="im" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024"><rect width="1024" height="1024" fill="#fff"/><circle cx="711.5" cy="312.5" r="176" fill="#000"/></mask>
+<clipPath id="ic"><circle cx="711.5" cy="312.5" r="150"/></clipPath>
+</defs><rect width="1024" height="1024" fill="url(#ib)"/><g transform="translate(0 0) scale(1)"><circle cx="505" cy="519" r="292" fill="none" stroke="#fff" stroke-width="100" mask="url(#im)"/>
+<circle cx="711.5" cy="312.5" r="150" fill="url(#iy)"/>
+<g clip-path="url(#ic)" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round"><path d="M618.5 195.5C690.5 270.5 690.5 354.5 618.5 429.5"/><path d="M804.5 195.5C732.5 270.5 732.5 354.5 804.5 429.5"/></g></g></svg>

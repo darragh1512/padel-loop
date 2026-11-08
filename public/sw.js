@@ -22,7 +22,7 @@
 // Its other job is being here at all: an installable app needs a registered
 // service worker with a fetch handler before Chrome will offer to install it.
 
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = `padel-loop-shell-${VERSION}`;
 
 // Cached on install so the app opens instantly and, more importantly, so the
