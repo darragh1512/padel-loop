@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import Icon from "@/components/ios/Icon";
 import PageTitle from "@/components/ios/PageTitle";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { getNotifications, markAllNotificationsRead, type Notification } from "../notifications";
 
 // Friendly "how long ago" text from an ISO timestamp.
@@ -73,7 +73,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       const uid = data.user?.id ?? null;
       if (!uid) {
         router.replace("/login");

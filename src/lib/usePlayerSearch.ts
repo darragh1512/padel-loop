@@ -5,7 +5,7 @@
 // and leaves the signed-in player out of their own results.
 
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { searchProfiles, type ProfileSearchResult } from "@/app/profiles";
 
 type Answer = { term: string; results: ProfileSearchResult[]; failed: boolean };
@@ -17,7 +17,7 @@ export function usePlayerSearch(query: string) {
   const viewerId = useRef<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    getSignedInUser().then(({ data }) => {
       viewerId.current = data.user?.id ?? null;
     });
   }, []);

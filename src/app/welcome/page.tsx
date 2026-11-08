@@ -22,6 +22,7 @@ import SkillLevelPicker from "@/components/SkillLevelPicker";
 import { capture } from "@/lib/analytics";
 import { loadGames } from "@/lib/data";
 import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { getProfile, markOnboarded, updateProfile, SKILL_LEVELS } from "../profiles";
 
 export default function WelcomePage() {
@@ -40,7 +41,7 @@ export default function WelcomePage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       const uid = data.user?.id ?? null;
 
       if (!uid) {

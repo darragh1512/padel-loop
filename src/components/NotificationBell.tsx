@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Icon from "@/components/ios/Icon";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { getUnreadCount } from "@/app/notifications";
 
 export default function NotificationBell() {
@@ -15,7 +15,7 @@ export default function NotificationBell() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       const uid = data.user?.id ?? null;
       if (!uid) return;
       const c = await getUnreadCount(uid);

@@ -104,18 +104,18 @@ export async function getGroupConversationsFor(
   const groupIds = await getUserGroupIds(userId);
   if (groupIds.length === 0) return [];
 
-  // 1. The groups themselves.
-  const { data: groups } = await supabase
-    .from("groups")
-    .select("*")
-    .in("id", groupIds);
-
-  // 2. Every membership row for these groups, so we can count per group
-  //    without a separate query per group.
-  const { data: memberRows } = await supabase
-    .from("group_members")
-    .select("group_id")
-    .in("group_id", groupIds);
+  // The three reads below don't depend on each other, so they go together.
+  // 1. The groups themselves. 2. Every membership row for these groups, so we
+  // can count per group without a separate query per group. 3. Their messages.
+  const [{ data: groups }, { data: memberRows }, { data: msgs }] = await Promise.all([
+    supabase.from("groups").select("*").in("id", groupIds),
+    supabase.from("group_members").select("group_id").in("group_id", groupIds),
+    supabase
+      .from("messages")
+      .select("group_id, body, created_at")
+      .in("group_id", groupIds)
+      .order("created_at", { ascending: false }),
+  ]);
   const countByGroup = new Map<string, number>();
   for (const row of memberRows ?? []) {
     const key = String(row.group_id);
@@ -124,11 +124,6 @@ export async function getGroupConversationsFor(
 
   // 3. The most recent message in each group (same "newest first, keep the
   //    first one we see per group" approach as the game side).
-  const { data: msgs } = await supabase
-    .from("messages")
-    .select("group_id, body, created_at")
-    .in("group_id", groupIds)
-    .order("created_at", { ascending: false });
   const latestByGroup = new Map<string, { body: string; created_at: string }>();
   for (const m of msgs ?? []) {
     const key = String(m.group_id);

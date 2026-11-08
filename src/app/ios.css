@@ -753,3 +753,6 @@ html:active-view-transition-type(open-game, close-game)::view-transition-new(roo
   .ios-glass-clear { background: rgb(255 255 255 / 0.28); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .ios-edge { display: none; }
 }
+
+/* A chat message shown while it's still being saved. */
+.ios-msg[data-pending] .ios-bubble { opacity: 0.6; }

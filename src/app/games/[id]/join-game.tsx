@@ -12,7 +12,7 @@ import Alert from "@/components/ios/Alert";
 import Icon from "@/components/ios/Icon";
 import { capture } from "@/lib/analytics";
 import { clearPendingJoin, hasPendingJoin, startAuthForJoin } from "@/lib/pendingIntent";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import {
   GAME_FULL,
   getGamePlayers,
@@ -61,9 +61,16 @@ export function useJoinControl({
   // Guards the auto-join so it fires at most once per page load.
   const pendingHandled = useRef(false);
 
+  // A refusal is a short note, not a banner that stays.
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 4000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
   // Re-read who's logged in and whether they're already in this game.
   const refresh = useCallback(async () => {
-    const { data } = await supabase.auth.getUser();
+    const { data } = await getSignedInUser();
     const uid = data.user?.id ?? null;
     setUserId(uid);
     const [players, queue, wasRemoved] = await Promise.all([
@@ -189,8 +196,15 @@ export function useJoinControl({
     }
     setWorking(true);
     setError(null);
+    // Instant: the court and button change on the tap, and the database is
+    // asked behind it. If it says no, both change back with a short message.
+    setJoined(true);
+    // A short buzz where the phone's browser allows one. iPhones don't let
+    // websites do this, so there it simply does nothing.
+    navigator.vibrate?.(10);
     const result = await joinGame(gameId, userId);
     if ("error" in result) {
+      setJoined(false);
       setError(result.error === GAME_FULL ? GAME_FULL : "Couldn’t take that spot. Try again.");
       setWorking(false);
       if (result.error === GAME_FULL) router.refresh(); // show the full game and its waitlist
@@ -199,10 +213,6 @@ export function useJoinControl({
     // The bottom of the funnel. game_id is an id, priced is a boolean —
     // the venue name and the price itself are not sent.
     capture("game_joined", { game_id: gameId, priced });
-    setJoined(true); // the court and button change now, not after the re-read
-    // A short buzz where the phone's browser allows one. iPhones don't let
-    // websites do this, so there it simply does nothing.
-    navigator.vibrate?.(10);
     await refresh();
     setWorking(false);
     router.refresh(); // re-render the server page so the players list updates
@@ -212,17 +222,20 @@ export function useJoinControl({
     if (!userId) return;
     setWorking(true);
     setError(null);
+    // Instant, once they've confirmed: the alert closes and the spot frees on
+    // screen straight away, and the database is asked behind it.
+    setConfirmingLeave(false);
+    setJoined(false);
     const result = await leaveGame(gameId, userId);
     if ("error" in result) {
       // leaveGame explains WHY when it refuses (creator, or a result exists);
       // show that sentence rather than a generic retry message, which would
-      // invite them to try something that can never work.
+      // invite them to try something that can never work. They're back in.
+      setJoined(true);
       setError(result.error);
       setWorking(false);
       return;
     }
-    setConfirmingLeave(false);
-    setJoined(false);
     await refresh();
     setWorking(false);
     router.refresh(); // frees the spot in the roster and the counts

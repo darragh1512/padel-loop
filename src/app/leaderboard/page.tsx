@@ -11,7 +11,7 @@ import Icon from "@/components/ios/Icon";
 import MessageCard, { TryAgain } from "@/components/ios/MessageCard";
 import Monogram from "@/components/ios/Monogram";
 import PageTitle from "@/components/ios/PageTitle";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { getLeaderboard, RANKED_MIN_MATCHES, type LeaderboardRow } from "../leaderboard";
 
 type View = "rating" | "wins";
@@ -68,7 +68,7 @@ export default function LeaderboardPage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       if (!data.user) {
         router.replace("/login");
         return;

@@ -259,6 +259,14 @@ export async function getGamesByIds(ids: string[]): Promise<Game[]> {
   return (data ?? []).map((row) => rowToGame(row, playersByGame.get(String(row.id)) ?? []));
 }
 
+// Games already read from the table, with their players added: saves reading
+// the same rows again just to get the players.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function withPlayers(rows: any[]): Promise<Game[]> {
+  const playersByGame = await getPlayersForGames(rows);
+  return rows.map((row) => rowToGame(row, playersByGame.get(String(row.id)) ?? []));
+}
+
 // The same list for callers that treat a failed read as "no games".
 export async function getGames(): Promise<Game[]> {
   return loadGames().catch(() => []);

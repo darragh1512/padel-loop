@@ -14,7 +14,7 @@ import Icon from "@/components/ios/Icon";
 import JoinPill from "@/components/ios/JoinPill";
 import NotificationBell from "@/components/NotificationBell";
 import { openDirections } from "@/lib/directions";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { getGame, initialsFrom, loadGames } from "@/lib/data";
 import { isFull, slotsLeft, skillTierOf, tierOfPlayer, type Game } from "@/lib/types";
 import { gameWhen, longDate, spotsOpenText } from "@/lib/when";
@@ -185,12 +185,15 @@ function NearbyRow({
         gameLabel={`${when} at ${game.venue}`}
         userId={userId}
         priced={priced}
-        onFailed={setFailed}
+        onFailed={(message) => {
+          if (message) setJoined(false); // the database said no: give the spot back
+          setFailed(message);
+        }}
         onJoined={() => {
           setFailed(null);
           setJoined(true);
-          onJoined();
         }}
+        onConfirmed={onJoined}
       />
     </div>
   );
@@ -229,7 +232,7 @@ export default function HomeDashboard() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       const uid = data.user?.id ?? null;
       if (!active) return;
       // Someone else signed in on this phone: never show the last person's games.
@@ -239,12 +242,18 @@ export default function HomeDashboard() {
       }
       setToday(longDate());
       try {
-        const [games, next, me, own] = await Promise.all([
+        const [games, upcoming, me, own] = await Promise.all([
           loadGames(),
-          uid ? loadNextGame(uid) : Promise.resolve(null),
+          uid ? getUpcomingGamesFor(uid) : Promise.resolve([]), // soonest first
           uid ? getProfile(uid) : Promise.resolve(null),
           uid ? getJoinedOrCreatedGameIds(uid) : Promise.resolve([] as string[]),
         ]);
+        // Your next game is almost always in the list just loaded, players and
+        // all, so it needs no more trips. Only a group game isn't, and is read.
+        const first = upcoming[0];
+        const next = first
+          ? (games.find((g) => g.id === String(first.id)) ?? (await getGame(String(first.id))))
+          : null;
         if (!active) return;
         // First run: the one place that sends a new player to set-up. A shared
         // game link never lands here, so it can't interrupt someone joining.

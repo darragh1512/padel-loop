@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Alert from "@/components/ios/Alert";
 import Icon from "@/components/ios/Icon";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import {
   MAX_PINS,
   PIN_LIMIT_MESSAGE,
@@ -74,7 +74,7 @@ export function ChatPinButton({ kind, id, title }: { kind: ChatKind; id: string;
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       const uid = data.user?.id ?? null;
       if (!uid) return;
       const keys = await getPinnedKeys(uid);
@@ -108,20 +108,22 @@ export function ChatPinButton({ kind, id, title }: { kind: ChatKind; id: string;
       return;
     }
 
+    // Instant: the pin changes on the tap, and the database is asked behind it.
+    // If it says no, it changes back and the reason shows.
+    const before = pins;
+    const next = new Set(pins);
+    if (pinned) next.delete(key);
+    else next.add(key);
+    setPins(next);
     setBusy(true);
     const result = pinned ? await unpinChat(userId, kind, id) : await pinChat(userId, kind, id);
     setBusy(false);
 
     if ("error" in result) {
+      setPins(before);
       if ("limit" in result && result.limit) setLimitOpen(true);
       else setError(result.error);
-      return;
     }
-
-    const next = new Set(pins);
-    if (pinned) next.delete(key);
-    else next.add(key);
-    setPins(next);
   }
 
   return (

@@ -6,6 +6,7 @@
 // profile and an account are always linked together.
 
 import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { getBlockedIds } from "./blocks";
 import { DataError } from "@/lib/loadable";
 
@@ -326,7 +327,7 @@ export async function deleteMyAccount(): Promise<{ ok: true } | { error: string 
 // deletion then fails their profile isn't left pointing at a missing photo.
 async function removeAllAvatarFiles(): Promise<void> {
   try {
-    const { data: userData } = await supabase.auth.getUser();
+    const { data: userData } = await getSignedInUser();
     const userId = userData.user?.id;
     if (!userId) return;
 

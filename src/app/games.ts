@@ -1050,20 +1050,24 @@ export type Conversation =
 export async function getConversationsFor(
   userId: string,
 ): Promise<Conversation[]> {
-  // 1. The games they've joined (their rows in game_players).
-  const { data: joinedRows, error: joinedError } = await supabase
-    .from("game_players")
-    .select("game_id")
-    .eq("user_id", userId);
-  if (joinedError) throw new DataError("Could not load your games", joinedError.message);
-  const joinedIds = (joinedRows ?? []).map((row) => String(row.game_id));
+  // The group side doesn't depend on the games, so it loads at the same time.
+  // Everything below asks the database as few times IN A ROW as it can: each
+  // round trip is a wait the person sees.
+  const groupsPromise = getGroupConversationsFor(userId);
+  groupsPromise.catch(() => {}); // still awaited below; this only stops an early return leaving it unhandled
 
-  // 2. The games they created.
-  const { data: createdGames, error: createdError } = await supabase
-    .from("games")
-    .select("*")
-    .eq("created_by", userId);
+  // 1 and 2, together: the games they've joined (their rows in game_players)
+  // and the games they created.
+  const [
+    { data: joinedRows, error: joinedError },
+    { data: createdGames, error: createdError },
+  ] = await Promise.all([
+    supabase.from("game_players").select("game_id").eq("user_id", userId),
+    supabase.from("games").select("*").eq("created_by", userId),
+  ]);
+  if (joinedError) throw new DataError("Could not load your games", joinedError.message);
   if (createdError) throw new DataError("Could not load your games", createdError.message);
+  const joinedIds = (joinedRows ?? []).map((row) => String(row.game_id));
 
   // 3. Merge both into one list with no duplicates (a game you created AND are
   //    a player in should appear only once). We key by the game's id.
@@ -1120,10 +1124,10 @@ export async function getConversationsFor(
     });
   }
 
-  // 6. The group side — same idea, encapsulated in groups.ts since it's a
-  //    self-contained set of bounded queries (groups, member counts, latest
-  //    messages), not a per-row loop.
-  const groupData = await getGroupConversationsFor(userId);
+  // 6. The group side, started at the top — same idea, encapsulated in
+  //    groups.ts since it's a self-contained set of bounded queries (groups,
+  //    member counts, latest messages), not a per-row loop.
+  const groupData = await groupsPromise;
   const groupConversations: Conversation[] = groupData.map((d) => ({
     kind: "group" as const,
     group: d.group,

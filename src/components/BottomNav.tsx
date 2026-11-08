@@ -9,21 +9,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon, { type IconName } from "@/components/ios/Icon";
 import { recordPath } from "@/lib/navMemory";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 
 function Tab({
   href,
   label,
   icon,
   active,
+  prefetchAll = false,
 }: {
   href: string;
   label: string;
   icon: IconName;
   active: boolean;
+  // For a page the server builds on each visit: fetch all of it ahead, so the
+  // tap doesn't wait for the server. The others are ready-made already.
+  prefetchAll?: boolean;
 }) {
   return (
-    <Link href={href} className="ios-tab" aria-current={active ? "page" : undefined}>
+    <Link href={href} prefetch={prefetchAll ? true : undefined} className="ios-tab" aria-current={active ? "page" : undefined}>
       <span className="ios-tab-i">
         <Icon name={icon} size={icon === "house" ? 29 : 26} />
       </span>
@@ -39,7 +43,7 @@ export default function BottomNav() {
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getUser().then(({ data }) => {
+    getSignedInUser().then(({ data }) => {
       if (active) setUserId(data.user?.id ?? null);
     });
     return () => {
@@ -69,6 +73,7 @@ export default function BottomNav() {
           label="Profile"
           icon="person"
           active={inProfile}
+          prefetchAll={userId != null}
         />
       </nav>
     </>

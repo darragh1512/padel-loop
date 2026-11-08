@@ -21,7 +21,7 @@ import { createGame, updateGame } from "@/app/games";
 import { initialsFrom, loadGames } from "@/lib/data";
 import { markJustPosted } from "@/lib/justPosted";
 import { previousPath } from "@/lib/navMemory";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { dublinDateKey, dublinToUtc } from "@/lib/time";
 import { parsePriceInput, tierOfPlayer } from "@/lib/types";
 import { shortDate } from "@/lib/when";
@@ -132,7 +132,7 @@ export default function CreateGameSheet({ groupId, editing }: { groupId?: string
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       if (!active) return;
       if (!data.user) {
         router.replace("/login");

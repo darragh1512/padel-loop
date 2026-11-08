@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import CreateGameSheet, { type GameToEdit } from "@/components/CreateGameSheet";
 import { getGame } from "@/lib/data";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { utcToDublinInput } from "@/lib/time";
 import { skillTierOf } from "@/lib/types";
 
@@ -20,7 +20,7 @@ export default function EditGamePage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data: auth } = await supabase.auth.getUser();
+      const { data: auth } = await getSignedInUser();
       const uid = auth.user?.id ?? null;
       const game = await getGame(gameId);
       if (!active) return;

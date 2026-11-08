@@ -14,6 +14,7 @@ import MessageCard, { TryAgain } from "@/components/ios/MessageCard";
 import Monogram from "@/components/ios/Monogram";
 import { capture } from "@/lib/analytics";
 import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import type { Player } from "@/lib/types";
 import { getResultDetail, startMatch, submitEntry, type ResultDetail, type ResultSet } from "../../match-results";
 import ScoreSheet from "./score-sheet";
@@ -182,7 +183,7 @@ export default function LogResult({
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       try {
         const found = await getResultDetail(gameId);
         if (!active) return;

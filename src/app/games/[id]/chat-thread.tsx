@@ -8,8 +8,10 @@
 // What it does:
 //  • loads this thread's messages (oldest at top, newest at the bottom)
 //  • shows YOUR messages on the right in blue, others' on the left
-//  • lets you type and send a message; empty messages are ignored and the box
-//    is cleared after sending
+//  • lets you type and send a message; empty messages are ignored. A sent
+//    message appears at once, faded with "Sending…", and the box clears; if the
+//    database refuses it, it disappears, the words go back in the box and a
+//    short note says so
 //  • listens for new messages live (Supabase Realtime) so they appear without a
 //    refresh, and stops listening when you leave the page
 //  • keeps the view scrolled to the newest message
@@ -22,6 +24,7 @@ import Monogram from "@/components/ios/Monogram";
 import ReportDialog from "@/components/ReportDialog";
 import { dublinDateKey } from "@/lib/time";
 import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { clockTime, dayHeading } from "@/lib/when";
 import { getBlockedIds } from "@/app/blocks";
 import { canUserChat, getMessages, sendMessage } from "../../games";
@@ -77,8 +80,17 @@ export default function ChatThread({
   // in — that invites somebody to repeat a message already there.
   const [failed, setFailed] = useState(false);
   const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
+  // Messages shown on the tap while the database saves them.
+  const [pending, setPending] = useState<ThreadMessage[]>([]);
+  const nextPendingId = useRef(-1);
   const [error, setError] = useState<string | null>(null);
+
+  // A refusal is a short note, not a banner that stays.
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 4000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -88,7 +100,7 @@ export default function ChatThread({
   // Only THIS viewer stops seeing them. The blocked person's own thread is
   // untouched, so nothing about the thread tells them they have been blocked.
   const reload = useCallback(async () => {
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await getSignedInUser();
     const uid = auth.user?.id ?? null;
     const [msgs, blocked] = await Promise.all([
       isGroup ? getGroupMessages(threadId) : getMessages(threadId),
@@ -114,7 +126,7 @@ export default function ChatThread({
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       const uid = data.user?.id ?? null;
       if (!active) return;
       setUserId(uid);
@@ -152,7 +164,7 @@ export default function ChatThread({
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, inlineItems.length, loaded]);
+  }, [messages, pending, inlineItems.length, loaded]);
 
   useEffect(() => {
     if (ready && !canChat) router.replace(redirectTo);
@@ -161,34 +173,48 @@ export default function ChatThread({
   async function handleSend(e: FormEvent) {
     e.preventDefault();
     const body = text.trim();
-    if (body.length === 0 || !userId || sending) return; // never send empty
+    if (body.length === 0 || !userId) return; // never send empty
 
-    setSending(true);
+    // Instant: the message joins the conversation and the box clears on the
+    // tap, so the next one can be typed straight away.
+    const shown: ThreadMessage = {
+      id: nextPendingId.current--,
+      user_id: userId,
+      body,
+      created_at: new Date().toISOString(),
+      senderName: "You",
+      senderAvatarUrl: null,
+    };
+    setPending((p) => [...p, shown]);
+    setText("");
     setError(null);
     const result = isGroup
       ? await sendGroupMessage(threadId, userId, body)
       : await sendMessage(threadId, userId, body);
-    setSending(false);
     if ("error" in result) {
-      // Their words stay in the box, so nothing has to be retyped.
+      setPending((p) => p.filter((m) => m.id !== shown.id));
+      // Their words go back in the box, so nothing has to be retyped.
+      setText((current) => (current.trim() === "" ? body : current));
       setError("Couldn’t send that message. Try again.");
       return;
     }
-    setText("");
-    await reloadSafely(); // show it straight away (the live update also picks it up)
+    await reloadSafely(); // the saved copy replaces the faded one (the live update also picks it up)
+    setPending((p) => p.filter((m) => m.id !== shown.id));
   }
 
   // Still checking access, or on the way to the redirect.
   if (!ready || !canChat) return null;
 
+  const pendingIds = new Set(pending.map((m) => m.id));
   const entries = [
-    ...messages.map((m) => {
+    ...[...messages, ...pending].map((m) => {
       const mine = m.user_id === userId;
+      const sendingNow = pendingIds.has(m.id);
       return {
         key: `msg-${m.id}`,
         createdAt: m.created_at,
         node: (
-          <div className="ios-msg" data-mine={mine || undefined}>
+          <div className="ios-msg" data-mine={mine || undefined} data-pending={sendingNow || undefined}>
             {!mine && (
               <Link href={`/players/${m.user_id}`} aria-label={m.senderName} className="ios-link ios-press" style={{ flex: "none" }}>
                 <Monogram name={m.senderName} photoUrl={m.senderAvatarUrl} size={32} />
@@ -201,7 +227,7 @@ export default function ChatThread({
                     {m.senderName}
                   </Link>
                 )}
-                <span>{clockTime(m.created_at)}</span>
+                <span>{sendingNow ? "Sending…" : clockTime(m.created_at)}</span>
                 {/* Only on somebody else's message, and deliberately quiet. */}
                 {!mine && (
                   <button type="button" className="ios-msg-report" onClick={() => setReporting(m)} aria-label={`Report this message from ${m.senderName}`}>
@@ -274,7 +300,7 @@ export default function ChatThread({
           placeholder="Message your group"
           aria-label="Type a message"
         />
-        <button type="submit" className="ios-press" disabled={sending || text.trim().length === 0} aria-label="Send message">
+        <button type="submit" className="ios-press" disabled={text.trim().length === 0} aria-label="Send message">
           <Icon name="arrow-up" size={20} />
         </button>
       </form>

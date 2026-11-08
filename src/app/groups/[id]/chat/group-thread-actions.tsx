@@ -10,7 +10,7 @@ import Alert from "@/components/ios/Alert";
 import Icon from "@/components/ios/Icon";
 import Sheet, { useSheetClosing } from "@/components/ios/Sheet";
 import MemberPicker from "@/components/MemberPicker";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { addGroupMember, leaveGroup } from "../../../groups";
 import type { ProfileSearchResult } from "../../../profiles";
 
@@ -30,7 +30,7 @@ function AddMembersSheet({
   const [closing, close] = useSheetClosing(useCallback(() => onClose(), [onClose]));
 
   async function handlePick(person: ProfileSearchResult) {
-    const { data } = await supabase.auth.getUser();
+    const { data } = await getSignedInUser();
     const uid = data.user?.id;
     if (!uid) return;
     setError(null);
@@ -84,7 +84,7 @@ export default function GroupThreadActions({
   }
 
   async function handleLeave() {
-    const { data } = await supabase.auth.getUser();
+    const { data } = await getSignedInUser();
     const uid = data.user?.id;
     if (!uid || working) return;
     setWorking(true);

@@ -17,7 +17,7 @@ import Alert from "@/components/ios/Alert";
 import Icon from "@/components/ios/Icon";
 import Monogram from "@/components/ios/Monogram";
 import SwipeRow, { type SwipeAction } from "@/components/ios/SwipeRow";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { APP_TIME_ZONE, dublinDateKey } from "@/lib/time";
 import { gameWhen } from "@/lib/when";
 import { archiveChat, getArchivedKeys, unarchiveChat } from "../chat-archives";
@@ -166,25 +166,32 @@ function Notice({
   );
 }
 
+// The last list shown, kept while the app is open, so coming back to Chats shows
+// it at once and refreshes it quietly, as Home does. Kept in step with pins,
+// archives and deletes made here.
+type ChatsData = { userId: string; conversations: Conversation[]; pins: string[]; archived: string[] };
+let lastChats: ChatsData | null = null;
+
 export default function ChatPage() {
-  const [loading, setLoading] = useState(true);
+  const [cached] = useState(() => lastChats);
+  const [loading, setLoading] = useState(cached == null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loggedIn, setLoggedIn] = useState(cached != null);
+  const [conversations, setConversations] = useState<Conversation[]>(cached?.conversations ?? []);
   const [pastOpen, setPastOpen] = useState(false);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>("All");
 
   // Pins are this person's own. Nobody else's list is affected by anything here.
-  const [userId, setUserId] = useState<string | null>(null);
-  const [pins, setPins] = useState<Set<string>>(new Set());
+  const [userId, setUserId] = useState<string | null>(cached?.userId ?? null);
+  const [pins, setPins] = useState<Set<string>>(() => new Set(cached?.pins));
   const [pinBusy, setPinBusy] = useState<string | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
 
   // Archived chats are this person's own too.
-  const [archived, setArchived] = useState<Set<string>>(new Set());
+  const [archived, setArchived] = useState<Set<string>>(() => new Set(cached?.archived));
   const [swiped, setSwiped] = useState<string | null>(null); // the row swiped open
   const [deleting, setDeleting] = useState<Conversation | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -193,9 +200,16 @@ export default function ChatPage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       const uid = data.user?.id ?? null;
       if (!active) return;
+      // Someone else signed in on this phone: never show the last person's chats.
+      const fresh = cached == null || cached.userId !== uid;
+      if (fresh && cached) {
+        lastChats = null;
+        setConversations([]);
+        setLoading(true);
+      }
       setLoggedIn(uid != null);
       setUserId(uid);
       if (uid) {
@@ -222,7 +236,8 @@ export default function ChatPage() {
           setFailed(false);
         } catch {
           if (!active) return;
-          setFailed(true);
+          // A failed quiet refresh keeps the list already showing.
+          if (fresh) setFailed(true);
         }
       }
       setLoading(false);
@@ -230,7 +245,13 @@ export default function ChatPage() {
     return () => {
       active = false;
     };
-  }, [attempt]);
+  }, [attempt, cached]);
+
+  // Keep the remembered copy in step with what's on screen, pins and all.
+  useEffect(() => {
+    if (loading || failed || !userId) return;
+    lastChats = { userId, conversations, pins: [...pins], archived: [...archived] };
+  }, [loading, failed, userId, conversations, pins, archived]);
 
   // The failure note clears itself after a few seconds.
   useEffect(() => {
@@ -252,52 +273,62 @@ export default function ChatPage() {
       return;
     }
 
+    // Instant: the chat moves on the tap, and the database is asked behind it.
+    // If it says no, the chat moves back and the reason shows.
+    const toggle = (on: boolean) =>
+      setPins((prev) => {
+        const next = new Set(prev);
+        if (on) next.add(key);
+        else next.delete(key);
+        return next;
+      });
     setPinBusy(key);
+    toggle(!pinned);
     const result = pinned
       ? await unpinChat(userId, c.kind, conversationKey(c))
       : await pinChat(userId, c.kind, conversationKey(c));
     setPinBusy(null);
 
     if ("error" in result) {
+      toggle(pinned);
       if ("limit" in result && result.limit) setLimitOpen(true);
       else setPinError(result.error);
-      return;
     }
-
-    setPins((prev) => {
-      const next = new Set(prev);
-      if (pinned) next.delete(key);
-      else next.add(key);
-      return next;
-    });
   }
 
   async function setArchivedFor(c: Conversation, archive: boolean) {
     if (!userId) return;
     const key = pinKeyFor(c);
     setPinError(null);
-    const result = archive
-      ? await archiveChat(userId, c.kind, conversationKey(c))
-      : await unarchiveChat(userId, c.kind, conversationKey(c));
-    if ("error" in result) {
-      setPinError(result.error);
-      return;
-    }
-    setArchived((prev) => {
-      const next = new Set(prev);
-      if (archive) next.add(key);
-      else next.delete(key);
-      return next;
-    });
+    // Instant: the chat moves on the swipe, and the database is asked behind
+    // it. If it says no, the chat moves back and the reason shows.
+    const move = (into: boolean) =>
+      setArchived((prev) => {
+        const next = new Set(prev);
+        if (into) next.add(key);
+        else next.delete(key);
+        return next;
+      });
+    move(archive);
     // An archived chat isn't pinned any more, as in Messages.
-    if (archive && pins.has(key)) {
+    const wasPinned = archive && pins.has(key);
+    if (wasPinned) {
       setPins((prev) => {
         const next = new Set(prev);
         next.delete(key);
         return next;
       });
-      unpinChat(userId, c.kind, conversationKey(c)).catch(() => {});
     }
+    const result = archive
+      ? await archiveChat(userId, c.kind, conversationKey(c))
+      : await unarchiveChat(userId, c.kind, conversationKey(c));
+    if ("error" in result) {
+      move(!archive);
+      if (wasPinned) setPins((prev) => new Set(prev).add(key)); // the pin was never removed
+      setPinError(result.error);
+      return;
+    }
+    if (wasPinned) unpinChat(userId, c.kind, conversationKey(c)).catch(() => {});
   }
 
   async function confirmDelete() {

@@ -13,7 +13,7 @@ import Link from "next/link";
 import Court, { spotsFor } from "@/components/ios/Court";
 import Icon from "@/components/ios/Icon";
 import JoinPill from "@/components/ios/JoinPill";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { initialsFrom, loadGames } from "@/lib/data";
 import { dublinDateKey } from "@/lib/time";
 import { formatPrice, isFull, skillTierOf, tierOfPlayer, type Game } from "@/lib/types";
@@ -301,7 +301,10 @@ function GameCard({
             gameLabel={`${dayHeading(game.startsAt, now)}, ${time} at ${game.venue}`}
             userId={userId}
             priced={game.pricePerPlayer != null}
-            onFailed={setFailed}
+            onFailed={(message) => {
+              if (message) setJoined(false); // the database said no: give the spot back
+              setFailed(message);
+            }}
             onJoined={() => {
               setFailed(null);
               setJoined(true);
@@ -349,21 +352,44 @@ function PlayerResults({
   );
 }
 
+// The last list shown, kept while the app is open, so coming back to Discover
+// shows it at once and refreshes it quietly, as Home does.
+type DiscoverData = {
+  userId: string | null;
+  games: Game[];
+  created: string[];
+  joined: string[];
+  removed: string[];
+  connected: string[];
+  viewerInitials: string;
+  now: number;
+  level: string | null; // the player's own level, the first-visit filter
+};
+let lastDiscover: DiscoverData | null = null;
+
 export default function DiscoverScreen() {
-  const [loading, setLoading] = useState(true);
+  // Read once, on arrival: the remembered list and this visit's filters.
+  const [cached] = useState(() => lastDiscover);
+  const [stored] = useState(readStored);
+  const [loading, setLoading] = useState(cached == null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [games, setGames] = useState<Game[]>([]);
-  const [created, setCreated] = useState<Set<string>>(new Set());
-  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
-  const [removed, setRemoved] = useState<Set<string>>(new Set());
-  const [connected, setConnected] = useState<Set<string>>(new Set());
-  const [userId, setUserId] = useState<string | null>(null);
-  const [viewerInitials, setViewerInitials] = useState("");
-  const [now, setNow] = useState(0);
-  const [view, setView] = useState<View>({ ...CLEAR, dates: DEFAULT_DATES });
-  const [stored] = useState(readStored);
-  const restoreY = useRef(0);
+  const [games, setGames] = useState<Game[]>(cached?.games ?? []);
+  const [created, setCreated] = useState<Set<string>>(() => new Set(cached?.created));
+  const [joinedIds, setJoinedIds] = useState<Set<string>>(() => new Set(cached?.joined));
+  const [removed, setRemoved] = useState<Set<string>>(() => new Set(cached?.removed));
+  const [connected, setConnected] = useState<Set<string>>(() => new Set(cached?.connected));
+  const [userId, setUserId] = useState<string | null>(cached?.userId ?? null);
+  const [viewerInitials, setViewerInitials] = useState(cached?.viewerInitials ?? "");
+  const [now, setNow] = useState(cached?.now ?? 0);
+  const [view, setView] = useState<View>(() => {
+    if (!cached) return { ...CLEAR, dates: DEFAULT_DATES };
+    if (!stored) return { ...CLEAR, dates: DEFAULT_DATES, level: cached.level };
+    const { y: _y, ...savedView } = stored; // eslint-disable-line @typescript-eslint/no-unused-vars
+    return savedView;
+  });
+  // With a remembered list, the place in it is restored straight away.
+  const restoreY = useRef(cached && stored ? stored.y : 0);
   const viewRef = useRef(view);
   const players = usePlayerSearch(view.query);
 
@@ -372,8 +398,11 @@ export default function DiscoverScreen() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       const uid = data.user?.id ?? null;
+      // Someone else signed in on this phone: never show the last person's list.
+      const fresh = cached == null || cached.userId !== uid;
+      if (fresh && cached) setLoading(true);
       try {
         const [all, mine, me, connections] = await Promise.all([
           loadGames(),
@@ -383,13 +412,18 @@ export default function DiscoverScreen() {
           uid ? getConnections(uid).catch(() => []) : Promise.resolve([]),
         ]);
         if (!active) return;
-        if (stored) {
-          const { y, ...savedView } = stored;
-          restoreY.current = y;
-          setView(savedView);
-        } else {
-          // A player sees their own level first, as the mockup shows.
-          setView((v) => ({ ...v, level: tierOfPlayer(me?.skill_level) }));
+        const level = tierOfPlayer(me?.skill_level);
+        // Filters are only set on a first load. A quiet refresh leaves them,
+        // and the place in the list, as the player left them.
+        if (fresh) {
+          if (stored) {
+            const { y, ...savedView } = stored;
+            restoreY.current = y;
+            setView(savedView);
+          } else {
+            // A player sees their own level first, as the mockup shows.
+            setView((v) => ({ ...v, level }));
+          }
         }
         setGames(all);
         setCreated(new Set(mine.created));
@@ -400,16 +434,28 @@ export default function DiscoverScreen() {
         setViewerInitials(initialsFrom(me?.name));
         setNow(Date.now());
         setFailed(false);
+        lastDiscover = {
+          userId: uid,
+          games: all,
+          created: mine.created,
+          joined: mine.joined,
+          removed: mine.removed,
+          connected: connections.map((p) => p.id),
+          viewerInitials: initialsFrom(me?.name),
+          now: Date.now(),
+          level,
+        };
       } catch {
         if (!active) return;
-        setFailed(true);
+        // A failed quiet refresh keeps the list already showing.
+        if (fresh) setFailed(true);
       }
       setLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, [attempt, stored]);
+  }, [attempt, stored, cached]);
 
   // Return to the same place in the list once it has drawn.
   useLayoutEffect(() => {

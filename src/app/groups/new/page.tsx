@@ -9,7 +9,7 @@ import Monogram from "@/components/ios/Monogram";
 import Sheet, { useSheetClosing } from "@/components/ios/Sheet";
 import MemberPicker from "@/components/MemberPicker";
 import { lastPath } from "@/lib/navMemory";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { addGroupMember, createGroup } from "../../groups";
 import type { ProfileSearchResult } from "../../profiles";
 
@@ -19,7 +19,7 @@ export default function NewGroupPage() {
   // Creating a group requires an account, so signed-out visitors go to log in.
   const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    getSignedInUser().then(({ data }) => {
       if (!data.user) {
         router.replace("/login");
         return;

@@ -18,7 +18,7 @@ import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import MessageCard, { TryAgain } from "@/components/ios/MessageCard";
 import PageTitle from "@/components/ios/PageTitle";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { amIAdmin, getReports, setReportStatus, REPORT_REASONS, type ReportRow } from "@/app/reports";
 
 const STATUSES = ["open", "reviewing", "closed"] as const;
@@ -68,7 +68,7 @@ export default function AdminReportsPage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       if (!data.user) {
         if (active) {
           setAdmin(false);

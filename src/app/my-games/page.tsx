@@ -12,7 +12,7 @@ import GameRow from "@/components/ios/GameRow";
 import Icon from "@/components/ios/Icon";
 import PageTitle from "@/components/ios/PageTitle";
 import { getGamesByIds } from "@/lib/data";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { dublinDateKey } from "@/lib/time";
 import type { Game } from "@/lib/types";
 import { getGamesCreatedBy, getGamesJoinedBy } from "../games";
@@ -60,7 +60,7 @@ export default function MyGamesPage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       const uid = data.user?.id ?? null;
       if (!uid) {
         router.replace("/login");

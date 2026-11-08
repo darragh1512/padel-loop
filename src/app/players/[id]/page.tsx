@@ -22,9 +22,9 @@ import Monogram from "@/components/ios/Monogram";
 import PlayerQRCode from "@/components/PlayerQRCode";
 import QRScanner from "@/components/QRScanner";
 import ReportDialog from "@/components/ReportDialog";
-import { getGame as getGameWithPlayers } from "@/lib/data";
+import { withPlayers } from "@/lib/data";
 import { previousPath } from "@/lib/navMemory";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import type { Game as GameCardData } from "@/lib/types";
 import { computeBadges, longestWinStreak, type BadgeProgress } from "../../badges";
 import { blockUser, getBlockedIds, isBlocked, unblockUser } from "../../blocks";
@@ -308,32 +308,52 @@ function CodePage({ playerId, name, onBack }: { playerId: string; name: string; 
   );
 }
 
+// The last copy of each profile shown, kept while the app is open, so coming back
+// to Profile (or a player) shows it at once and refreshes it quietly, as Home
+// does. Kept per player, and only for the same person looking.
+type ProfileData = {
+  viewerId: string | null;
+  profile: Profile | null;
+  upcoming: GameCardData[];
+  results: RecentResult[];
+  blockedIds: string[];
+  matchStats: PlayerMatchStats;
+  history: PlayerResultOutcome[];
+  connCount: number;
+  connected: boolean;
+  blocked: boolean;
+};
+const lastProfiles = new Map<string, ProfileData>();
+
 export default function PlayerProfilePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const playerId = params.id;
 
-  const [loading, setLoading] = useState(true);
+  const [cached] = useState(() => lastProfiles.get(playerId) ?? null);
+  const [loading, setLoading] = useState(cached == null);
   // Separate from "player not found". A failed load rendering as a missing
   // player tells somebody their friend deleted their account.
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [upcoming, setUpcoming] = useState<GameCardData[]>([]);
-  const [results, setResults] = useState<RecentResult[]>([]);
-  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
-  const [matchStats, setMatchStats] = useState<PlayerMatchStats>({
-    reliability: { recorded: 0, attended: 0, percent: null },
-    played: 0,
-    won: 0,
-    lost: 0,
-  });
-  const [history, setHistory] = useState<PlayerResultOutcome[]>([]);
-  const [connCount, setConnCount] = useState(0);
-  const [connected, setConnected] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(cached?.profile ?? null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(cached?.viewerId ?? null);
+  const [upcoming, setUpcoming] = useState<GameCardData[]>(cached?.upcoming ?? []);
+  const [results, setResults] = useState<RecentResult[]>(cached?.results ?? []);
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(() => new Set(cached?.blockedIds));
+  const [matchStats, setMatchStats] = useState<PlayerMatchStats>(
+    cached?.matchStats ?? {
+      reliability: { recorded: 0, attended: 0, percent: null },
+      played: 0,
+      won: 0,
+      lost: 0,
+    },
+  );
+  const [history, setHistory] = useState<PlayerResultOutcome[]>(cached?.history ?? []);
+  const [connCount, setConnCount] = useState(cached?.connCount ?? 0);
+  const [connected, setConnected] = useState(cached?.connected ?? false);
   const [connBusy, setConnBusy] = useState(false);
-  const [blocked, setBlocked] = useState(false);
+  const [blocked, setBlocked] = useState(cached?.blocked ?? false);
   const [blockBusy, setBlockBusy] = useState(false);
   const [confirmingBlock, setConfirmingBlock] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -350,36 +370,44 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      let auth, loaded, games, count, stats, hist;
+      // Who is looking is known on the phone, so everything else can be asked
+      // for at once rather than in two rounds.
+      const { data: auth } = await getSignedInUser();
+      const viewerId = auth.user?.id ?? null;
+      // Someone else signed in on this phone: start clean rather than show
+      // what the last person saw.
+      const fresh = cached == null || cached.viewerId !== viewerId;
+      if (fresh && cached) {
+        lastProfiles.clear();
+        setLoading(true);
+      }
+      let loaded, cards, count, stats, hist, recent, blockedList, isConn, viewerBlocked;
       try {
-        [{ data: auth }, loaded, games, count, stats, hist] = await Promise.all([
-          supabase.auth.getUser(),
+        [loaded, cards, count, stats, hist, recent, blockedList, isConn, viewerBlocked] = await Promise.all([
           getProfile(playerId),
-          getUpcomingGamesFor(playerId),
+          // The rows already hold each game, so only the players are added.
+          getUpcomingGamesFor(playerId).then((games) => withPlayers(games.slice(0, UPCOMING_ROWS))),
           getConnectionCount(playerId),
           getPlayerMatchStats(playerId),
           getPlayerResultHistory(playerId),
+          getRecentResults(playerId, RECENT_ROWS),
+          getBlockedIds(viewerId),
+          viewerId && viewerId !== playerId ? areConnected(viewerId, playerId) : Promise.resolve(false),
+          viewerId && viewerId !== playerId ? isBlocked(viewerId, playerId) : Promise.resolve(false),
         ]);
       } catch {
         if (!active) return;
-        setFailed(true);
+        // A failed quiet refresh keeps the profile already showing.
+        if (fresh) setFailed(true);
         setLoading(false);
         return;
       }
-      const viewerId = auth.user?.id ?? null;
-      const [cards, recent, blockedList, isConn, viewerBlocked] = await Promise.all([
-        Promise.all(games.slice(0, UPCOMING_ROWS).map((g) => getGameWithPlayers(String(g.id)))),
-        getRecentResults(playerId, RECENT_ROWS),
-        getBlockedIds(viewerId),
-        viewerId && viewerId !== playerId ? areConnected(viewerId, playerId) : Promise.resolve(false),
-        viewerId && viewerId !== playerId ? isBlocked(viewerId, playerId) : Promise.resolve(false),
-      ]);
       if (!active) return;
 
       setFailed(false);
       setProfile(loaded);
       setCurrentUserId(viewerId);
-      setUpcoming(cards.filter((g): g is GameCardData => g != null));
+      setUpcoming(cards);
       setResults(recent);
       setBlockedIds(blockedList);
       setConnCount(count);
@@ -396,7 +424,25 @@ export default function PlayerProfilePage() {
     return () => {
       active = false;
     };
-  }, [playerId, attempt]);
+  }, [playerId, attempt, cached]);
+
+  // Keep the remembered copy in step with what's on screen, including connecting
+  // and blocking done here.
+  useEffect(() => {
+    if (loading || failed) return;
+    lastProfiles.set(playerId, {
+      viewerId: currentUserId,
+      profile,
+      upcoming,
+      results,
+      blockedIds: [...blockedIds],
+      matchStats,
+      history,
+      connCount,
+      connected,
+      blocked,
+    });
+  }, [loading, failed, playerId, currentUserId, profile, upcoming, results, blockedIds, matchStats, history, connCount, connected, blocked]);
 
   // Remember the rating once it has been shown, so the same change never rolls twice.
   useEffect(() => {

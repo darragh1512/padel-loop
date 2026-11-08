@@ -12,6 +12,7 @@ import Monogram from "@/components/ios/Monogram";
 import PageTitle from "@/components/ios/PageTitle";
 import { resetAnalytics } from "@/lib/analytics";
 import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { getProfile, type Profile } from "../profiles";
 import BlockedList from "./blocked-list";
 import DeleteAccountSheet from "./delete-account";
@@ -45,7 +46,7 @@ export default function SettingsPage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       if (!data.user) {
         router.replace("/login");
         return;

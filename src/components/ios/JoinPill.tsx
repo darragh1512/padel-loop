@@ -7,6 +7,10 @@
 // Motion: the button dips under the thumb, then "Join" turns into "Joined" with
 // a tick while the button widens to fit. The parent fills the court spot and
 // lowers the count at the same moment.
+//
+// Instant: all of that happens on the tap, and the database is asked behind it.
+// If it says no, the button goes back to Join, onFailed tells the parent to undo
+// its part and show why, and the note clears itself after a few seconds.
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -20,14 +24,16 @@ export default function JoinPill({
   userId,
   priced,
   onJoined,
+  onConfirmed,
   onFailed,
 }: {
   gameId: string;
   gameLabel: string; // e.g. "Today, 20:00 at Star Padel", for screen readers
   userId: string | null;
   priced: boolean;
-  onJoined: () => void;
-  onFailed: (message: string) => void; // what to tell the player
+  onJoined: () => void; // on the tap
+  onConfirmed?: () => void; // once the database has agreed
+  onFailed: (message: string | null) => void; // undo, and what to tell the player (null: clear the note)
 }) {
   const router = useRouter();
   const [joined, setJoined] = useState(false);
@@ -44,17 +50,20 @@ export default function JoinPill({
     setWorking(true);
     // Fix the current width first, so the change to "Joined" animates from it.
     setWidth(buttonRef.current?.offsetWidth);
+    requestAnimationFrame(() => setWidth(doneRef.current?.scrollWidth));
+    setJoined(true);
+    onJoined();
     const result = await joinGame(gameId, userId);
     setWorking(false);
     if ("error" in result) {
+      setJoined(false);
       setWidth(undefined);
       onFailed(result.error === GAME_FULL ? GAME_FULL : "Couldn’t join. Try again.");
+      setTimeout(() => onFailed(null), 4000);
       return;
     }
     capture("game_joined", { game_id: gameId, priced });
-    setWidth(doneRef.current?.scrollWidth);
-    setJoined(true);
-    onJoined();
+    onConfirmed?.();
   }
 
   return (

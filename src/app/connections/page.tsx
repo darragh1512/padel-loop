@@ -10,7 +10,7 @@ import MessageCard, { TryAgain } from "@/components/ios/MessageCard";
 import PageTitle from "@/components/ios/PageTitle";
 import PlayerRow from "@/components/ios/PlayerRow";
 import PlayerSearch from "@/components/PlayerSearch";
-import { supabase } from "@/lib/supabaseClient";
+import { getSignedInUser } from "@/lib/session";
 import { getConnections, type ConnectionProfile } from "../connections";
 
 export default function ConnectionsPage() {
@@ -24,7 +24,7 @@ export default function ConnectionsPage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await getSignedInUser();
       const uid = data.user?.id ?? null;
       if (!uid) {
         router.replace("/login");

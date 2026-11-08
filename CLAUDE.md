@@ -60,12 +60,21 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
-- iPhone-style rebuild (on branch `redesign/ios-native`, not yet live). Every screen
-  was rebuilt to match `mockups/`, keeping the existing data and sign-in plumbing;
-  the earlier poster-style design and its fonts were removed. Players now show a
-  photo or initials through `ios/Monogram`, and older entries below that mention
-  `PlayerAvatar` or DiceBear describe code that has since gone. App icons and splash
-  screens are still the old ones until the owner chooses a new icon.
+- Speed (branch `perf/instant-tabs`, not yet live). Screens read who is signed in
+  from the saved sign-in (`getSignedInUser` in `src/lib/session.ts`) instead of
+  `supabase.auth.getUser()`, which cost a round trip on every screen and tab tap.
+  Chats, Home and Profile ask the database in parallel. Discover, Chats and Profile
+  keep their last copy while the app is open (like Home) and refresh quietly.
+  Profile has `loading.tsx` and its tab prefetches fully. Join, Leave, Pin, Archive
+  and sending a message change on the tap and undo with a short note if the
+  database refuses.
+- iPhone-style rebuild: LIVE on `main` since 2026-11-08 (also moved server code to
+  Dublin, `dub1`). Every screen was rebuilt to match `mockups/`, keeping the
+  existing data and sign-in plumbing; the earlier poster-style design and its fonts
+  were removed. Players show a photo or initials through `ios/Monogram`, and older
+  entries below that mention `PlayerAvatar` or DiceBear describe code that has
+  since gone. Icons and splash screens are the Loop artwork; the master is
+  `public/icons/padel-loop-icon.svg`.
 - Account deletion FIX (CODE DONE 2026-10-12 — migration
   `20261012010000_delete_account_storage_api.sql` APPLIED 2026-10-12). Deletion had been
   failing for every account: Supabase now refuses `delete from
