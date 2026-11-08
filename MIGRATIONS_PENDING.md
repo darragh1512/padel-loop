@@ -27,7 +27,7 @@ from the top.
 
 | File | What it adds | Depends on |
 |---|---|---|
-| None | | |
+| `20261108150000_delete_cancelled_game.sql` | `delete_cancelled_game(p_game_id)`: the organiser deletes their own CANCELLED game with no match result of any kind; everything attached goes with it through the existing delete-with-game links. Adds one function only; deletes nothing when run. Its safety check stops, changing nothing, if any link to games is not set to delete with the game. | Nothing pending. Written from the owner's read-only check of 2026-11-08 (every link cascades; the game_players rules return early once the game is gone). No pre-flight. Until it runs, Delete Game says it isn't switched on yet. |
 
 ## Applied
 
