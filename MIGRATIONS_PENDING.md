@@ -27,7 +27,7 @@ from the top.
 
 | File | What it adds | Depends on |
 |---|---|---|
-| `20261108150000_delete_cancelled_game.sql` | `delete_cancelled_game(p_game_id)`: the organiser deletes their own CANCELLED game with no match result of any kind; everything attached goes with it through the existing delete-with-game links. Adds one function only; deletes nothing when run. Its safety check stops, changing nothing, if any link to games is not set to delete with the game. | Nothing pending. Written from the owner's read-only check of 2026-11-08 (every link cascades; the game_players rules return early once the game is gone). No pre-flight. Until it runs, Delete Game says it isn't switched on yet. |
+| None | | |
 
 ## Applied
 
@@ -61,6 +61,7 @@ Run by hand in the SQL editor since:
 | `20261106190000_full_game_rule.sql` | 2026-11-06 | `check_game_has_space()` and its trigger: the database refuses a player joining a full game, counting guests as taken spots. Weekly copies and waitlist moves aren't affected. |
 | `20261106200000_rating_change.sql` | 2026-11-06 | `rating_change` on `match_result_participants`, and `apply_result_rating()` saves each player's change when a result is confirmed. No rating moved and older results stay blank. The first run stopped safely because the live function has no comments; the safety check and function were then rebuilt from the live text, which matched the 20260812 logic. |
 | `20261108120000_chat_archives.sql` | 2026-11-08 | `chat_archives` (personal archived chats: own-rows-only RLS, only chats you are in via `can_pin_chat`), triggers that drop your archive of a chat when you leave it, and `unpin_cancelled_game()`, which removes everyone's pins on a game when it is cancelled. Changed no existing row, column or function. Run by the owner: Success. |
+| `20261108150000_delete_cancelled_game.sql` | 2026-11-08 | `delete_cancelled_game(p_game_id)`: the organiser deletes their own cancelled game with no match result of any kind; everything attached goes with it through the delete-with-game links. Added one function only. Its safety check passed (every link to games deletes with the game). Run by the owner: Success. |
 
 ### Two follow-ups those files asked for
 

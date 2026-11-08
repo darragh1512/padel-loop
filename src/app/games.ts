@@ -870,18 +870,15 @@ export async function cancelGame(
 // Delete a CANCELLED game completely, for everyone: the game, its players, its
 // chat and everything else attached to it. Only its organiser can, and never
 // once it has a match result, because ratings are built from results. All of
-// that is checked by the database function, which does the deleting in one go.
-// Until that function is added, this answers that deleting isn't available yet.
-export const DELETE_NOT_READY = "Deleting games isn’t switched on yet.";
-
+// that is checked by the database function delete_cancelled_game()
+// (supabase/migrations/20261108150000_delete_cancelled_game.sql), which does the
+// deleting in one go.
 export async function deleteCancelledGame(
   gameId: string,
 ): Promise<{ ok: true } | { error: string }> {
   const { error } = await supabase.rpc("delete_cancelled_game", { p_game_id: Number(gameId) });
   if (!error) return { ok: true };
   console.error("Could not delete game:", error.message);
-  // PGRST202 = no such function yet (the database change hasn't been run).
-  if (error.code === "PGRST202" || error.code === "42883") return { error: DELETE_NOT_READY };
   // The function's own refusals are written as sentences for people.
   if (error.code === "P0001" || error.code === "23514" || error.code === "42501") return { error: error.message };
   return { error: "Couldn’t delete the game. Try again." };
