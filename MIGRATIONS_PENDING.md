@@ -27,7 +27,7 @@ from the top.
 
 | File | What it adds | Depends on |
 |---|---|---|
-| `20261108120000_chat_archives.sql` | `chat_archives` (personal archived chats: own-rows-only RLS, only chats you're in via `can_pin_chat`), triggers that drop your archive of a chat when you leave it, and a trigger that removes everyone's pins on a game when it's cancelled. Changes no existing row, column or function. | `20260928010000_chat_pins.sql` (uses `can_pin_chat`), already applied. No pre-flight. Safe either side of the app deploy: until it runs, Archive says it couldn't archive and nothing else changes. |
+| None | | |
 
 ## Applied
 
@@ -60,6 +60,7 @@ Run by hand in the SQL editor since:
 | `20261106120000_game_guests.sql` | 2026-11-06 | `guest_count` on `games` for friends not on the app. Guests count as taken spots in `roll_recurring_games()`, `promote_from_waitlist()` and `notify_player_left()`, and `notify_game_full_with_guests()` tells the organiser when a game with guests fills up. Its safety check confirmed all three live functions matched before anything changed. |
 | `20261106190000_full_game_rule.sql` | 2026-11-06 | `check_game_has_space()` and its trigger: the database refuses a player joining a full game, counting guests as taken spots. Weekly copies and waitlist moves aren't affected. |
 | `20261106200000_rating_change.sql` | 2026-11-06 | `rating_change` on `match_result_participants`, and `apply_result_rating()` saves each player's change when a result is confirmed. No rating moved and older results stay blank. The first run stopped safely because the live function has no comments; the safety check and function were then rebuilt from the live text, which matched the 20260812 logic. |
+| `20261108120000_chat_archives.sql` | 2026-11-08 | `chat_archives` (personal archived chats: own-rows-only RLS, only chats you are in via `can_pin_chat`), triggers that drop your archive of a chat when you leave it, and `unpin_cancelled_game()`, which removes everyone's pins on a game when it is cancelled. Changed no existing row, column or function. Run by the owner: Success. |
 
 ### Two follow-ups those files asked for
 
