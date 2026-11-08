@@ -3,18 +3,26 @@
 //
 // This screen is JUST a list. Tapping a row opens that conversation's full-screen
 // page, and all sending, live updates and access checks live there.
+//
+// Swipe a row left to archive it (only for you) or, in Archived, to bring it
+// back. Cancelled games move to Archived for everyone, marked Cancelled, and their
+// organiser can delete them there. A game's chat stops being pinned once the
+// game is cancelled or has finished.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import { PinLimitDialog, PinToggle } from "@/components/ChatPin";
+import Alert from "@/components/ios/Alert";
 import Icon from "@/components/ios/Icon";
 import Monogram from "@/components/ios/Monogram";
+import SwipeRow, { type SwipeAction } from "@/components/ios/SwipeRow";
 import { supabase } from "@/lib/supabaseClient";
 import { APP_TIME_ZONE, dublinDateKey } from "@/lib/time";
 import { gameWhen } from "@/lib/when";
-import { MAX_PINS, getPinnedKeys, pinChat, pinKey, unpinChat } from "../chat-pins";
-import { getConversationsFor, type Conversation } from "../games";
+import { archiveChat, getArchivedKeys, unarchiveChat } from "../chat-archives";
+import { MAX_PINS, gameChatPinnable, getPinnedKeys, isGameCancelled, pinChat, pinKey, unpinChat } from "../chat-pins";
+import { deleteCancelledGame, getConversationsFor, type Conversation } from "../games";
 
 // The clock time if it was today ("14:32"), otherwise the date ("10 Jun"). On a
 // Dublin clock, like every other time in the app.
@@ -46,24 +54,45 @@ function daysUntil(iso: string): number | null {
   return Math.round((Date.parse(`${key}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
 }
 
+// Whether this chat can be pinned right now: groups always, games until they're
+// cancelled or finished.
+function pinnable(c: Conversation): boolean {
+  return c.kind === "group" || gameChatPinnable(c.game);
+}
+function cancelled(c: Conversation): boolean {
+  return c.kind === "game" && isGameCancelled(c.game);
+}
+
 function ConversationRow({
   c,
   pinned,
   pinBusy,
   onTogglePin,
+  showPin,
 }: {
   c: Conversation;
   pinned: boolean;
   pinBusy: boolean;
   onTogglePin: () => void;
+  showPin: boolean;
 }) {
   const title = c.kind === "game" ? c.game.venue : c.group.name;
-  const days = c.kind === "game" ? daysUntil(c.game.game_time) : null;
-  const soon = days != null && days >= 0 && days <= 1;
+  const isCancelled = cancelled(c);
+  // Finished: played already today, so no longer "starts today".
+  const finished = c.kind === "game" && !isCancelled && !gameChatPinnable(c.game);
+  const days = c.kind === "game" && !isCancelled ? daysUntil(c.game.game_time) : null;
+  const soon = !finished && days != null && days >= 0 && days <= 1;
 
   let meta: string;
   if (c.kind === "game") {
-    const when = days === 0 ? "Starts today" : days === 1 ? "Starts tomorrow" : gameWhen(c.game.game_time);
+    const when =
+      finished && days === 0
+        ? "Played today"
+        : !finished && days === 0
+          ? "Starts today"
+          : days === 1
+            ? "Starts tomorrow"
+            : gameWhen(c.game.game_time);
     meta = c.game.location ? `${when} · ${c.game.location}` : when;
   } else {
     meta = `${c.memberCount} member${c.memberCount === 1 ? "" : "s"}`;
@@ -83,6 +112,7 @@ function ConversationRow({
         <span className="ios-grow">
           <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
             <span className="ios-hl ios-clip ios-grow">{title}</span>
+            {isCancelled && <span className="ios-cancelled-tag">Cancelled</span>}
             <span className="ios-fn ios-sec" style={{ flex: "none" }}>
               {shortStamp(c.lastMessageAt)}
             </span>
@@ -95,7 +125,7 @@ function ConversationRow({
           </span>
         </span>
       </Link>
-      <PinToggle pinned={pinned} busy={pinBusy} title={title} onToggle={onTogglePin} />
+      {showPin && <PinToggle pinned={pinned} busy={pinBusy} title={title} onToggle={onTogglePin} />}
     </div>
   );
 }
@@ -143,6 +173,7 @@ export default function ChatPage() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [pastOpen, setPastOpen] = useState(false);
+  const [archivedOpen, setArchivedOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>("All");
 
   // Pins are this person's own. Nobody else's list is affected by anything here.
@@ -151,6 +182,13 @@ export default function ChatPage() {
   const [pinBusy, setPinBusy] = useState<string | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
+
+  // Archived chats are this person's own too.
+  const [archived, setArchived] = useState<Set<string>>(new Set());
+  const [swiped, setSwiped] = useState<string | null>(null); // the row swiped open
+  const [deleting, setDeleting] = useState<Conversation | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -162,10 +200,25 @@ export default function ChatPage() {
       setUserId(uid);
       if (uid) {
         try {
-          const [convos, pinned] = await Promise.all([getConversationsFor(uid), getPinnedKeys(uid)]);
+          const [convos, pinned, archivedKeys] = await Promise.all([
+            getConversationsFor(uid),
+            getPinnedKeys(uid),
+            getArchivedKeys(uid),
+          ]);
           if (!active) return;
+          // A cancelled or finished game's pin is dropped, so it stops holding
+          // one of the three places. Quietly: if that fails, the chat still
+          // shows unpinned and the next visit tries again.
+          for (const c of convos) {
+            const key = pinKeyFor(c);
+            if (pinned.has(key) && !pinnable(c)) {
+              pinned.delete(key);
+              unpinChat(uid, c.kind, conversationKey(c)).catch(() => {});
+            }
+          }
           setConversations(convos);
           setPins(pinned);
+          setArchived(archivedKeys);
           setFailed(false);
         } catch {
           if (!active) return;
@@ -219,13 +272,85 @@ export default function ChatPage() {
     });
   }
 
-  const rowProps = (c: Conversation) => ({
-    pinned: pins.has(pinKeyFor(c)),
-    pinBusy: pinBusy === pinKeyFor(c),
-    onTogglePin: () => togglePin(c),
-  });
+  async function setArchivedFor(c: Conversation, archive: boolean) {
+    if (!userId) return;
+    const key = pinKeyFor(c);
+    setPinError(null);
+    const result = archive
+      ? await archiveChat(userId, c.kind, conversationKey(c))
+      : await unarchiveChat(userId, c.kind, conversationKey(c));
+    if ("error" in result) {
+      setPinError(result.error);
+      return;
+    }
+    setArchived((prev) => {
+      const next = new Set(prev);
+      if (archive) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+    // An archived chat isn't pinned any more, as in Messages.
+    if (archive && pins.has(key)) {
+      setPins((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+      unpinChat(userId, c.kind, conversationKey(c)).catch(() => {});
+    }
+  }
 
-  const { pinnedRows, sections, past } = useMemo(() => {
+  async function confirmDelete() {
+    if (!deleting || deleting.kind !== "game" || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    const result = await deleteCancelledGame(deleting.game.id);
+    setDeleteBusy(false);
+    if ("error" in result) {
+      setDeleteError(result.error);
+      return;
+    }
+    const gone = pinKeyFor(deleting);
+    setConversations((prev) => prev.filter((c) => pinKeyFor(c) !== gone));
+    setDeleting(null);
+  }
+
+  const isArchived = (c: Conversation) => cancelled(c) || archived.has(pinKeyFor(c));
+
+  // What a swipe left reveals on this row.
+  function swipeActions(c: Conversation): SwipeAction[] {
+    if (cancelled(c)) {
+      // Only the organiser is offered Delete; the database has the final say.
+      return c.kind === "game" && userId != null && c.game.created_by === userId
+        ? [{ label: "Delete", tone: "destructive", onPress: () => { setDeleteError(null); setDeleting(c); } }]
+        : [];
+    }
+    return archived.has(pinKeyFor(c))
+      ? [{ label: "Unarchive", tone: "archive", onPress: () => setArchivedFor(c, false) }]
+      : [{ label: "Archive", tone: "archive", onPress: () => setArchivedFor(c, true) }];
+  }
+
+  const renderRow = (c: Conversation) => {
+    const key = pinKeyFor(c);
+    const inner = (
+      <ConversationRow
+        c={c}
+        pinned={pins.has(key)}
+        pinBusy={pinBusy === key}
+        onTogglePin={() => togglePin(c)}
+        showPin={!isArchived(c) && pinnable(c)}
+      />
+    );
+    const actions = swipeActions(c);
+    if (actions.length === 0) return <div key={key} className="ios-swipe">{inner}</div>;
+    return (
+      <SwipeRow key={key} actions={actions} open={swiped === key} onOpenChange={(o) => setSwiped(o ? key : null)}>
+        {inner}
+      </SwipeRow>
+    );
+  };
+
+  const { pinnedRows, sections, past, archivedRows } = useMemo(() => {
     // The boundary is DUBLIN midnight, so a game later today stays active all
     // day. Groups have no game time and always stay active.
     const today = dublinDateKey(new Date());
@@ -236,20 +361,24 @@ export default function ChatPage() {
     };
     const matches = (c: Conversation) =>
       filter === "All" || (filter === "Games" ? c.kind === "game" : c.kind === "group");
-    const pinnedKey = (c: Conversation) => pins.has(pinKeyFor(c));
-    const active = conversations.filter((c) => !isPast(c) && !pinnedKey(c) && matches(c));
+    const inArchive = (c: Conversation) => cancelled(c) || archived.has(pinKeyFor(c));
+    const pinnedKey = (c: Conversation) => pins.has(pinKeyFor(c)) && !inArchive(c);
+    const live = conversations.filter((c) => !inArchive(c) && matches(c));
+    const active = live.filter((c) => !isPast(c) && !pinnedKey(c));
     return {
       // Pinned chats are lifted out of wherever they'd normally sit, including Past.
-      pinnedRows: conversations.filter((c) => pinnedKey(c) && matches(c)),
+      pinnedRows: live.filter(pinnedKey),
       sections: [
         { title: "Game Chats", rows: active.filter((c) => c.kind === "game") },
         { title: "Groups", rows: active.filter((c) => c.kind === "group") },
       ].filter((s) => s.rows.length > 0),
-      past: conversations.filter((c) => isPast(c) && !pinnedKey(c) && matches(c)),
+      past: live.filter((c) => isPast(c) && !pinnedKey(c)),
+      // Last of all. Cancelled games are here for everyone; the rest only for you.
+      archivedRows: conversations.filter((c) => inArchive(c) && matches(c)),
     };
-  }, [conversations, filter, pins]);
+  }, [conversations, filter, pins, archived]);
 
-  const nothing = pinnedRows.length === 0 && sections.length === 0 && past.length === 0;
+  const nothing = pinnedRows.length === 0 && sections.length === 0 && past.length === 0 && archivedRows.length === 0;
 
   return (
     <main className="ios">
@@ -320,9 +449,7 @@ export default function ChatPage() {
                     </div>
                   </div>
                   <div className="ios-list">
-                    {pinnedRows.map((c) => (
-                      <ConversationRow key={pinKeyFor(c)} c={c} {...rowProps(c)} />
-                    ))}
+                    {pinnedRows.map(renderRow)}
                   </div>
                 </section>
               )}
@@ -333,9 +460,7 @@ export default function ChatPage() {
                     <h2 className="ios-t3">{s.title}</h2>
                   </div>
                   <div className="ios-list">
-                    {s.rows.map((c) => (
-                      <ConversationRow key={pinKeyFor(c)} c={c} {...rowProps(c)} />
-                    ))}
+                    {s.rows.map(renderRow)}
                   </div>
                 </section>
               ))}
@@ -354,7 +479,25 @@ export default function ChatPage() {
                       <Icon name="chevron-right" size={13} />
                     </span>
                   </button>
-                  {pastOpen && past.map((c) => <ConversationRow key={pinKeyFor(c)} c={c} {...rowProps(c)} />)}
+                  {pastOpen && past.map(renderRow)}
+                </div>
+              )}
+
+              {archivedRows.length > 0 && (
+                <div className="ios-list" style={{ marginTop: 16 }}>
+                  <button
+                    type="button"
+                    className="ios-row ios-toggle-row"
+                    aria-expanded={archivedOpen}
+                    onClick={() => setArchivedOpen((v) => !v)}
+                  >
+                    <span className="ios-bd ios-grow">Archived</span>
+                    <span className="ios-fn ios-sec">{archivedRows.length}</span>
+                    <span className="ios-chev ios-disclose" data-open={archivedOpen}>
+                      <Icon name="chevron-right" size={13} />
+                    </span>
+                  </button>
+                  {archivedOpen && archivedRows.map(renderRow)}
                 </div>
               )}
             </>
@@ -368,6 +511,20 @@ export default function ChatPage() {
         </div>
       )}
       <PinLimitDialog open={limitOpen} onClose={() => setLimitOpen(false)} />
+      <Alert
+        open={deleting != null}
+        onClose={() => {
+          if (!deleteBusy) setDeleting(null);
+        }}
+        title="Delete This Game?"
+        error={deleteError}
+        actions={[
+          { label: "Keep", bold: true, disabled: deleteBusy, onPress: () => setDeleting(null) },
+          { label: "Delete", destructive: true, busy: deleteBusy, onPress: confirmDelete },
+        ]}
+      >
+        The game and its chat will be removed for everyone. This can’t be undone.
+      </Alert>
       <div style={{ height: 16 }} />
       <BottomNav />
     </main>

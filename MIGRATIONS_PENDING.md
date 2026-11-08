@@ -27,7 +27,7 @@ from the top.
 
 | File | What it adds | Depends on |
 |---|---|---|
-| None | | |
+| `20261108120000_chat_archives.sql` | `chat_archives` (personal archived chats: own-rows-only RLS, only chats you're in via `can_pin_chat`), triggers that drop your archive of a chat when you leave it, and a trigger that removes everyone's pins on a game when it's cancelled. Changes no existing row, column or function. | `20260928010000_chat_pins.sql` (uses `can_pin_chat`), already applied. No pre-flight. Safe either side of the app deploy: until it runs, Archive says it couldn't archive and nothing else changes. |
 
 ## Applied
 

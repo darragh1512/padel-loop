@@ -15,6 +15,25 @@ export const PIN_LIMIT_MESSAGE = "You can pin up to 3 chats. Unpin one first.";
 
 export type ChatKind = "game" | "group";
 
+// A game's chat stays pinned only while the game is still ahead or being
+// played: once it's cancelled, or once it has finished, the pin goes. A game
+// with no length set counts as 90 minutes, the app's default.
+const DEFAULT_GAME_MINUTES = 90;
+
+export function isGameCancelled(game: { status?: string | null }): boolean {
+  return (game.status ?? "").trim().toLowerCase() === "cancelled";
+}
+
+export function gameChatPinnable(
+  game: { status?: string | null; game_time: string; duration_mins?: number | null },
+  now: number = Date.now(),
+): boolean {
+  if (isGameCancelled(game)) return false;
+  const start = Date.parse(game.game_time);
+  if (Number.isNaN(start)) return true; // unreadable time: leave it alone
+  return now < start + (game.duration_mins ?? DEFAULT_GAME_MINUTES) * 60_000;
+}
+
 // A pin's identity, prefixed with its kind — a game and a group can share
 // the same numeric id, so the bare id isn't enough.
 export function pinKey(kind: ChatKind, id: string): string {

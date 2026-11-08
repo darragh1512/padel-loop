@@ -4,6 +4,7 @@ import ChatHeader from "@/components/ChatHeader";
 import { ChatPinButton } from "@/components/ChatPin";
 import Icon from "@/components/ios/Icon";
 import { gameWhen } from "@/lib/when";
+import { gameChatPinnable } from "../../../chat-pins";
 import { getGameOrThrow } from "../../../games";
 import ChatThread from "../chat-thread";
 
@@ -27,7 +28,8 @@ export default async function GameChatPage({ params }: { params: Promise<{ id: s
         title={game.venue}
         subtitle={[game.location, gameWhen(game.game_time)].filter(Boolean).join(" · ")}
       >
-        <ChatPinButton kind="game" id={id} title={game.venue} />
+        {/* A cancelled or finished game's chat can't be pinned. */}
+        {gameChatPinnable(game) && <ChatPinButton kind="game" id={id} title={game.venue} />}
         <Link href={`/games/${id}`} aria-label="View game" className="ios-gcap-i ios-press">
           <Icon name="info" size={22} />
         </Link>

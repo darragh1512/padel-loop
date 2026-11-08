@@ -164,6 +164,31 @@ body {
 }
 .ios-grow { flex: 1; min-width: 0; }
 
+/* ── Swipe-left rows (Chats) ── */
+.ios-swipe { position: relative; overflow: hidden; }
+.ios-swipe + .ios-swipe::before, .ios-row + .ios-swipe::before {
+  content: ""; position: absolute; z-index: 2; top: 0; right: 0; left: var(--ios-inset, 72px);
+  height: 0.5px; background: var(--ios-sep);
+}
+.ios-swipe-front {
+  position: relative; z-index: 1; background: var(--ios-card); touch-action: pan-y;
+  transition: transform 260ms var(--ios-ease-out);
+}
+.ios-swipe[data-dragging] .ios-swipe-front { transition: none; }
+.ios-swipe-actions {
+  position: absolute; top: 0; right: 0; bottom: 0; display: flex; overflow: hidden;
+  transition: width 260ms var(--ios-ease-out);
+}
+.ios-swipe[data-dragging] .ios-swipe-actions { transition: none; }
+.ios-swipe-btn {
+  flex: 1; min-width: 0; border: 0; padding: 0 6px; cursor: pointer; color: #fff;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.23px; white-space: nowrap; overflow: hidden;
+}
+.ios-swipe-btn[data-tone="archive"] { background: #5856d6; }
+.ios-swipe-btn[data-tone="destructive"] { background: #d70015; }
+/* "Cancelled" beside an archived game's name. */
+.ios-cancelled-tag { flex: none; color: var(--ios-destructive); font-size: 13px; font-weight: 600; }
+
 /* ── Press feedback ── */
 .ios-press { transition: transform 120ms var(--ios-ease-out); }
 .ios-press:active { transform: scale(0.97); }
@@ -712,6 +737,7 @@ html:active-view-transition-type(open-game, close-game)::view-transition-new(roo
   .ios-court-big .ios-court-spot, .ios-sheet .ios-court-big .ios-court-spot { transition: opacity 180ms linear; }
   .ios-bar-btn, .ios-bar-btn:active:not(:disabled) { transform: none; transition: background-color 200ms linear, color 200ms linear; }
   .ios-joinbar, .ios-toast { transition: none; }
+  .ios-swipe-front, .ios-swipe-actions { transition: none; }
   .ios-bar-face { transition: opacity 200ms linear; }
   .ios-bar-face[data-on="false"] { filter: none; }
   ::view-transition-group(.court-morph) { animation-duration: 0s; }

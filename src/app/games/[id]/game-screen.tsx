@@ -191,6 +191,7 @@ export default function GameScreen({
     recursWeekly: game.recursWeekly,
     seriesId: game.seriesId,
     isManuallyClosed: closed,
+    hasResult,
     onMessage: setToast,
   });
 
@@ -200,7 +201,7 @@ export default function GameScreen({
   const menuItems: MenuItem[] = [
     ...memberItems,
     { label: "Copy Link", onPress: () => copyGameLink(game.id).then(showCopyResult) },
-    ...(isOrganiser && !cancelled ? creator.items : []),
+    ...(isOrganiser ? (cancelled ? creator.cancelledItems : creator.items) : []),
     ...(joined && !isOrganiser && !cancelled
       ? [{ label: "Leave Game", destructive: true, onPress: () => control.setConfirmingLeave(true) }]
       : []),
