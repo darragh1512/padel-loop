@@ -27,7 +27,7 @@ from the top.
 
 | File | What it adds | Depends on |
 |---|---|---|
-| None | | |
+| `20261110120000_protect_profile_columns.sql` | SECURITY FIX. `protect_profile_columns()` and its trigger: when a player (authenticated or anon role) creates a profile, is_admin is forced false and rating set from their level; when a player changes one, any change to is_admin or rating is refused. The database's own SECURITY DEFINER functions (apply_result_rating) and the dashboard are unaffected. Changes no existing row; the existing guard_profile_privileged_columns() is left in place. | Nothing pending. No pre-flight. Safe either side of any app deploy: the app never sends either column. |
 
 ## Applied
 
