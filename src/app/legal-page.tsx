@@ -1,4 +1,4 @@
-// Renders one markdown file from /content as a page.
+// Renders one markdown file from /content as a page: Terms, Privacy and Support.
 //
 // THE POINT: the words live in `content/*.md` and nothing else. Editing the
 // terms or the privacy policy means editing that file — no component, no JSX,
@@ -22,7 +22,7 @@ import { marked } from "marked";
 import BottomNav from "@/components/BottomNav";
 import PageTitle from "@/components/ios/PageTitle";
 
-export default async function LegalPage({ slug }: { slug: "terms" | "privacy" }) {
+export default async function LegalPage({ slug }: { slug: "terms" | "privacy" | "support" }) {
   const source = await readFile(join(process.cwd(), "content", `${slug}.md`), "utf8");
   const html = await marked.parse(source);
 

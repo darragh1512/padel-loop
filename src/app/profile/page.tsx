@@ -1,6 +1,6 @@
 "use client";
 // Settings (/profile): your account, the screens that have no tab of their own,
-// blocked players, the legal pages, logging out and deleting your account. What
+// blocked players, the legal pages and Support, logging out and deleting your account. What
 // you edit about yourself lives on your profile, in Edit Profile.
 
 import { useEffect, useState } from "react";
@@ -116,6 +116,7 @@ export default function SettingsPage() {
           <div className="ios-list" style={{ marginTop: 16 }}>
             <Row href="/terms" label="Terms of Use" />
             <Row href="/privacy" label="Privacy Policy" />
+            <Row href="/support" label="Support" />
           </div>
 
           <div className="ios-list" style={{ marginTop: 16 }}>

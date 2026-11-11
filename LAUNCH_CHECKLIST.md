@@ -21,7 +21,8 @@ Jobs that have to be done before Padel Loop goes properly public. Tick them off 
 - [ ] **Test a real account deletion with a throwaway account.** Create an account, join a game, then delete it from Settings and check the login, profile and chat messages are gone. So far this has only been tested against a stand-in database.
 
 - [ ] **Replace the placeholder Terms and Privacy Policy with real ones.** Both pages currently say "PLACEHOLDER" at the top, and people tick a box agreeing to them at sign-up. Drafts exist and are waiting on the company number and a contact email. Have the real wording checked by a solicitor. When the text changes, update the "Last updated" date in each file and the matching version in `src/app/terms-acceptance.ts`, which records who agreed to which version. The Privacy Policy should also name every service that handles people's data; it currently lists only PostHog and Sentry, and the email service will need adding.
-- [ ] **Privacy policy URL and support URL for the App Store listing.** Apple asks for both. The privacy policy is already public at `/privacy`, but can't be submitted until the placeholder is replaced. There's no support page yet, so one will need adding, using the real contact email.
+- [ ] **Put the real contact email on the Support page.** The page at `/support` says **[CONTACT EMAIL — TO ADD]** where the address should be. Once the support@ mailbox exists (see the email service job above), open `content/support.md`, replace that placeholder with the real address written as `[support@yourdomain](mailto:support@yourdomain)` so it can be tapped, and push. No code needs touching.
+- [ ] **Privacy policy URL and support URL for the App Store listing.** Apple asks for both. The privacy policy is already public at `/privacy`, but can't be submitted until the placeholder is replaced. The support page is public at `/support`, but can't be submitted until it has the real contact email.
 
 ## After launch
 
