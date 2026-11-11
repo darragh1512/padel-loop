@@ -25,9 +25,7 @@ from the top.
 
 ## Pending
 
-| File | What it adds | Depends on |
-|---|---|---|
-| `20261110120000_protect_profile_columns.sql` | SECURITY FIX. `protect_profile_columns()` and its trigger: when a player (authenticated or anon role) creates a profile, is_admin is forced false and rating set from their level; when a player changes one, any change to is_admin or rating is refused. The database's own SECURITY DEFINER functions (apply_result_rating) and the dashboard are unaffected. Changes no existing row; the existing guard_profile_privileged_columns() is left in place. | Nothing pending. No pre-flight. Safe either side of any app deploy: the app never sends either column. |
+Nothing pending.
 
 ## Applied
 
@@ -62,6 +60,7 @@ Run by hand in the SQL editor since:
 | `20261106200000_rating_change.sql` | 2026-11-06 | `rating_change` on `match_result_participants`, and `apply_result_rating()` saves each player's change when a result is confirmed. No rating moved and older results stay blank. The first run stopped safely because the live function has no comments; the safety check and function were then rebuilt from the live text, which matched the 20260812 logic. |
 | `20261108120000_chat_archives.sql` | 2026-11-08 | `chat_archives` (personal archived chats: own-rows-only RLS, only chats you are in via `can_pin_chat`), triggers that drop your archive of a chat when you leave it, and `unpin_cancelled_game()`, which removes everyone's pins on a game when it is cancelled. Changed no existing row, column or function. Run by the owner: Success. |
 | `20261108150000_delete_cancelled_game.sql` | 2026-11-08 | `delete_cancelled_game(p_game_id)`: the organiser deletes their own cancelled game with no match result of any kind; everything attached goes with it through the delete-with-game links. Added one function only. Its safety check passed (every link to games deletes with the game). Run by the owner: Success. |
+| `20261110120000_protect_profile_columns.sql` | 2026-11-11 | SECURITY FIX. `protect_profile_columns()` and its trigger: a player creating a profile always gets is_admin = false and the starting rating for their level; a player changing is_admin or rating on their own profile is refused. The database's own SECURITY DEFINER functions (`apply_result_rating`) and the dashboard are unaffected. Changed no existing row; `guard_profile_privileged_columns()` left in place. Run by the owner: Success. |
 
 ### Two follow-ups those files asked for
 
