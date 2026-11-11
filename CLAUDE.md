@@ -60,7 +60,8 @@ To stay focused, we are deliberately leaving these for later:
   The public site is the Vercel link above, updated automatically on each push.
 
 ## Project status / progress log
-- Speed (branch `perf/instant-tabs`, not yet live). Screens read who is signed in
+- Speed (branch `perf/instant-tabs`): LIVE on `main` (commit `ecfe1f2`); owner
+  confirmed it on their phone 2026-11-11. Screens read who is signed in
   from the saved sign-in (`getSignedInUser` in `src/lib/session.ts`) instead of
   `supabase.auth.getUser()`, which cost a round trip on every screen and tab tap.
   Chats, Home and Profile ask the database in parallel. Discover, Chats and Profile
